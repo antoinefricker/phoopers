@@ -1,7 +1,11 @@
 name: CI
 
+# A PR branch would otherwise run twice per push: once for `push` and once for
+# `pull_request`, in different concurrency groups, so neither cancels the other.
+# Branch work is covered by the `pull_request` trigger.
 on:
   push:
+    branches: [main]
   pull_request:
 
 # Nothing in this job writes to the repository or publishes anything.
