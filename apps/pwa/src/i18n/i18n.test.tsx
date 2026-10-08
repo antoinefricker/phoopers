@@ -26,9 +26,7 @@ describe('i18n', () => {
     await i18n.changeLanguage('fr');
     render(<Strings />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Phoopers — Tableau tactique' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Phoopers — Tableau tactique' })).toBeInTheDocument();
   });
 
   it('falls back to the English catalogue rather than rendering an empty string', async () => {
@@ -38,9 +36,7 @@ describe('i18n', () => {
     i18n.addResource('en', 'common', 'app.fallbackProbe', 'catalogue-only value');
     await i18n.changeLanguage('fr');
 
-    expect(i18n.t('app.fallbackProbe' as 'app.title', 'inline default')).toBe(
-      'catalogue-only value',
-    );
+    expect(i18n.t('app.fallbackProbe' as 'app.title', 'inline default')).toBe('catalogue-only value');
   });
 
   it('renders the English default when the French value is empty', async () => {

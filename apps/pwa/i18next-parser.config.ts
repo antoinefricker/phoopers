@@ -11,8 +11,7 @@ export default {
   // before anyone saw them. Keeping removed keys makes a typo show up as an orphan, which
   // `pnpm i18n:check` fails on; genuinely dead strings are deleted by hand, deliberately.
   keepRemoved: true,
-  defaultValue: (locale: string, _namespace: string, _key: string, value: string) =>
-    locale === 'en' ? value : '',
+  defaultValue: (locale: string, _namespace: string, _key: string, value: string) => (locale === 'en' ? value : ''),
   sort: true,
   createOldCatalogs: false,
 };

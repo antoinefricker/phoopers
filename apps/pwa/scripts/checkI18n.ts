@@ -12,13 +12,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resources } from '../src/i18n/resources';
-import {
-  type Catalogue,
-  diffCatalogues,
-  flattenCatalogue,
-  formatDiff,
-  isClean,
-} from './i18nCatalogue';
+import { type Catalogue, diffCatalogues, flattenCatalogue, formatDiff, isClean } from './i18nCatalogue';
 
 const appRoot = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SOURCE_LOCALE = 'en';
@@ -35,9 +29,7 @@ function readCatalogue(localeDir: string): Catalogue {
 
   for (const entry of entries.filter((name) => name.endsWith('.json'))) {
     const namespace = entry.slice(0, -'.json'.length);
-    catalogue[namespace] = flattenCatalogue(
-      JSON.parse(readFileSync(join(localeDir, entry), 'utf8')),
-    );
+    catalogue[namespace] = flattenCatalogue(JSON.parse(readFileSync(join(localeDir, entry), 'utf8')));
   }
 
   return catalogue;

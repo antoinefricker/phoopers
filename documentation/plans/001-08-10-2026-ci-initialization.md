@@ -267,10 +267,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
-      ],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {
@@ -701,8 +698,7 @@ export default {
   keySeparator: '.',
   nsSeparator: '.',
   useKeysAsDefaultValue: false,
-  defaultValue: (locale: string, _namespace: string, _key: string, value: string) =>
-    locale === 'en' ? value : '',
+  defaultValue: (locale: string, _namespace: string, _key: string, value: string) => (locale === 'en' ? value : ''),
   sort: true,
   createOldCatalogs: false,
 };
@@ -747,9 +743,7 @@ describe('i18n', () => {
     await i18n.changeLanguage('fr');
     render(<Strings />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Phoopers — Tableau tactique' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Phoopers — Tableau tactique' })).toBeInTheDocument();
   });
 
   it('falls back to English rather than rendering an empty string', async () => {
@@ -915,9 +909,7 @@ pnpm exec lint-staged
 {
   "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
   "*.{json,md,yml,yaml}": ["prettier --write"],
-  "apps/pwa/src/**/*.{ts,tsx}": [
-    "pnpm --filter @phoopers/pwa extract:i18n && git add apps/pwa/src/i18n/locales"
-  ]
+  "apps/pwa/src/**/*.{ts,tsx}": ["pnpm --filter @phoopers/pwa extract:i18n && git add apps/pwa/src/i18n/locales"]
 }
 ```
 

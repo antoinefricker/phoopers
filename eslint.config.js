@@ -6,13 +6,7 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: [
-      '**/dist/**',
-      '**/coverage/**',
-      '**/node_modules/**',
-      '.superpowers/**',
-      'apps/pwa/src/i18n/locales/**',
-    ],
+    ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '.superpowers/**', 'apps/pwa/src/i18n/locales/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -27,10 +21,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
-      ],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {
