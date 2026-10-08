@@ -81,6 +81,7 @@ This stack choice will be validated/refined when writing the detailed Phase 1 sp
 ## Phasing (sub-projects)
 
 ### Phase 1 — Data model, editor, 2D view (next to be specified)
+
 - Data model: players (offense/defense), ball, keyframes, named steps, branch tree.
 - Editor: place/move players, draw paths (movement, pass, dribble, screen), create
   steps, create alternative branches from a step.
@@ -89,12 +90,14 @@ This stack choice will be validated/refined when writing the detailed Phase 1 sp
 - Basic persistence (local or a minimal backend) to keep a play across sessions.
 
 ### Phase 2 — 3D view
+
 - Stylized 3D rendering of the same data model (no data divergence from Phase 1, just
   a new renderer).
 - Camera system: overview/free camera + over-the-shoulder camera centered on a
   selected player, synchronized with animation playback.
 
 ### Phase 3 — Community features
+
 - User accounts, public play library, search/tags, shareable links.
 - Details (moderation, ratings, comments, edit permissions) to be defined when
   scoping this phase.

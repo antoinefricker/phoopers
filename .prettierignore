@@ -1,0 +1,6 @@
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+.superpowers
+apps/pwa/src/i18n/locales

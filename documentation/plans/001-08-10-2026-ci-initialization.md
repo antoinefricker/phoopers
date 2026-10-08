@@ -8,7 +8,7 @@
 
 **Tech Stack:** pnpm 10 · Node 24 · TypeScript 6 · Vite 8 · React 19 · Mantine 9 · Vitest 5 + Testing Library · ESLint 10 (flat config) + Prettier 3 · Husky 9 + lint-staged 17 · i18next 26 / react-i18next 17 · GitHub Actions
 
-**Spec:** [documentation/roadmap.md](../roadmap.md) — see *Recommended architecture & stack* (Tooling, Testing) and *Phase 1*. The design agreed in brainstorming is reproduced in [Design Summary](#design-summary) below; this plan has no separate spec file.
+**Spec:** [documentation/roadmap.md](../roadmap.md) — see _Recommended architecture & stack_ (Tooling, Testing) and _Phase 1_. The design agreed in brainstorming is reproduced in [Design Summary](#design-summary) below; this plan has no separate spec file.
 
 ---
 
@@ -18,7 +18,7 @@
 - **Node:** `24` — recorded in `.nvmrc` and read by CI via `node-version-file`. Local and CI must not drift.
 - **TypeScript:** `^6.0.3`. **Do not upgrade to TypeScript 7.** `typescript-eslint@8.71.1` declares `peerDependencies.typescript: ">=4.8.4 <6.1.0"`; TypeScript 7 breaks linting repo-wide. Revisit only when typescript-eslint ships TS 7 support.
 - **Workspace members:** `apps/*` only. The root `package.json` is `"private": true` and publishes nothing.
-- **Every user-facing string** in `apps/pwa/src/` goes through `t('<namespace>.<key>', 'English default')` — see `AGENTS.md` → *I18n (PWA)*. No hard-coded strings in JSX or component props.
+- **Every user-facing string** in `apps/pwa/src/` goes through `t('<namespace>.<key>', 'English default')` — see `AGENTS.md` → _I18n (PWA)_. No hard-coded strings in JSX or component props.
 - **Locales:** `en` (source of truth) and `fr`. Locale JSON deltas are committed in the same commit as the source change.
 - **Commits:** conventional commits, no co-author lines. One commit per top-level task in this plan.
 - **Out of scope for this plan:** Playwright, Supertest, `vite-plugin-pwa`, TanStack Query, deploy/release workflows, Dependabot, Makefile.
@@ -76,6 +76,7 @@ apps/pwa/                 # @phoopers/pwa
 Establishes the workspace, the pinned toolchain, Prettier, and the root script surface. Deliverable: `pnpm install` succeeds and `pnpm format:check` passes on the repo's own files.
 
 **Files:**
+
 - Create: `package.json`
 - Create: `pnpm-workspace.yaml`
 - Create: `.nvmrc`
@@ -84,6 +85,7 @@ Establishes the workspace, the pinned toolchain, Prettier, and the root script s
 - Create: `.prettierignore`
 
 **Interfaces:**
+
 - Consumes: nothing (first task).
 - Produces: root scripts `lint`, `lint:fix`, `format`, `format:check`, `typecheck`, `test`, `build`, `prepare`. Later tasks add workspace scripts that these fan out to via `pnpm -r`. `tsconfig.base.json` is extended by `apps/pwa/tsconfig.json`.
 
@@ -93,7 +95,7 @@ Establishes the workspace, the pinned toolchain, Prettier, and the root script s
 
 ```yaml
 packages:
-  - "apps/*"
+  - 'apps/*'
 ```
 
 - [ ] **Step 2: Create the root `package.json`**
@@ -220,10 +222,12 @@ git commit -m "chore: set up pnpm workspace with shared TypeScript and Prettier 
 Deliverable: `pnpm lint` runs ESLint across the repo and reports zero errors, with `react-hooks` rules active — `AGENTS.md` relies on `react-hooks/set-state-in-effect` being enforced.
 
 **Files:**
+
 - Create: `eslint.config.js`
 - Modify: `package.json` (add ESLint devDependencies)
 
 **Interfaces:**
+
 - Consumes: root `package.json` scripts from Task 1.
 - Produces: a working `pnpm lint`. Task 5's lint-staged entry invokes `eslint --fix`; Task 6's CI step invokes `pnpm lint`.
 
@@ -322,6 +326,7 @@ git commit -m "chore: add ESLint flat config with react-hooks and prettier integ
 Deliverable: a React 19 + Vite app rendering a Mantine-wrapped `App`, with a passing component test. Written test-first.
 
 **Files:**
+
 - Create: `apps/pwa/package.json`
 - Create: `apps/pwa/tsconfig.json`
 - Create: `apps/pwa/vite.config.ts`
@@ -332,6 +337,7 @@ Deliverable: a React 19 + Vite app rendering a Mantine-wrapped `App`, with a pas
 - Test: `apps/pwa/src/App.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `tsconfig.base.json` (Task 1), `eslint.config.js` (Task 2).
 - Produces: `App` — a default-exported zero-prop React component from `apps/pwa/src/App.tsx`. Task 4 modifies `App` to render a translated title and imports `./i18n/i18n` in `main.tsx`. Workspace scripts `dev`, `build`, `typecheck`, `test` become reachable from the root fan-out.
 
@@ -571,6 +577,7 @@ git commit -m "feat: scaffold apps/pwa with Vite, React 19 and Mantine"
 Deliverable: every visible string resolves through `t()`, unknown keys are compile errors, a missing French value falls back to English, and `extract:i18n` regenerates both locale files.
 
 **Files:**
+
 - Create: `apps/pwa/i18next-parser.config.ts`
 - Create: `apps/pwa/src/i18n/i18n.ts`
 - Create: `apps/pwa/src/i18n/resources.ts`
@@ -585,6 +592,7 @@ Deliverable: every visible string resolves through `t()`, unknown keys are compi
 - Modify: `apps/pwa/package.json`
 
 **Interfaces:**
+
 - Consumes: `App` from Task 3.
 - Produces: `SUPPORTED_LOCALES: readonly ['en', 'fr']` and a default-exported configured `i18n` instance from `src/i18n/i18n.ts`; `resources` from `src/i18n/resources.ts`; the `extract:i18n` script that Task 5's hook invokes.
 
@@ -739,7 +747,9 @@ describe('i18n', () => {
     await i18n.changeLanguage('fr');
     render(<Strings />);
 
-    expect(screen.getByRole('heading', { name: 'Phoopers — Tableau tactique' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Phoopers — Tableau tactique' }),
+    ).toBeInTheDocument();
   });
 
   it('falls back to English rather than rendering an empty string', async () => {
@@ -870,11 +880,13 @@ git commit -m "feat: wire react-i18next with en/fr locales and extraction pipeli
 Deliverable: a `pre-commit` hook that lints, formats, and regenerates locale JSON for staged files.
 
 **Files:**
+
 - Create: `.husky/pre-commit`
 - Create: `.lintstagedrc.json`
 - Modify: `package.json` (add devDependencies)
 
 **Interfaces:**
+
 - Consumes: `pnpm lint` from Task 2, `extract:i18n` from Task 4, the root `prepare` script from Task 1.
 - Produces: the pre-commit gate. Task 6 documents it in the README.
 
@@ -976,16 +988,18 @@ git commit -m "chore: add husky pre-commit hook running lint-staged"
 Deliverable: a green CI run on the `ci-initialization` branch and a README documenting setup and scripts.
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 - Create: `README.md`
 
 **Interfaces:**
+
 - Consumes: every root script from Tasks 1–5 and `.nvmrc` from Task 1.
 - Produces: the `ci` status check, suitable for a branch protection rule on `main`.
 
 - [ ] **Step 1: Write the workflow**
 
-`.github/workflows/ci.yml`. `pnpm/action-setup` must run *before* `actions/setup-node`, otherwise `cache: pnpm` fails because the pnpm binary is not yet on `PATH`.
+`.github/workflows/ci.yml`. `pnpm/action-setup` must run _before_ `actions/setup-node`, otherwise `cache: pnpm` fails because the pnpm binary is not yet on `PATH`.
 
 ```yaml
 name: CI
@@ -1080,21 +1094,21 @@ The app is served at http://localhost:5173.
 
 Run from the repository root; each one fans out to every workspace.
 
-| Script             | What it does                                            |
-| ------------------ | ------------------------------------------------------- |
-| `pnpm lint`        | ESLint across the repo, then `prettier --check`          |
-| `pnpm lint:fix`    | ESLint `--fix`, then `prettier --write`                  |
-| `pnpm format`      | Prettier `--write` only                                  |
-| `pnpm typecheck`   | `tsc --noEmit` in every workspace                        |
-| `pnpm test`        | Vitest, run once (no watch)                              |
-| `pnpm build`       | Production build of every workspace                      |
+| Script           | What it does                                    |
+| ---------------- | ----------------------------------------------- |
+| `pnpm lint`      | ESLint across the repo, then `prettier --check` |
+| `pnpm lint:fix`  | ESLint `--fix`, then `prettier --write`         |
+| `pnpm format`    | Prettier `--write` only                         |
+| `pnpm typecheck` | `tsc --noEmit` in every workspace               |
+| `pnpm test`      | Vitest, run once (no watch)                     |
+| `pnpm build`     | Production build of every workspace             |
 
 Workspace-specific:
 
-| Script                                         | What it does                              |
-| ---------------------------------------------- | ----------------------------------------- |
-| `pnpm --filter @phoopers/pwa dev`              | Vite dev server                           |
-| `pnpm --filter @phoopers/pwa extract:i18n`     | Regenerate `src/i18n/locales/*` from `t()` |
+| Script                                     | What it does                               |
+| ------------------------------------------ | ------------------------------------------ |
+| `pnpm --filter @phoopers/pwa dev`          | Vite dev server                            |
+| `pnpm --filter @phoopers/pwa extract:i18n` | Regenerate `src/i18n/locales/*` from `t()` |
 
 ## Workspace layout
 

@@ -71,7 +71,7 @@ All user-facing strings in `apps/pwa/src/` go through `react-i18next`'s `t()`. T
 
 ```tsx
 const { t } = useTranslation();
-<Button>{t("admin.members.actions.create", "New member")}</Button>;
+<Button>{t('admin.members.actions.create', 'New member')}</Button>;
 ```
 
 When adding or changing a UI string:
