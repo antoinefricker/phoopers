@@ -13,6 +13,7 @@
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
+    "i18n:check": "pnpm -r --if-present i18n:check",
     "build": "pnpm -r --if-present build"
   },
   "devDependencies": {

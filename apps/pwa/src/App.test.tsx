@@ -12,5 +12,6 @@ describe('App', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Phoopers' })).toBeInTheDocument();
+    expect(screen.getByText('Design and replay basketball plays')).toBeInTheDocument();
   });
 });

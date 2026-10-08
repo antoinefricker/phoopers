@@ -7,13 +7,18 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "extract:i18n": "i18next -c i18next-parser.config.ts",
+    "i18n:check": "i18next -c i18next-parser.config.ts && git diff --exit-code -- src/i18n/locales"
   },
   "dependencies": {
     "@mantine/core": "^9.7.1",
     "@mantine/hooks": "^9.7.1",
+    "i18next": "^26.4.2",
+    "i18next-browser-languagedetector": "^8.2.1",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "react-i18next": "^17.0.16"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
@@ -22,6 +27,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "i18next-parser": "^9.4.0",
     "jsdom": "^30.1.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"
