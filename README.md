@@ -58,9 +58,19 @@ sequential job: lint → typecheck → i18n:check → test → build.
 TypeScript module augmentation in `apps/pwa/src/i18n/i18next.d.ts` constrains `t()` to
 known keys — but only for the single-argument form `t('app.title')`. The two-argument
 form this project uses everywhere, `t('app.title', 'Phoopers')`, accepts any key by
-design: supplying a default value tells i18next the key need not exist yet. A typo is
-therefore caught by `pnpm i18n:check`, not by the compiler — extraction regenerates the
-catalogue and the check fails if that leaves uncommitted changes.
+design: supplying a default value tells i18next the key need not exist yet.
+
+`pnpm i18n:check` is the guard that actually holds. It extracts the keys the source
+references into a throwaway directory and compares them with the committed catalogue,
+failing when a key is missing, orphaned, or in a namespace `resources.ts` never imports.
+It deliberately does not use `git diff`: the pre-commit hook regenerates and stages the
+catalogue on every commit, so a diff-based check would always see a clean tree, and a
+brand-new namespace file would be untracked and invisible to it.
+
+Extraction is non-destructive (`keepRemoved: true` in `i18next-parser.config.ts`), so
+mistyping a key never silently deletes the original key's translations — the orphan stays
+in the catalogue and `i18n:check` names it. Strings that are genuinely gone are deleted
+from the catalogue by hand, deliberately.
 
 ## Contributing
 

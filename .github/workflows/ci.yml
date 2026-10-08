@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+# Nothing in this job writes to the repository or publishes anything.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

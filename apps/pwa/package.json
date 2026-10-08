@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "extract:i18n": "i18next -c i18next-parser.config.ts",
-    "i18n:check": "i18next -c i18next-parser.config.ts && git diff --exit-code -- src/i18n/locales"
+    "i18n:check": "vite-node scripts/checkI18n.ts"
   },
   "dependencies": {
     "@mantine/core": "^9.7.1",
@@ -30,6 +30,7 @@
     "i18next-parser": "^9.4.0",
     "jsdom": "^30.1.2",
     "vite": "^8.3.4",
+    "vite-node": "^5.0.3",
     "vitest": "^5.0.3"
   }
 }
