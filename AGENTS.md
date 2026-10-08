@@ -71,7 +71,7 @@ All user-facing strings in `apps/pwa/src/` go through `react-i18next`'s `t()`. T
 
 ```tsx
 const { t } = useTranslation();
-<Button>{t("admin.members.actions.create", "New member")}</Button>;
+<Button>{t('admin.members.actions.create', 'New member')}</Button>;
 ```
 
 When adding or changing a UI string:
@@ -80,7 +80,15 @@ When adding or changing a UI string:
 2. Run `pnpm --filter @phoopers/pwa extract:i18n`. This regenerates `apps/pwa/src/i18n/locales/<lng>/<ns>.json`. The English file is auto-populated from the second argument; the French file gets an empty string you must fill in.
 3. Commit the JSON deltas in the **same commit** as the source change. The `lint-staged` hook re-runs extraction and stages the JSON so this happens by default.
 
-Key naming: `<namespace>.<feature>.<purpose>` — e.g. `admin.members.title`, `admin.members.actions.create`, `cells.types.image`, `common.actions.save`. TypeScript module augmentation in `apps/pwa/src/i18n/i18next.d.ts` types `t()` against the English resources, so unknown keys are a compile error.
+Key naming: `<namespace>.<feature>.<purpose>` — e.g. `admin.members.title`, `admin.members.actions.create`, `cells.types.image`, `common.actions.save`. TypeScript module augmentation in `apps/pwa/src/i18n/i18next.d.ts` types `t()` against the
+English resources — but **only for the single-argument form** `t('app.title')`. The
+two-argument form this project mandates, `t('app.title', 'Phoopers')`, accepts any key by
+design: supplying a default value tells i18next the key need not exist yet. A mistyped key
+is therefore **not** a compile error. It is caught by `pnpm i18n:check`, which compares the
+keys the source references against the committed catalogue and fails on a key that is
+missing, orphaned (the typo's victim), or in a namespace `resources.ts` never imports.
+Extraction is non-destructive (`keepRemoved: true`), so a typo never silently deletes the
+mistyped key's existing translations.
 
 Forbidden patterns:
 

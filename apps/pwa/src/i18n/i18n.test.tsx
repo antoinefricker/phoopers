@@ -1,0 +1,50 @@
+import { render, screen } from '@testing-library/react';
+import { useTranslation } from 'react-i18next';
+import { afterEach, describe, expect, it } from 'vitest';
+import i18n, { SUPPORTED_LOCALES } from './i18n';
+
+function Strings() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <h1>{t('app.title', 'Phoopers')}</h1>
+      <p>{t('app.tagline', 'Design and replay basketball plays')}</p>
+    </>
+  );
+}
+
+describe('i18n', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('en');
+  });
+
+  it('supports English and French', () => {
+    expect(SUPPORTED_LOCALES).toEqual(['en', 'fr']);
+  });
+
+  it('uses the French value when the key is translated', async () => {
+    await i18n.changeLanguage('fr');
+    render(<Strings />);
+
+    expect(screen.getByRole('heading', { name: 'Phoopers — Tableau tactique' })).toBeInTheDocument();
+  });
+
+  it('falls back to the English catalogue rather than rendering an empty string', async () => {
+    // A key that exists ONLY in the English catalogue, never as an inline default. If
+    // fallbackLng stops working, t() returns the inline default and this assertion fails —
+    // asserting on a string that is also the inline default would be rescued by it.
+    i18n.addResource('en', 'common', 'app.fallbackProbe', 'catalogue-only value');
+    await i18n.changeLanguage('fr');
+
+    expect(i18n.t('app.fallbackProbe' as 'app.title', 'inline default')).toBe('catalogue-only value');
+  });
+
+  it('renders the English default when the French value is empty', async () => {
+    await i18n.changeLanguage('fr');
+    render(<Strings />);
+
+    // fr/common.json has "app.tagline": "" — returnEmptyString: false must make i18next
+    // fall through instead of rendering nothing.
+    expect(screen.getByText('Design and replay basketball plays')).toBeInTheDocument();
+  });
+});

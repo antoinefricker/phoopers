@@ -1,0 +1,52 @@
+name: CI
+
+# A PR branch would otherwise run twice per push: once for `push` and once for
+# `pull_request`, in different concurrency groups, so neither cancels the other.
+# Branch work is covered by the `pull_request` trigger.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Nothing in this job writes to the repository or publishes anything.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Check i18n catalogue is up to date
+        run: pnpm i18n:check
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build

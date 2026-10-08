@@ -1,0 +1,11 @@
+# Implementation Plans
+
+Detailed implementation plans, one per step of the [roadmap](../roadmap.md).
+
+Naming: `<index>-<DD-MM-YYYY>-<topic>.md`. The date is the day the plan was written.
+(The convention in `AGENTS.md` is written `DD/MM/YYYY`; slashes cannot appear in a
+filename, so the components are separated by dashes.)
+
+| #   | Date       | Plan                                                     | Status      |
+| --- | ---------- | -------------------------------------------------------- | ----------- |
+| 001 | 08/10/2026 | [CI initialization](001-08-10-2026-ci-initialization.md) | Implemented |
