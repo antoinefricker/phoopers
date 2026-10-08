@@ -6,6 +6,9 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
+    // `.superpowers` is the scratch workspace for superpowers plan execution: absent from a
+    // fresh clone, but ESLint does not read .gitignore, so it needs its own entry to avoid
+    // linting scratch files whenever the directory does exist.
     ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '.superpowers/**', 'apps/pwa/src/i18n/locales/**'],
   },
   js.configs.recommended,

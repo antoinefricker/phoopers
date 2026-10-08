@@ -2,5 +2,7 @@ node_modules
 dist
 coverage
 pnpm-lock.yaml
+# Scratch workspace for superpowers plan execution; absent from a fresh clone.
+# Prettier does not read .gitignore, so it needs its own entry when the directory exists.
 .superpowers
 apps/pwa/src/i18n/locales
