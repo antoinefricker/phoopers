@@ -137,14 +137,17 @@ function collectIssues(play: Play, issues: Issue[]): void {
 
 /**
  * Reports structural problems the type system cannot catch. Never throws: input that is
- * malformed beyond what the checks can traverse yields the issues found before the failure.
+ * malformed beyond what the checks can traverse yields the issues found before the failure
+ * plus a `malformed-play` issue.
  */
 export function validatePlay(play: Play): Issue[] {
   const issues: Issue[] = [];
   try {
     collectIssues(play, issues);
-  } catch {
-    // The editor shows partial results mid-edit rather than crashing.
+  } catch (error) {
+    // Validation stops here. Report it rather than implying the play is clean.
+    const reason = error instanceof Error ? error.message : String(error);
+    issues.push(issue('malformed-play', `play is structurally malformed: ${reason}`));
   }
   return issues;
 }

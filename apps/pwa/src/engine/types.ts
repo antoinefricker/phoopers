@@ -108,7 +108,8 @@ export type IssueCode =
   | 'branch-cycle'
   | 'non-root-branch-without-fork'
   | 'root-branch-with-parent'
-  | 'easing-out-of-range';
+  | 'easing-out-of-range'
+  | 'malformed-play';
 
 export interface Issue {
   code: IssueCode;

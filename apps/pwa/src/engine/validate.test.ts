@@ -145,6 +145,16 @@ describe('validatePlay', () => {
 
     for (const play of malformed) {
       expect(() => validatePlay(play)).not.toThrow();
+      const issues = validatePlay(play);
+      expect(issues).not.toEqual([]);
+      expect(issues.map((issue) => issue.code)).toContain('malformed-play');
     }
+
+    // A single half-edited branch must not be reported as a clean play.
+    const halfEdited = {
+      ...fixturePlay,
+      branches: fixturePlay.branches.map((b) => (b.id === SWITCH ? { ...b, steps: undefined } : b)),
+    } as unknown as Play;
+    expect(codesFor(halfEdited)).toContain('malformed-play');
   });
 });
