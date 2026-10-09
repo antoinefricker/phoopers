@@ -209,6 +209,93 @@ describe('PlaybackTransport', () => {
     expect(screen.queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument();
   });
 
+  it('lands exactly on the step time, not a rounded one', () => {
+    renderTransport();
+
+    click(screen.getByRole('button', { name: 'Next step' }));
+
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '2');
+    click(screen.getByRole('button', { name: 'Next step' }));
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '4');
+  });
+
+  it('moves one increment per arrow press from rest', () => {
+    renderTransport();
+    const slider = screen.getByRole('slider');
+
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    expect(slider).toHaveAttribute('aria-valuenow', '0.01');
+
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    expect(slider).toHaveAttribute('aria-valuenow', '0.02');
+  });
+
+  it('lets arrow keys leave a step instead of snapping back onto it', () => {
+    renderTransport();
+    const slider = screen.getByRole('slider');
+
+    click(screen.getByRole('button', { name: 'Next step' }));
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+
+    expect(slider).toHaveAttribute('aria-valuenow', '2.01');
+  });
+
+  it('snaps a pointer scrub near a step onto the exact step time', () => {
+    // 800 px wide track over 0..8 s: one pixel is 0.01 s.
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      cb(0);
+      return 1;
+    });
+    const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 800,
+      bottom: 10,
+      width: 800,
+      height: 10,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    const { container } = renderTransport();
+    const track = container.querySelector('.mantine-Slider-track');
+    if (track === null) throw new Error('slider root not found');
+
+    fireEvent.mouseDown(track, { clientX: 210, clientY: 5 });
+    fireEvent.mouseUp(document);
+    rect.mockRestore();
+
+    // Raw pointer value is 2.1; the step at 2 is within the 0.25 threshold.
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '2');
+  });
+
+  it('leaves a pointer scrub away from any step unsnapped', () => {
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      cb(0);
+      return 1;
+    });
+    const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 800,
+      bottom: 10,
+      width: 800,
+      height: 10,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    const { container } = renderTransport();
+    const track = container.querySelector('.mantine-Slider-track');
+    if (track === null) throw new Error('slider root not found');
+
+    fireEvent.mouseDown(track, { clientX: 300, clientY: 5 });
+    fireEvent.mouseUp(document);
+    rect.mockRestore();
+
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '3');
+  });
+
   it('renders a usable slider for a zero-duration play', () => {
     const at0: Keyframe = { t: 0, position: { x: 5, y: 5 } };
     const root = hornsPlay.branches[0];

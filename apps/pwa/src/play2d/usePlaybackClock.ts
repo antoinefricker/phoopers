@@ -29,14 +29,17 @@ export function usePlaybackClock(duration: number): PlaybackClock {
 
   // Listeners get every frame; React state only changes when the rounded tenth does, so
   // the slider and readout re-render at about 10 Hz while the DOM is written at frame rate.
-  const emit = useCallback((t: number) => {
+  // A seek is a user-rate event, so it passes `force` to publish the exact time even inside
+  // the same tenth. Without it the slider's controlled value goes stale and keyboard
+  // stepping (value +/- 0.01 from the controlled value) can never leave its start.
+  const emit = useCallback((t: number, force = false) => {
     for (const listener of listenersRef.current) {
       listener(t);
     }
     // Compare against a ref rather than inside a setState updater: React still re-renders
     // the component once for an updater that returns the same value, i.e. at 60 Hz.
     const tenth = Math.round(t * 10);
-    if (tenth !== shownTenthRef.current) {
+    if (force || tenth !== shownTenthRef.current) {
       shownTenthRef.current = tenth;
       setDisplayTime(t);
     }
@@ -46,7 +49,7 @@ export function usePlaybackClock(duration: number): PlaybackClock {
     (t: number) => {
       const next = clamp(t, durationRef.current);
       currentTimeRef.current = next;
-      emit(next);
+      emit(next, true);
     },
     [emit],
   );
