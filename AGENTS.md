@@ -17,11 +17,54 @@ before proposing features or architecture, so you don't re-litigate decisions al
 
 ## Project Guidelines
 
+### Documentation structure
+
+Everything in `documentation/` is written for the next person who has to change the code —
+usually an agent with no memory of why a decision was made. Four artifacts, each with one job:
+
+| Artifact                                         | Holds                                                                | Written when                                                        |
+| ------------------------------------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [`roadmap.md`](documentation/roadmap.md)         | Product vision, the locked-in framing decisions, and the phase order | Once, at the start; amended only when the product direction changes |
+| [`specs/`](documentation/specs/index.md)         | The validated design for one sub-project: what the thing IS          | After brainstorming, before any plan                                |
+| [`plans/`](documentation/plans/index.md)         | The implementation plan for one spec: task by task, test first       | After the spec is approved, before any code                         |
+| [`limitations.md`](documentation/limitations.md) | Every known limitation, defect and coverage gap, by topic            | Continuously, whenever one is found and knowingly left              |
+
+The flow is **roadmap → spec → plan → code**, one sub-project at a time. A phase too large for
+one spec is split first (1a, 1b, …), and each piece gets its own full cycle.
+
+**Naming:** `<index>-<DD-MM-YYYY>-<topic>.md` in both `specs/` and `plans/`. The date is the
+day the document was written. (The rule below is written `DD/MM/YYYY`; slashes cannot appear
+in a filename, so on disk the parts are separated by dashes.) Keep `index.md` in each
+folder current, including the Status column — a plan marked "Not started" after it shipped is
+worse than no index.
+
+**Specs are declarative.** They describe what the system is, not how the decision was reached.
+Rejected alternatives and the argument that produced a design belong in the brainstorming
+conversation and the git history, not in the document a 1c implementer reads to learn how the
+engine behaves.
+
+**Limitations are centralised, never duplicated.** When a spec or plan needs to mention one,
+it states the consequence in a sentence and links to the heading in `limitations.md`. Each
+entry there records what the limitation costs **measured**, not estimated, plus why it was not
+fixed and how it would be. Delete an entry when it is fixed.
+
+**Linking between markdown files:**
+
+- Relative links work in files in the repo: `[text](../specs/002-….md#heading-anchor)`.
+- They do **not** work in PR or issue descriptions — GitHub reads `/pull/documentation/…` as
+  its "create a pull request" route and sends the reader to a compare page for a branch that
+  does not exist. Use absolute permalinks there: `https://github.com/<owner>/<repo>/blob/<sha>/<path>`.
+- Heading anchors are lowercased with punctuation stripped and spaces hyphenated, so an em
+  dash surrounded by spaces yields a **double** hyphen, and `` `Step.t` `` becomes `stept`.
+  Do not derive them by hand — hover the heading on GitHub for its 🔗, or render the file
+  through `gh api -X POST /markdown` and read the generated ids.
+
 ### Before coding
 
 - Always ask the user whether a plan is required before starting non-trivial work.
 - When a plan is requested, write it to `documentation/plans/<index>-<DD/MM/YYYY>-<topic>.md` so the user can review it.
 - Maintain a list of existing plans in `documentation/plans/index.md`.
+- A spec gets the same treatment: `documentation/specs/<index>-<DD/MM/YYYY>-<topic>.md`, listed in `documentation/specs/index.md`.
 
 ### Commits
 
