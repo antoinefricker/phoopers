@@ -173,7 +173,11 @@ For a chain `root → A → B`, where A forks at step time `t1` and B at `t2`:
 - `A` contributes `t1 ≤ t < t2`
 - `B` contributes `t ≥ t2`
 
-Steps and screens are concatenated under the same time windows.
+Steps and screens are concatenated under the same time windows, except that their upper
+bound is inclusive: the fork step itself lives at the fork instant in the parent's list,
+and the child's timeline must be able to name the step it forked from. Keyframe windows
+stay half-open, so the fork instant's position still belongs to the child. A parent and a
+child may therefore each contribute a distinct step or screen at exactly a fork instant.
 
 If a branch's track has no keyframe exactly at its fork time, the engine synthesises one
 there holding the parent's interpolated state at that instant — its position, or its
