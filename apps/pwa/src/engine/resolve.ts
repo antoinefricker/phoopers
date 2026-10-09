@@ -12,7 +12,8 @@ import type {
   Vec2,
 } from './types';
 import { buildLut, derivedTangents, lutToParam, pointOnCubic } from './curve';
-import { resolveEasing } from './easing';
+import { lerp } from './vec2';
+import { applyEasing, resolveEasing } from './easing';
 
 function chainOf(play: Play, branchId: BranchId): Branch[] {
   const byId = new Map(play.branches.map((branch) => [branch.id, branch]));
@@ -48,33 +49,87 @@ function forkTimeOf(chain: readonly Branch[], index: number): number {
   throw new Error(`fork step not found in ancestors: ${branch.forkStepId}`);
 }
 
-function positionOfAnchors(anchors: readonly Keyframe[], t: number): Vec2 | undefined {
-  if (anchors.length === 0) return undefined;
+type TrackState = { position: Vec2 } | { attachedTo: PlayerId };
 
-  const first = anchors[0];
-  const last = anchors[anchors.length - 1];
-  if (first === undefined || last === undefined) return undefined;
+// Position along a track of positional keyframes, following the same pipeline as the
+// sampler: normalised time -> easing -> arc-length inversion -> point on the cubic.
+function positionOnTrack(track: readonly Keyframe[], t: number): Vec2 | undefined {
+  const points = track.filter((k) => k.position !== undefined);
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (first?.position === undefined || last?.position === undefined) return undefined;
   if (t <= first.t) return first.position;
   if (t >= last.t) return last.position;
 
-  for (let i = 0; i < anchors.length - 1; i += 1) {
-    const from = anchors[i];
-    const to = anchors[i + 1];
-    if (from === undefined || to === undefined) continue;
-    if (t >= from.t && t <= to.t && from.position !== undefined && to.position !== undefined) {
-      const span = to.t - from.t;
-      const p = span === 0 ? 0 : (t - from.t) / span;
-      const previous = anchors[i - 1]?.position ?? null;
-      const next = anchors[i + 2]?.position ?? null;
-      const derived = derivedTangents(previous, from.position, to.position, next);
-      const p1 = from.handleOut ?? derived.handleOut;
-      const p2 = to.handleIn ?? derived.handleIn;
-      const { lut } = buildLut(from.position, p1, p2, to.position);
-      return pointOnCubic(from.position, p1, p2, to.position, lutToParam(lut, p));
-    }
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const from = points[i];
+    const to = points[i + 1];
+    if (from?.position === undefined || to?.position === undefined) continue;
+    if (t === from.t) return from.position;
+    if (t < from.t || t > to.t) continue;
+    if (t === to.t) return to.position;
+
+    const progress = applyEasing(resolveEasing(from.ease), (t - from.t) / (to.t - from.t));
+    const derived = derivedTangents(
+      points[i - 1]?.position ?? null,
+      from.position,
+      to.position,
+      points[i + 2]?.position ?? null,
+    );
+    const p1 = from.handleOut ?? derived.handleOut;
+    const p2 = to.handleIn ?? derived.handleIn;
+    const { lut } = buildLut(from.position, p1, p2, to.position);
+    return pointOnCubic(from.position, p1, p2, to.position, lutToParam(lut, progress));
   }
 
   return last.position;
+}
+
+function stateOf(keyframe: Keyframe): TrackState | undefined {
+  if (keyframe.position !== undefined) return { position: keyframe.position };
+  if (keyframe.attachedTo !== undefined) return { attachedTo: keyframe.attachedTo };
+  return undefined;
+}
+
+// The state of a track at time t as exactly one of a position or an attachment, or
+// undefined when the entity has no state yet at t.
+function stateOnTrack(
+  track: readonly Keyframe[],
+  t: number,
+  holderPosition: (id: PlayerId) => Vec2 | undefined,
+): TrackState | undefined {
+  const first = track[0];
+  const last = track[track.length - 1];
+  if (first === undefined || last === undefined || t < first.t) return undefined;
+
+  const exact = track.find((k) => k.t === t);
+  if (exact !== undefined) return stateOf(exact);
+  if (t > last.t) return stateOf(last);
+
+  for (let i = 0; i < track.length - 1; i += 1) {
+    const from = track[i];
+    const to = track[i + 1];
+    if (from === undefined || to === undefined || t < from.t || t > to.t) continue;
+
+    if (from.position !== undefined && to.position !== undefined) {
+      const position = positionOnTrack(track, t);
+      return position === undefined ? undefined : { position };
+    }
+    if (from.attachedTo !== undefined && from.attachedTo === to.attachedTo) {
+      return { attachedTo: from.attachedTo };
+    }
+
+    // Mixed or changing attachment: the entity is in flight between two endpoints.
+    const endpoint = (k: Keyframe): Vec2 | undefined =>
+      k.position ?? (k.attachedTo === undefined ? undefined : holderPosition(k.attachedTo));
+    const start = endpoint(from);
+    const end = endpoint(to);
+    if (start === undefined || end === undefined) return stateOf(from);
+    const progress = applyEasing(resolveEasing(from.ease), (t - from.t) / (to.t - from.t));
+    return { position: lerp(start, end, progress) };
+  }
+
+  return stateOf(last);
 }
 
 function entityIds(chain: readonly Branch[]): EntityId[] {
@@ -104,17 +159,11 @@ function flattenTrack(chain: readonly Branch[], entity: EntityId): Keyframe[] {
     if (i > 0 && from < until) {
       const hasFork = window.some((k) => k.t === from);
       if (!hasFork) {
-        // The parent's window excludes the fork instant, so look ahead at its keyframes
-        // from the fork onwards to interpolate (or land exactly on) its state there.
-        const parentTrack = chain[i - 1]?.tracks[entity] ?? [];
-        const lookahead = [...anchors, ...parentTrack.filter((k) => k.t >= from)].sort((a, b) => a.t - b.t);
-        const parentState = positionOfAnchors(lookahead, from);
-        const inherited = [...lookahead].reverse().find((k) => k.t <= from);
-        anchors.push({
-          t: from,
-          ...(parentState !== undefined ? { position: parentState } : {}),
-          ...(inherited?.attachedTo !== undefined ? { attachedTo: inherited.attachedTo } : {}),
-        });
+        const ancestors = chain.slice(0, i);
+        const state = stateOnTrack(flattenTrack(ancestors, entity), from, (id) =>
+          positionOnTrack(flattenTrack(ancestors, id), from),
+        );
+        if (state !== undefined) anchors.push({ t: from, ...state });
       }
     }
 
@@ -165,8 +214,9 @@ function prepareSpans(anchors: readonly Keyframe[]): PreparedSpan[] {
 
 export function resolveBranch(play: Play, branchId: BranchId): ResolvedTimeline {
   const chain = chainOf(play, branchId);
-  const anchors = {} as Record<EntityId, Keyframe[]>;
-  const spans = {} as Record<EntityId, PreparedSpan[]>;
+  // 'ball' is always present so the types are honest even for a play without a ball track.
+  const anchors: Record<EntityId, Keyframe[]> = { ball: [] };
+  const spans: Record<EntityId, PreparedSpan[]> = { ball: [] };
 
   for (const entity of entityIds(chain)) {
     const track = flattenTrack(chain, entity);
