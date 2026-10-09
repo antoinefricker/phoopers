@@ -125,8 +125,11 @@ A test asserts `validatePlay(samplePlay)` returns no issues.
 
 - All user-facing strings go through `t()`. Branch names, step names and player labels are
   data and are not translated.
-- Mantine components only; no raw HTML for UI chrome. SVG is exempt — it is the drawing
-  surface, not UI.
+- Reach for Mantine first: use its components and hooks where they fit, and compose custom
+  components from Mantine primitives so spacing, colour and dark mode stay consistent. It is
+  the default, not a constraint. The SVG canvas is plain markup by necessity — it is the
+  drawing surface, not UI chrome — and anything else Mantine serves badly may use plain
+  elements, themed through Mantine's CSS variables.
 - The context follows the `XxxContextProvider` / `useXxxContext` pattern, with the hook
   throwing outside its provider.
 

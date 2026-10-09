@@ -47,7 +47,12 @@ The repo's API test files mock `db()` at module scope and rely on `beforeEach` t
 
 When creating or editing views in the PWA app:
 
-1. **Always use Mantine** components and hooks — do not use raw HTML or other UI libraries.
+1. **Reach for Mantine first, but it is a default rather than a cage.** If Mantine has a
+   component or hook for what you need, use it. Build custom components by composing Mantine
+   primitives, so spacing, colour and dark mode stay consistent without re-deriving them.
+   Where Mantine has no good fit — a drawing surface, a bespoke visualisation, a behaviour it
+   actively fights — use plain elements or another library rather than contorting around it,
+   and keep the result themed through Mantine's CSS variables.
 2. **Propose a preview first** — before writing any component code, describe the planned layout, components, and interactions to the user so they can validate the approach.
 3. **Only create the content after the user approves** the proposed preview.
 
