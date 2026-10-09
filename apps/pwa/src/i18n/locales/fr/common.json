@@ -4,6 +4,9 @@
     "title": "Phoopers — Tableau tactique"
   },
   "play": {
+    "branches": {
+      "label": "Variantes du schéma"
+    },
     "transport": {
       "nextStep": "Étape suivante",
       "pause": "Pause",

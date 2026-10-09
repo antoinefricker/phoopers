@@ -4,6 +4,9 @@
     "title": "Phoopers"
   },
   "play": {
+    "branches": {
+      "label": "Play branches"
+    },
     "transport": {
       "nextStep": "Next step",
       "pause": "Pause",
