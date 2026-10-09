@@ -13,6 +13,15 @@ describe('resolveEasing', () => {
     expect(EASING_PRESETS.easeInOut).toEqual({ x1: 0.42, y1: 0, x2: 0.58, y2: 1 });
   });
 
+  it('resolves a known preset name to its control points', () => {
+    expect(resolveEasing('easeIn')).toEqual(EASING_PRESETS.easeIn);
+    expect(resolveEasing('easeInOut')).toEqual(EASING_PRESETS.easeInOut);
+  });
+
+  it('falls back to linear for an unknown preset name instead of returning undefined', () => {
+    expect(resolveEasing('bouncy' as unknown as 'linear')).toEqual(EASING_PRESETS.linear);
+  });
+
   it('passes an explicit curve through unchanged', () => {
     const custom = { x1: 0.1, y1: 0.9, x2: 0.3, y2: 1 };
 

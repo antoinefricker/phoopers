@@ -265,4 +265,74 @@ describe('resolveBranch ancestor opening', () => {
 
     expectSameOpening(play);
   });
+
+  const openingTracks = (): Record<string, Keyframe[]> => ({
+    [P1]: [
+      { t: 0, position: { x: 0, y: 0 } },
+      { t: 2, position: { x: 6, y: 4 }, handleIn: { x: 8, y: 9 }, handleOut: { x: 9, y: 1 } },
+      { t: 4, position: { x: 12, y: 0 } },
+    ],
+    ball: [],
+  });
+
+  it('keeps the ancestor opening when the child owns the fork keyframe with a different handleIn', () => {
+    const play = forkedPlay(openingTracks(), {
+      [P1]: [
+        { t: 2, position: { x: 6, y: 4 }, handleIn: { x: 7, y: 12 } },
+        { t: 5, position: { x: 3, y: 3 } },
+      ],
+      ball: [],
+    });
+
+    expectSameOpening(play);
+  });
+
+  it('keeps the ancestor opening when the child owns the fork keyframe at a different position', () => {
+    const play = forkedPlay(openingTracks(), {
+      [P1]: [
+        { t: 2, position: { x: 20, y: 12 } },
+        { t: 5, position: { x: 3, y: 3 } },
+      ],
+      ball: [],
+    });
+
+    expectSameOpening(play);
+    // The child still departs from the position it chose.
+    expect(atFork(resolveBranch(play, SWITCH).anchors[P1])?.position).toEqual({ x: 20, y: 12 });
+  });
+
+  it('carries the parent fork handleOut into the child departing span', () => {
+    const play = forkedPlay(openingTracks(), { [P1]: [{ t: 5, position: { x: 3, y: 3 } }], ball: [] });
+    const departing = (resolveBranch(play, SWITCH).spans[P1] ?? []).find((s) => s.fromT === 2);
+
+    expect(departing?.p1).toEqual({ x: 9, y: 1 });
+  });
+
+  it('matches the sampler when synthesising a fork across an attached ball keyframe', () => {
+    const play = forkedPlay(
+      {
+        ball: [
+          { t: 0, position: { x: 0, y: 0 } },
+          { t: 1, position: { x: 2, y: 6 } },
+          { t: 2, attachedTo: P1 },
+          { t: 3, position: { x: 9, y: 1 } },
+          { t: 5, position: { x: 14, y: 8 } },
+        ],
+        [P1]: [{ t: 0, position: { x: 0, y: 0 } }],
+      },
+      { ball: [{ t: 6, position: { x: 1, y: 1 } }] },
+    );
+    // Fork at 2 is attached; use a later fork step inside the free/free span instead.
+    const root = play.branches[0];
+    if (root === undefined) throw new Error('expected root');
+    const shifted: Play = {
+      ...play,
+      branches: [{ ...root, steps: [{ id: FORK, t: 4, name: 'Fork' }] }, ...play.branches.slice(1)],
+    };
+    const expected = stateAt(resolveBranch(shifted, ROOT), 4).ball.position;
+    const synthesised = resolveBranch(shifted, SWITCH).anchors.ball?.find((k) => k.t === 4)?.position;
+
+    expect(synthesised?.x).toBeCloseTo(expected.x, 9);
+    expect(synthesised?.y).toBeCloseTo(expected.y, 9);
+  });
 });

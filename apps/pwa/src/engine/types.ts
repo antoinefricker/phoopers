@@ -112,6 +112,11 @@ export type IssueCode =
   | 'non-root-branch-without-fork'
   | 'root-branch-with-parent'
   | 'easing-out-of-range'
+  | 'unknown-easing-preset'
+  | 'non-finite-number'
+  | 'root-branch-with-fork'
+  | 'dangling-parent-branch'
+  | 'unknown-root-branch'
   | 'malformed-play';
 
 export interface Issue {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { fixturePlay, P1, P2, ROOT, STEP_ENTRY, SWITCH } from './__fixtures__/play';
+import { resolveBranch } from './resolve';
 import { validatePlay } from './validate';
-import type { Branch, BranchId, Play, PlayerId, StepId } from './types';
+import type { Branch, BranchId, Keyframe, Play, PlayerId, StepId } from './types';
 
 const codesFor = (play: Play) => validatePlay(play).map((issue) => issue.code);
 
@@ -156,5 +157,97 @@ describe('validatePlay', () => {
       branches: fixturePlay.branches.map((b) => (b.id === SWITCH ? { ...b, steps: undefined } : b)),
     } as unknown as Play;
     expect(codesFor(halfEdited)).toContain('malformed-play');
+  });
+
+  describe('non-finite numbers', () => {
+    const rootP1 = (keyframes: Keyframe[]): Play =>
+      withRoot((b) => ({ ...b, tracks: { ...b.tracks, [P1]: keyframes } }));
+    const at = (position: { x: number; y: number }): Keyframe[] => [
+      { t: 0, position: { x: 0, y: 0 } },
+      { t: 1, position },
+    ];
+
+    it.each([
+      ['NaN position', rootP1(at({ x: Number.NaN, y: 0 }))],
+      ['Infinity position', rootP1(at({ x: Number.POSITIVE_INFINITY, y: 0 }))],
+      [
+        'NaN handleOut',
+        rootP1([
+          { t: 0, position: { x: 0, y: 0 }, handleOut: { x: Number.NaN, y: 0 } },
+          { t: 1, position: { x: 1, y: 1 } },
+        ]),
+      ],
+      [
+        'NaN handleIn',
+        rootP1([
+          { t: 0, position: { x: 0, y: 0 } },
+          { t: 1, position: { x: 1, y: 1 }, handleIn: { x: 0, y: Number.NaN } },
+        ]),
+      ],
+      [
+        'NaN easing control point',
+        rootP1([
+          { t: 0, position: { x: 0, y: 0 }, ease: { x1: 0, y1: Number.NaN, x2: 1, y2: 1 } },
+          { t: 1, position: { x: 1, y: 1 } },
+        ]),
+      ],
+      [
+        'NaN time on a middle keyframe',
+        rootP1([
+          { t: 0, position: { x: 0, y: 0 } },
+          { t: Number.NaN, position: { x: 1, y: 1 } },
+          { t: 2, position: { x: 2, y: 2 } },
+        ]),
+      ],
+      [
+        'NaN time on the last keyframe',
+        rootP1([
+          { t: 0, position: { x: 0, y: 0 } },
+          { t: Number.NaN, position: { x: 1, y: 1 } },
+        ]),
+      ],
+    ])('reports %s', (_label, play) => {
+      expect(codesFor(play)).toContain('non-finite-number');
+    });
+  });
+
+  it('reports an unknown easing preset name', () => {
+    const play = withRoot((b) => ({
+      ...b,
+      tracks: {
+        ...b.tracks,
+        [P1]: [
+          { t: 0, position: { x: 0, y: 0 }, ease: 'bouncy' as unknown as 'linear' },
+          { t: 1, position: { x: 1, y: 1 } },
+        ],
+      },
+    }));
+
+    expect(codesFor(play)).toContain('unknown-easing-preset');
+  });
+
+  it('reports a root branch that carries a fork step, consistently with resolveBranch', () => {
+    const play = withRoot((b) => ({ ...b, forkStepId: STEP_ENTRY }));
+
+    expect(codesFor(play)).toContain('root-branch-with-fork');
+    // The root's fork step is ignored when resolving; validate flagging it is the contract.
+    expect(() => resolveBranch(play, ROOT)).not.toThrow();
+  });
+
+  it('reports a parent id that resolves to no branch, and resolveBranch agrees it is broken', () => {
+    const play: Play = {
+      ...fixturePlay,
+      branches: fixturePlay.branches.map((b) => (b.id === SWITCH ? { ...b, parentId: 'ghost' as BranchId } : b)),
+    };
+
+    expect(codesFor(play)).toContain('dangling-parent-branch');
+    expect(codesFor(play)).not.toContain('fork-step-not-in-ancestors');
+    expect(() => resolveBranch(play, SWITCH)).toThrow(/unknown parent branch/);
+  });
+
+  it('reports a root branch id that matches no branch', () => {
+    const play: Play = { ...fixturePlay, rootBranchId: 'ghost' as BranchId };
+
+    expect(codesFor(play)).toContain('unknown-root-branch');
   });
 });

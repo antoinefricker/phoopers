@@ -9,7 +9,9 @@ export const EASING_PRESETS: Record<EasingPreset, CubicBezierEasing> = {
 
 export function resolveEasing(ease: Easing | undefined): CubicBezierEasing {
   if (ease === undefined) return EASING_PRESETS.linear;
-  if (typeof ease === 'string') return EASING_PRESETS[ease];
+  if (typeof ease === 'string')
+    // Persisted data may hold a name this version does not know; validatePlay reports it.
+    return EASING_PRESETS[ease] ?? EASING_PRESETS.linear;
   return ease;
 }
 

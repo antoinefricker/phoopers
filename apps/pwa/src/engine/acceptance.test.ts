@@ -123,6 +123,14 @@ describe('acceptance', () => {
         { t: 0, position: { x: 1, y: 1 }, ease: { x1: -0.5, y1: 0, x2: 0.5, y2: 1 } },
         { t: 1, position: { x: 2, y: 2 } },
       ]),
+      'unknown-easing-preset': withRootTrack(P1, [
+        { t: 0, position: { x: 1, y: 1 }, ease: 'bouncy' as unknown as 'linear' },
+        { t: 1, position: { x: 2, y: 2 } },
+      ]),
+      'non-finite-number': withRootTrack(P1, [{ t: 0, position: { x: Number.NaN, y: 0 } }]),
+      'root-branch-with-fork': withBranch(ROOT, (b) => ({ ...b, forkStepId: STEP_ENTRY })),
+      'dangling-parent-branch': withBranch(SWITCH, (b) => ({ ...b, parentId: 'ghost' as BranchId })),
+      'unknown-root-branch': { ...fixturePlay, rootBranchId: 'ghost' as BranchId },
       'malformed-play': { ...fixturePlay, branches: null } as unknown as Play,
     };
 

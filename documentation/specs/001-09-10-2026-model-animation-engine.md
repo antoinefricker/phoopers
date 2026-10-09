@@ -247,6 +247,11 @@ type IssueCode =
   | 'non-root-branch-without-fork'
   | 'root-branch-with-parent'
   | 'easing-out-of-range'
+  | 'unknown-easing-preset'
+  | 'non-finite-number'
+  | 'root-branch-with-fork'
+  | 'dangling-parent-branch'
+  | 'unknown-root-branch'
   | 'malformed-play';
 
 interface Issue {
@@ -257,7 +262,12 @@ interface Issue {
 ```
 
 `easing-out-of-range` covers an easing whose `x1` or `x2` falls outside `[0, 1]`; `y` may
-overshoot.
+overshoot. `unknown-easing-preset` covers a string easing that is not a preset name.
+`non-finite-number` covers any `NaN` or infinite `t`, position, handle or easing control point:
+the sampler is correct for every finite input, so this is the only way a `NaN` can reach it.
+`root-branch-with-fork` covers a root branch carrying a `forkStepId`; `dangling-parent-branch`
+a `parentId` that matches no branch; `unknown-root-branch` a `rootBranchId` that matches no
+branch.
 
 `malformed-play` covers input so damaged that the checks above cannot run on it — a missing
 `steps` array, a null track, a `Play` that did not come from this engine. Validation stops at

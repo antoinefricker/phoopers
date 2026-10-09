@@ -1,3 +1,4 @@
+import { EASING_PRESETS } from './easing';
 import type { Branch, Issue, IssueCode, Keyframe, Play, PlayerId } from './types';
 
 function issue(code: IssueCode, message: string, entityId?: string): Issue {
@@ -75,7 +76,19 @@ function checkKeyframes(
       issues.push(issue('player-keyframe-has-attachment', `${entity} keyframe has attachedTo`, branchId));
     }
 
+    const numbers: number[] = [keyframe.t];
+    for (const point of [keyframe.position, keyframe.handleIn, keyframe.handleOut]) {
+      if (point !== undefined) numbers.push(point.x, point.y);
+    }
     const ease = keyframe.ease;
+    if (ease !== undefined && typeof ease !== 'string') numbers.push(ease.x1, ease.y1, ease.x2, ease.y2);
+    if (!numbers.every(Number.isFinite)) {
+      issues.push(issue('non-finite-number', `${entity} keyframe has a non-finite number`, branchId));
+    }
+
+    if (typeof ease === 'string' && !Object.hasOwn(EASING_PRESETS, ease)) {
+      issues.push(issue('unknown-easing-preset', `${entity} easing "${ease}" is not a preset`, branchId));
+    }
     if (ease !== undefined && typeof ease !== 'string') {
       if (ease.x1 < 0 || ease.x1 > 1 || ease.x2 < 0 || ease.x2 > 1) {
         issues.push(issue('easing-out-of-range', `${entity} easing x is outside [0, 1]`, branchId));
@@ -100,11 +113,23 @@ function collectIssues(play: Play, issues: Issue[]): void {
     issues.push(issue('duplicate-id', `duplicate screen id ${id}`, id));
   }
 
+  if (!play.branches.some((b) => b.id === play.rootBranchId)) {
+    issues.push(issue('unknown-root-branch', `root branch ${play.rootBranchId} not found`));
+  }
+  const branchIds = new Set<string>(play.branches.map((b) => b.id));
+
   for (const branch of play.branches) {
     const isRoot = branch.id === play.rootBranchId;
 
     if (isRoot && branch.parentId !== null) {
       issues.push(issue('root-branch-with-parent', 'the root branch has a parent', branch.id));
+    }
+    if (isRoot && branch.forkStepId !== null) {
+      issues.push(issue('root-branch-with-fork', 'the root branch has a fork step', branch.id));
+    }
+    const dangling = branch.parentId !== null && !branchIds.has(branch.parentId);
+    if (dangling) {
+      issues.push(issue('dangling-parent-branch', `parent branch ${branch.parentId} not found`, branch.id));
     }
     if (!isRoot && branch.forkStepId === null) {
       issues.push(issue('non-root-branch-without-fork', 'a non-root branch has no fork step', branch.id));
@@ -117,7 +142,7 @@ function collectIssues(play: Play, issues: Issue[]): void {
     }
 
     const fork = isRoot ? 0 : forkTime(chain, branch);
-    if (!isRoot && fork === undefined) {
+    if (!isRoot && fork === undefined && !dangling) {
       issues.push(issue('fork-step-not-in-ancestors', `fork step ${branch.forkStepId} not found`, branch.id));
     }
 

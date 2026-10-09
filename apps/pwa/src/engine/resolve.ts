@@ -31,7 +31,13 @@ function chainOf(play: Play, branchId: BranchId): Branch[] {
     }
     seen.add(current.id);
     chain.unshift(current);
-    current = current.parentId === null ? undefined : byId.get(current.parentId);
+    if (current.parentId === null) {
+      current = undefined;
+    } else {
+      const parent = byId.get(current.parentId);
+      if (parent === undefined) throw new Error(`unknown parent branch: ${current.parentId}`);
+      current = parent;
+    }
   }
 
   return chain;
@@ -39,7 +45,8 @@ function chainOf(play: Play, branchId: BranchId): Branch[] {
 
 function forkTimeOf(chain: readonly Branch[], index: number): number {
   const branch = chain[index];
-  if (branch === undefined || branch.forkStepId === null) return 0;
+  // A root has no ancestors; a stray forkStepId on it is a validatePlay issue, not a crash.
+  if (branch === undefined || index === 0 || branch.forkStepId === null) return 0;
 
   for (const ancestor of chain.slice(0, index)) {
     const step = ancestor.steps.find((candidate) => candidate.id === branch.forkStepId);
@@ -61,9 +68,11 @@ function positionOnTrack(track: readonly Keyframe[], t: number): Vec2 | undefine
   if (t <= first.t) return first.position;
   if (t >= last.t) return last.position;
 
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const from = points[i];
-    const to = points[i + 1];
+  // Neighbours are the adjacent keyframes of the full track, an attached one counting as
+  // absent: exactly what prepareSpans does, so both agree on every span's tangents.
+  for (let i = 0; i < track.length - 1; i += 1) {
+    const from = track[i];
+    const to = track[i + 1];
     if (from?.position === undefined || to?.position === undefined) continue;
     if (t === from.t) return from.position;
     if (t < from.t || t > to.t) continue;
@@ -71,10 +80,10 @@ function positionOnTrack(track: readonly Keyframe[], t: number): Vec2 | undefine
 
     const progress = applyEasing(resolveEasing(from.ease), (t - from.t) / (to.t - from.t));
     const derived = derivedTangents(
-      points[i - 1]?.position ?? null,
+      track[i - 1]?.position ?? null,
       from.position,
       to.position,
-      points[i + 2]?.position ?? null,
+      track[i + 2]?.position ?? null,
     );
     const p1 = from.handleOut ?? derived.handleOut;
     const p2 = to.handleIn ?? derived.handleIn;
@@ -142,17 +151,24 @@ function entityIds(chain: readonly Branch[]): EntityId[] {
   return [...ids];
 }
 
-// The flattened anchors of an entity, plus the lookahead used to derive the tangent of the
-// span that ends at each fork boundary. That span belongs to the ancestors' opening, so its
-// shape must come from the ancestor's own next keyframe, never from the child's diverging one.
+// How the span that ends at a fork boundary is shaped. That span belongs to the ancestors'
+// opening, so everything about it comes from the ancestors, never from the child's keyframe
+// at that instant: the child's keyframe only describes where the child departs from.
+interface ForkEnd {
+  next: Vec2 | null; // the ancestor's own next position, for the derived tangent
+  position?: Vec2; // the ancestor's position at the fork instant (p3)
+  handleIn?: Vec2; // the ancestor's incoming handle at the fork instant
+}
+
+// The flattened anchors of an entity, plus the fork-end overrides keyed by anchor index.
 interface FlatTrack {
   anchors: Keyframe[];
-  lookahead: Map<number, Vec2 | null>;
+  forkEnds: Map<number, ForkEnd>;
 }
 
 function flattenTrack(chain: readonly Branch[], entity: EntityId): FlatTrack {
   const anchors: Keyframe[] = [];
-  const forks: { t: number; next: Vec2 | null }[] = [];
+  const forks: ({ t: number } & ForkEnd)[] = [];
 
   for (let i = 0; i < chain.length; i += 1) {
     const branch = chain[i];
@@ -163,30 +179,34 @@ function flattenTrack(chain: readonly Branch[], entity: EntityId): FlatTrack {
     const track = branch.tracks[entity] ?? [];
     const window = track.filter((k) => k.t >= from && k.t < until);
 
-    // Continuity: a child whose first keyframe is later than its fork inherits the
-    // parent's state at the fork instant, so it enters without teleporting.
     if (i > 0 && from < until) {
-      const hasFork = window.some((k) => k.t === from);
-      if (!hasFork) {
-        const ancestors = chain.slice(0, i);
-        const parentAnchors = flattenTrack(ancestors, entity).anchors;
-        const state = stateOnTrack(parentAnchors, from, (id, at) =>
-          positionOnTrack(flattenTrack(ancestors, id).anchors, at),
-        );
-        if (state !== undefined) {
-          // The parent's fork keyframe is excluded from its window, so its handles would be
-          // lost; carry them so the span that ends here keeps the parent's exact shape.
-          const parentFork = parentAnchors.find((k) => k.t === from);
-          const handles: Pick<Keyframe, 'handleIn' | 'handleOut'> = {};
-          if ('position' in state && parentFork?.handleIn !== undefined) handles.handleIn = parentFork.handleIn;
-          if ('position' in state && parentFork?.handleOut !== undefined) handles.handleOut = parentFork.handleOut;
-          anchors.push({ t: from, ...state, ...handles });
-        }
+      const ancestors = chain.slice(0, i);
+      const parentAnchors = flattenTrack(ancestors, entity).anchors;
+      const state = stateOnTrack(parentAnchors, from, (id, at) =>
+        positionOnTrack(flattenTrack(ancestors, id).anchors, at),
+      );
+      // The parent's fork keyframe is excluded from its window, so its handles would be
+      // lost; carry them so the span that ends here keeps the parent's exact shape.
+      const parentFork = parentAnchors.find((k) => k.t === from);
+      const handles: Pick<Keyframe, 'handleIn' | 'handleOut'> = {};
+      if (state !== undefined && 'position' in state) {
+        if (parentFork?.handleIn !== undefined) handles.handleIn = parentFork.handleIn;
+        if (parentFork?.handleOut !== undefined) handles.handleOut = parentFork.handleOut;
       }
 
-      const parentTrack = flattenTrack(chain.slice(0, i), entity).anchors;
-      const parentNext = parentTrack.find((k) => k.t > from);
-      forks.push({ t: from, next: parentNext?.position ?? null });
+      // Continuity: a child whose first keyframe is later than its fork inherits the
+      // parent's state at the fork instant, so it enters without teleporting.
+      if (state !== undefined && !window.some((k) => k.t === from)) {
+        anchors.push({ t: from, ...state, ...handles });
+      }
+
+      const parentNext = parentAnchors.find((k) => k.t > from);
+      const end: ForkEnd = { next: parentNext?.position ?? null };
+      if (state !== undefined && 'position' in state) {
+        end.position = state.position;
+        if (handles.handleIn !== undefined) end.handleIn = handles.handleIn;
+      }
+      forks.push({ t: from, ...end });
     }
 
     anchors.push(...window);
@@ -194,17 +214,17 @@ function flattenTrack(chain: readonly Branch[], entity: EntityId): FlatTrack {
 
   anchors.sort((a, b) => a.t - b.t);
 
-  const lookahead = new Map<number, Vec2 | null>();
+  const forkEnds = new Map<number, ForkEnd>();
   for (const fork of forks) {
     // The last anchor at the fork instant is the one the child departs from.
     const index = anchors.findIndex((k) => k.t === fork.t);
-    if (index >= 0) lookahead.set(index, fork.next);
+    if (index >= 0) forkEnds.set(index, { next: fork.next, position: fork.position, handleIn: fork.handleIn });
   }
 
-  return { anchors, lookahead };
+  return { anchors, forkEnds };
 }
 
-function prepareSpans(anchors: readonly Keyframe[], lookahead: ReadonlyMap<number, Vec2 | null>): PreparedSpan[] {
+function prepareSpans(anchors: readonly Keyframe[], forkEnds: ReadonlyMap<number, ForkEnd>): PreparedSpan[] {
   const spans: PreparedSpan[] = [];
 
   for (let i = 0; i < anchors.length - 1; i += 1) {
@@ -212,16 +232,17 @@ function prepareSpans(anchors: readonly Keyframe[], lookahead: ReadonlyMap<numbe
     const to = anchors[i + 1];
     if (from === undefined || to === undefined) continue;
 
+    const forkEnd = forkEnds.get(i + 1);
     const fromPosition = from.position ?? { x: 0, y: 0 };
-    const toPosition = to.position ?? { x: 0, y: 0 };
+    const toPosition = forkEnd?.position ?? to.position ?? { x: 0, y: 0 };
     const derived = derivedTangents(
       anchors[i - 1]?.position ?? null,
       fromPosition,
       toPosition,
-      lookahead.has(i + 1) ? (lookahead.get(i + 1) ?? null) : (anchors[i + 2]?.position ?? null),
+      forkEnd !== undefined ? forkEnd.next : (anchors[i + 2]?.position ?? null),
     );
     const p1 = from.handleOut ?? derived.handleOut;
-    const p2 = to.handleIn ?? derived.handleIn;
+    const p2 = (forkEnd === undefined ? to.handleIn : forkEnd.handleIn) ?? derived.handleIn;
     const { lut, length } = buildLut(fromPosition, p1, p2, toPosition);
     const attachedTo: PlayerId | null =
       from.attachedTo !== undefined && from.attachedTo === to.attachedTo ? from.attachedTo : null;
@@ -250,9 +271,9 @@ export function resolveBranch(play: Play, branchId: BranchId): ResolvedTimeline 
   const spans: Record<EntityId, PreparedSpan[]> = { ball: [] };
 
   for (const entity of entityIds(chain)) {
-    const { anchors: track, lookahead } = flattenTrack(chain, entity);
+    const { anchors: track, forkEnds } = flattenTrack(chain, entity);
     anchors[entity] = track;
-    spans[entity] = prepareSpans(track, lookahead);
+    spans[entity] = prepareSpans(track, forkEnds);
   }
 
   const steps: Step[] = [];
