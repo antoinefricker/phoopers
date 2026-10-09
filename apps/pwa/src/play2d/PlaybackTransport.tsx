@@ -34,7 +34,7 @@ export function PlaybackTransport() {
   };
 
   return (
-    <Group gap="sm" wrap="nowrap" align="center">
+    <Group gap="sm" align="center">
       <ActionIcon
         onClick={() => jump(-1)}
         aria-label={t('play.transport.previousStep', 'Previous step')}
@@ -56,7 +56,8 @@ export function PlaybackTransport() {
         {displayTime.toFixed(1)}
       </Text>
       <Box
-        flex={1}
+        flex="1 1 14rem"
+        miw={0}
         onKeyDownCapture={(event) => {
           keyboardMoveRef.current = event.key.startsWith('Arrow');
         }}
@@ -72,6 +73,16 @@ export function PlaybackTransport() {
             scrubTo(snap ? snapToStep(value, timeline.steps, SNAP_THRESHOLD) : value);
           }}
           marks={stepMarks(timeline.steps)}
+          // Neighbouring step names would otherwise overprint on a narrow track; clip each to a
+          // fixed width with an ellipsis instead.
+          styles={{
+            markLabel: {
+              maxWidth: '5.5rem',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            },
+          }}
           label={(value) => value.toFixed(1)}
           aria-label={t('play.transport.scrubber', 'Playback position')}
         />

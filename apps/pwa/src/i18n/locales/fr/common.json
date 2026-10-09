@@ -2,7 +2,8 @@
   "play": {
     "branches": {
       "label": "Variantes du schéma",
-      "title": "Variantes"
+      "title": "Variantes",
+      "toggle": "Afficher ou masquer les variantes"
     },
     "court": {
       "full": "Terrain complet",

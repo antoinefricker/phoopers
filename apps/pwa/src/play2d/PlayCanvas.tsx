@@ -16,7 +16,9 @@ export function PlayCanvas({ halfCourt }: Props) {
     <svg
       role="img"
       viewBox={halfCourt ? halfCourtViewBox(court) : fullCourtViewBox(court)}
-      style={{ width: '100%', height: '100%' }}
+      // block: an inline svg sits on the text baseline and leaves a descender gap below it.
+      // The max-height keeps the near-square half court from outgrowing the screen.
+      style={{ display: 'block', width: '100%', height: 'auto', maxHeight: 'calc(100dvh - 12rem)' }}
     >
       <defs>
         <marker

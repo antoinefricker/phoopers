@@ -1,17 +1,23 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { hornsPlay } from './samples/horns';
+import { stubViewportWidth } from './testUtils/viewport';
 
 function renderApp() {
+  stubViewportWidth(1440);
   return render(
     <MantineProvider>
       <App />
     </MantineProvider>,
   );
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('App', () => {
   it('shows the sample play as a working view, not a placeholder', async () => {

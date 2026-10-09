@@ -4,10 +4,13 @@ import { MantineProvider } from '@mantine/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resolveBranch, stateAt, type ResolvedTimeline, type Vec2 } from '../engine';
 import { HORNS_SWITCH, hornsPlay } from '../samples/horns';
+import { stubViewportWidth } from '../testUtils/viewport';
+import i18n from '../i18n/i18n';
 import { PlayView } from './PlayView';
 import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
 
-function renderView() {
+function renderView(widthPx = 1440) {
+  stubViewportWidth(widthPx);
   return render(
     <MantineProvider>
       <PlayView play={hornsPlay} />
@@ -59,8 +62,10 @@ function expectDrawnAt(container: HTMLElement, timeline: ResolvedTimeline, t: nu
 const moved = (a: Vec2 | undefined, b: Vec2 | undefined) =>
   Math.hypot((a?.x ?? 0) - (b?.x ?? 0), (a?.y ?? 0) - (b?.y ?? 0));
 
-afterEach(() => {
+afterEach(async () => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
+  await i18n.changeLanguage('en');
 });
 
 describe('PlayView', () => {
@@ -88,6 +93,69 @@ describe('PlayView', () => {
 
     expect(screen.getByRole('radio', { name: 'Full court' })).toBeChecked();
     expect(screen.getByRole('radio', { name: 'Half court' })).not.toBeChecked();
+  });
+
+  describe('branch sidebar', () => {
+    const branchNav = () => screen.queryByRole('navigation', { name: 'Play branches' });
+
+    it('is open by default where there is room for it beside the court', () => {
+      renderView(1440);
+
+      expect(branchNav()).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Toggle branches' })).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('is collapsed by default on a phone-sized screen', () => {
+      renderView(375);
+
+      expect(branchNav()).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Toggle branches' })).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('hides and shows the branch list when the toggle is activated', async () => {
+      const user = userEvent.setup();
+      renderView(1440);
+      const toggle = screen.getByRole('button', { name: 'Toggle branches' });
+
+      await user.click(toggle);
+      expect(branchNav()).not.toBeInTheDocument();
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+      await user.click(toggle);
+      expect(branchNav()).toBeInTheDocument();
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('opens from the keyboard on a phone-sized screen', async () => {
+      const user = userEvent.setup();
+      renderView(375);
+
+      screen.getByRole('button', { name: 'Toggle branches' }).focus();
+      await user.keyboard('{Enter}');
+
+      expect(branchNav()).toBeInTheDocument();
+    });
+
+    it('keeps the selected branch and playhead while collapsed', async () => {
+      const user = userEvent.setup();
+      renderView(1440);
+      await user.click(screen.getByRole('button', { name: SWITCH_NAME }));
+      await user.click(screen.getByRole('button', { name: 'Next step' }));
+
+      await user.click(screen.getByRole('button', { name: 'Toggle branches' }));
+      await user.click(screen.getByRole('button', { name: 'Toggle branches' }));
+
+      expect(screen.getByRole('button', { name: SWITCH_NAME })).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+    });
+
+    it('has a translated label', async () => {
+      await i18n.changeLanguage('fr');
+      renderView(1440);
+
+      expect(screen.getByRole('button', { name: 'Afficher ou masquer les variantes' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Toggle branches' })).not.toBeInTheDocument();
+    });
   });
 
   describe('court toggle', () => {

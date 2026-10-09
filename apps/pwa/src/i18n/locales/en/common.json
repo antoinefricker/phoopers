@@ -2,7 +2,8 @@
   "play": {
     "branches": {
       "label": "Play branches",
-      "title": "Branches"
+      "title": "Branches",
+      "toggle": "Toggle branches"
     },
     "court": {
       "full": "Full court",
