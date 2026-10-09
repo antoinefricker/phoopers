@@ -347,7 +347,12 @@ recorded here because a 1b or 1c implementer will otherwise rediscover it the ha
   both handles when a span's endpoints coincide would fix it and is a small change, but it
   is a behavioural decision rather than a correction, so it is recorded rather than taken.
   A hold at the START or END of a track is unaffected, because one-sided differences give it
-  zero-length tangents. 1c's editor will meet this the first time a coach adds a wait.
+  zero-length tangents.
+  **This is not hypothetical and not deferred to 1c.** The 1b sample play already works around
+  it: `apps/pwa/src/samples/horns.ts` defines a `hold()` helper that sets `handleIn` and
+  `handleOut` to the point itself, and seven of its ten tracks depend on it. That helper is
+  exactly the engine fix described above, applied by hand at the data layer — so every play
+  author must remember it until the engine does it for them.
 - **Two implementations of the same interpolation.** Fork synthesis evaluates a span with its
   own `positionOnTrack` rather than calling the sampler's. They agree today — by construction
   of their tangent neighbours, pinned by a test that fails if they drift — but they are two

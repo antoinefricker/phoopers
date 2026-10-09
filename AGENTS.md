@@ -4,9 +4,11 @@ Web app for creating, saving, and replaying animated basketball plays (2D coach'
 
 ## Status
 
-Phase 1a is implemented: a headless animation engine in `apps/pwa/src/engine/` that answers
-"where is every player and the ball at time `t`, on a given branch?" There is no UI yet —
-`apps/pwa` renders a placeholder. Next is 1b, the 2D coach's-whiteboard view and playback.
+Phases 1a and 1b are implemented. `apps/pwa/src/engine/` is a headless animation engine
+answering "where is every player and the ball at time `t`, on a given branch?", and
+`apps/pwa/src/play2d/` draws it as a coach's whiteboard: court, paths in their conventional
+symbols, animated tokens, a transport with snapping step markers, and a branch tree. The app
+renders the sample play in `apps/pwa/src/samples/`. Next is 1c, the editor.
 
 The product vision, locked-in design decisions and phase plan live in
 `documentation/roadmap.md`; the validated designs are in `documentation/specs/` and the
@@ -97,8 +99,8 @@ leading segment is a key PREFIX, not an i18next namespace: `nsSeparator` is `':'
 `common.json`. A genuine second namespace needs the `t('ns:key')` form AND an entry in
 `resources.ts`; today the app has one namespace and prefixes keys by area, which is simpler
 and is what `pnpm i18n:check` enforces. TypeScript module augmentation in `apps/pwa/src/i18n/i18next.d.ts` types `t()` against the
-English resources — but **only for the single-argument form** `t('app.title')`. The
-two-argument form this project mandates, `t('app.title', 'Phoopers')`, accepts any key by
+English resources — but **only for the single-argument form** `t('play.transport.play')`. The
+two-argument form this project mandates, `t('play.transport.play', 'Play')`, accepts any key by
 design: supplying a default value tells i18next the key need not exist yet. A mistyped key
 is therefore **not** a compile error. It is caught by `pnpm i18n:check`, which compares the
 keys the source references against the committed catalogue and fails on a key that is
