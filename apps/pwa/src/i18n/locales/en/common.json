@@ -1,11 +1,12 @@
 {
-  "app": {
-    "tagline": "Design and replay basketball plays",
-    "title": "Phoopers"
-  },
   "play": {
     "branches": {
-      "label": "Play branches"
+      "label": "Play branches",
+      "title": "Branches"
+    },
+    "court": {
+      "full": "Full court",
+      "half": "Half court"
     },
     "transport": {
       "nextStep": "Next step",

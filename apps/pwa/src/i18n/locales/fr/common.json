@@ -1,11 +1,12 @@
 {
-  "app": {
-    "tagline": "",
-    "title": "Phoopers — Tableau tactique"
-  },
   "play": {
     "branches": {
-      "label": "Variantes du schéma"
+      "label": "Variantes du schéma",
+      "title": "Variantes"
+    },
+    "court": {
+      "full": "Terrain complet",
+      "half": "Demi-terrain"
     },
     "transport": {
       "nextStep": "Étape suivante",
