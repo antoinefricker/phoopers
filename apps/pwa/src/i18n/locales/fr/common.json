@@ -2,5 +2,14 @@
   "app": {
     "tagline": "",
     "title": "Phoopers — Tableau tactique"
+  },
+  "play": {
+    "transport": {
+      "nextStep": "Étape suivante",
+      "pause": "Pause",
+      "play": "Lecture",
+      "previousStep": "Étape précédente",
+      "scrubber": "Position de lecture"
+    }
   }
 }

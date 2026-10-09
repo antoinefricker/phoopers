@@ -2,5 +2,14 @@
   "app": {
     "tagline": "Design and replay basketball plays",
     "title": "Phoopers"
+  },
+  "play": {
+    "transport": {
+      "nextStep": "Next step",
+      "pause": "Pause",
+      "play": "Play",
+      "previousStep": "Previous step",
+      "scrubber": "Playback position"
+    }
   }
 }
