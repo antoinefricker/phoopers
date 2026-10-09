@@ -1,8 +1,7 @@
 # Phoopers
 
 Create, save, and replay animated basketball plays — a 2D coach's-whiteboard view today,
-a 3D view later. See [documentation/roadmap.md](documentation/roadmap.md) for the product
-vision and phasing.
+a 3D view later.
 
 ## Requirements
 
@@ -71,6 +70,12 @@ Extraction is non-destructive (`keepRemoved: true` in `i18next-parser.config.ts`
 mistyping a key never silently deletes the original key's translations — the orphan stays
 in the catalogue and `i18n:check` names it. Strings that are genuinely gone are deleted
 from the catalogue by hand, deliberately.
+
+## Documentation
+
+- [Roadmap](documentation/roadmap.md) — the product vision and phasing.
+- [Specs](documentation/specs/index.md) — validated designs, one per sub-project.
+- [Plans](documentation/plans/index.md) — implementation plans, one per spec.
 
 ## Contributing
 
