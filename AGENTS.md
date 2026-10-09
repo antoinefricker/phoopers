@@ -90,7 +90,7 @@ missing, orphaned (the typo's victim), or in a namespace `resources.ts` never im
 Extraction is non-destructive (`keepRemoved: true`), so a typo never silently deletes the
 mistyped key's existing translations.
 
-Forbidden patterns:
+Forbidden patterns, enforced by `i18next/no-literal-string` in `eslint.config.js`:
 
 - Hard-coded user-facing strings in JSX or component props (`label`, `placeholder`, `description`, `title`, `aria-label`, etc.).
 - Hard-coded date formats. Use `printDate` / `printDateTime` from `apps/pwa/src/utils/renderer/dateRenderer.ts`; dayjs and Mantine's `DatesProvider` both follow `i18n.language` via subscribers in `apps/pwa/src/i18n/i18n.ts`.

@@ -12,12 +12,13 @@
 
 ## Global Constraints
 
-- **No framework imports under `engine/`.** No `react`, `react-dom`, `@mantine/*`, `react-i18next`, and no DOM globals (`window`, `document`). Task 1 adds the ESLint rule that enforces this.
+- **No framework imports under `engine/`.** No `react`, `react-dom`, `@mantine/*`, `react-i18next`, and no DOM globals (`window`, `document`). `eslint.config.js` already enforces this for `apps/pwa/src/engine/**`.
 - **No external maths dependency.** Vector arithmetic, de Casteljau evaluation, Catmull-Rom tangents, the arc-length table and the timing-curve solve are written in-repo.
 - **All stored types are plain JSON-compatible data.** No classes, no `Float32Array`, no `Map`/`Set` in anything reachable from `Play`.
 - **`noUncheckedIndexedAccess` is on.** `array[i]` and `record[key]` are typed `T | undefined`. Narrow explicitly — never use `!`.
 - **`verbatimModuleSyntax` is on.** Type-only imports must be written `import type { … } from '…'`.
-- **Engine strings are not user-facing** and are never routed through `t()`. `Issue.code` is the stable identifier; 1c renders its own translated copy.
+- **Engine strings are not user-facing** and are never routed through `t()`. `Issue.code` is the stable identifier; 1c renders its own translated copy. `i18next/no-literal-string` is disabled for `engine/` for this reason.
+- **`pnpm lint` runs with `--max-warnings 0`.** A warning fails the gate exactly like an error.
 - **LUT sample count is 32** (33 cumulative entries including the leading zero).
 - **Easing presets:** `linear` → (0, 0, 1, 1), `easeIn` → (0.42, 0, 1, 1), `easeOut` → (0, 0, 0.58, 1), `easeInOut` → (0.42, 0, 0.58, 1).
 - **Court dimensions:** FIBA 28 × 15 m, NBA 28.65 × 15.24 m. Positions are metres, origin at a corner.
@@ -56,14 +57,13 @@ Each file has one responsibility and is testable without its neighbours above it
 
 ### Task 1: Types and vector arithmetic
 
-Deliverable: every engine type exists, vector helpers are tested, and the dependency rule is enforced by ESLint.
+Deliverable: every engine type exists and the vector helpers are tested. The ESLint dependency rule already guards `engine/` — it landed with the lint configuration before this plan started, so this task only confirms it bites.
 
 **Files:**
 
 - Create: `apps/pwa/src/engine/types.ts`
 - Create: `apps/pwa/src/engine/vec2.ts`
 - Test: `apps/pwa/src/engine/vec2.test.ts`
-- Modify: `eslint.config.js`
 
 **Interfaces:**
 
@@ -248,35 +248,7 @@ export const equals = (a: Vec2, b: Vec2, epsilon = 1e-9): boolean =>
 Run: `pnpm --filter @phoopers/pwa test vec2`
 Expected: PASS — 5 passed.
 
-- [ ] **Step 6: Add the dependency rule to ESLint**
-
-In `eslint.config.js`, add this config object immediately before the final `eslintConfigPrettier`:
-
-```js
-  {
-    files: ['apps/pwa/src/engine/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['react', 'react-dom', 'react-dom/*', '@mantine/*', 'react-i18next'],
-              message: 'The engine is rendering-independent (spec 001): no framework imports.',
-            },
-          ],
-        },
-      ],
-      'no-restricted-globals': [
-        'error',
-        { name: 'window', message: 'The engine must not touch the DOM (spec 001).' },
-        { name: 'document', message: 'The engine must not touch the DOM (spec 001).' },
-      ],
-    },
-  },
-```
-
-- [ ] **Step 7: Verify the rule rejects a framework import**
+- [ ] **Step 6: Verify the existing dependency rule rejects a framework import**
 
 ```bash
 printf "import { useState } from 'react';\nexport const x = useState;\n" > apps/pwa/src/engine/rule-probe.ts
@@ -291,12 +263,12 @@ Then remove it:
 rm apps/pwa/src/engine/rule-probe.ts
 ```
 
-- [ ] **Step 8: Run the full gate and commit**
+- [ ] **Step 7: Run the full gate and commit**
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test
-git add apps/pwa/src/engine eslint.config.js
-git commit -m "feat(engine): add model types, vector helpers and the dependency rule"
+git add apps/pwa/src/engine
+git commit -m "feat(engine): add model types and vector helpers"
 ```
 
 ---

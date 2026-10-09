@@ -1,8 +1,7 @@
 # Phoopers
 
 Create, save, and replay animated basketball plays — a 2D coach's-whiteboard view today,
-a 3D view later. See [documentation/roadmap.md](documentation/roadmap.md) for the product
-vision and phasing.
+a 3D view later.
 
 ## Requirements
 
@@ -52,6 +51,10 @@ A Husky `pre-commit` hook runs `lint-staged`: ESLint `--fix` and Prettier on sta
 source files, plus i18n extraction for anything under `apps/pwa/src`. The same checks
 run in CI (`.github/workflows/ci.yml`) on every push and pull request, as a single
 sequential job: lint → typecheck → i18n:check → test → build.
+
+## Documentation
+
+- See [roadmap](documentation/roadmap.md) for the product vision and phasing.
 
 ### A note on translation keys
 
