@@ -67,7 +67,7 @@ describe('removePlayer', () => {
 
 describe('applyFormation', () => {
   it('places five against five with the ball attached to the point guard', () => {
-    const empty: Play = { ...fixturePlay, players: [], branches: [{ ...root, tracks: {}, screens: [] }] };
+    const empty: Play = { ...fixturePlay, players: [], branches: [{ ...root, tracks: { ball: [] }, screens: [] }] };
     const ids = {
       offense: ['o1', 'o2', 'o3', 'o4', 'o5'] as PlayerId[],
       defense: ['d1', 'd2', 'd3', 'd4', 'd5'] as PlayerId[],

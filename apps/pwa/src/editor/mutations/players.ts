@@ -50,7 +50,9 @@ export function removePlayer(play: Play, playerId: PlayerId): Play {
     ...play,
     players: play.players.filter((p) => p.id !== playerId),
     branches: play.branches.map((branch) => {
-      const tracks = Object.fromEntries(Object.entries(branch.tracks).filter(([key]) => key !== playerId));
+      const kept = Object.fromEntries(Object.entries(branch.tracks).filter(([key]) => key !== playerId));
+      // Rebuilding through fromEntries loses the required 'ball' key, so it is restated.
+      const tracks = { ...kept, ball: branch.tracks.ball };
 
       return {
         ...branch,
