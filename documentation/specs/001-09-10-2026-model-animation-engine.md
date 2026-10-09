@@ -187,7 +187,9 @@ enters without discontinuity.
 **Known limitation.** When a fork falls part-way along a parent span rather than on one of
 its keyframes, the synthesised anchor splits that span into two, and two Catmull-Rom spans
 joined at a point do not reproduce the original cubic. The ancestors' opening is therefore
-replayed within roughly 0.1 m rather than exactly. Making it exact needs de Casteljau
+replayed approximately rather than exactly: measured worst-case divergence on a court-scale
+path is **0.5 m** for a player and up to 0.46 m for the ball — half a player's width, not a
+rounding error. 1b should budget for it rather than treat a mid-span fork as exact. Making it exact needs de Casteljau
 splitting at the fork parameter, which this sub-project defers along with the rest of the
 curve-splitting work (see Deferred). Forks placed on a keyframe are exact.
 
