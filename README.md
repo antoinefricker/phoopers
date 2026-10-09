@@ -52,10 +52,6 @@ source files, plus i18n extraction for anything under `apps/pwa/src`. The same c
 run in CI (`.github/workflows/ci.yml`) on every push and pull request, as a single
 sequential job: lint → typecheck → i18n:check → test → build.
 
-## Documentation
-
-- See [roadmap](documentation/roadmap.md) for the product vision and phasing.
-
 ### A note on translation keys
 
 TypeScript module augmentation in `apps/pwa/src/i18n/i18next.d.ts` constrains `t()` to
@@ -74,6 +70,12 @@ Extraction is non-destructive (`keepRemoved: true` in `i18next-parser.config.ts`
 mistyping a key never silently deletes the original key's translations — the orphan stays
 in the catalogue and `i18n:check` names it. Strings that are genuinely gone are deleted
 from the catalogue by hand, deliberately.
+
+## Documentation
+
+- [Roadmap](documentation/roadmap.md) — the product vision and phasing.
+- [Specs](documentation/specs/index.md) — validated designs, one per sub-project.
+- [Plans](documentation/plans/index.md) — implementation plans, one per spec.
 
 ## Contributing
 
