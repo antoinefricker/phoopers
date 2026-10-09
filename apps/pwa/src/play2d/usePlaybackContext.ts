@@ -6,7 +6,6 @@ export interface PlaybackContextValue {
   branchId: BranchId;
   selectBranch: (branchId: BranchId) => void;
   currentTimeRef: React.RefObject<number>;
-  displayTime: number;
   isPlaying: boolean;
   play: () => void;
   pause: () => void;

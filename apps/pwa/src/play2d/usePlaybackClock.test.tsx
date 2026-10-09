@@ -4,6 +4,7 @@ import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { usePlaybackClock } from './usePlaybackClock';
 import { usePlaybackContext } from './usePlaybackContext';
+import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 
 let now = 0;
 let nextId = 1;
@@ -80,6 +81,22 @@ describe('usePlaybackClock', () => {
 
     expect(result.current.currentTimeRef.current).toBeCloseTo(0.5, 2);
     expect(liveFrames()).toBe(0);
+  });
+
+  it('does not jump forward by the paused duration when resumed', () => {
+    const { result } = renderHook(() => usePlaybackClock(100));
+
+    act(() => result.current.play());
+    advance(0);
+    advance(500);
+    act(() => result.current.pause());
+    // A long wait with no frames, as a backgrounded tab or a long pause would produce.
+    now += 60_000;
+    act(() => result.current.play());
+    advance(0);
+    advance(250);
+
+    expect(result.current.currentTimeRef.current).toBeCloseTo(0.75, 2);
   });
 
   it('stops at the end rather than running past it', () => {
@@ -243,5 +260,65 @@ describe('usePlaybackContext', () => {
 
     expect(result.current.branchId).toBe(other?.id);
     expect(result.current.timeline).not.toBe(rootTimeline);
+  });
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <PlaybackContextProvider play={hornsPlay}>{children}</PlaybackContextProvider>
+  );
+
+  it('keeps the main context stable while time advances', () => {
+    let renders = 0;
+    const seen = new Set<unknown>();
+    const { result } = renderHook(
+      () => {
+        renders += 1;
+        const value = usePlaybackContext();
+        seen.add(value);
+        return value;
+      },
+      { wrapper },
+    );
+    act(() => result.current.play());
+    advance(0);
+    const rendersBefore = renders;
+    const valuesBefore = seen.size;
+
+    for (let i = 0; i < 60; i += 1) {
+      advance(1000 / 60);
+    }
+
+    expect(result.current.currentTimeRef.current).toBeCloseTo(1, 2);
+    expect(renders - rendersBefore).toBe(0);
+    expect(seen.size).toBe(valuesBefore);
+  });
+
+  it('updates the time context at about 10 Hz', () => {
+    let renders = 0;
+    const { result } = renderHook(
+      () => {
+        renders += 1;
+        return { time: usePlaybackTimeContext(), main: usePlaybackContext() };
+      },
+      { wrapper },
+    );
+    act(() => result.current.main.play());
+    advance(0);
+    const rendersBefore = renders;
+
+    for (let i = 0; i < 60; i += 1) {
+      advance(1000 / 60);
+    }
+
+    expect(renders - rendersBefore).toBeGreaterThanOrEqual(8);
+    expect(renders - rendersBefore).toBeLessThanOrEqual(12);
+    expect(result.current.time.displayTime).toBeCloseTo(1, 0);
+  });
+
+  it('throws from usePlaybackTimeContext outside its provider', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    expect(() => renderHook(() => usePlaybackTimeContext())).toThrow(
+      /usePlaybackTimeContext.*PlaybackContextProvider/s,
+    );
   });
 });
