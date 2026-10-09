@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -68,7 +68,7 @@ describe('branchTreeData', () => {
   it('terminates when a duplicated id makes a branch its own descendant', () => {
     const play = withBranches([branch('a', null, 'A'), branch('a', 'a', 'A again')]);
 
-    expect(() => branchTreeData(play)).not.toThrow();
+    expect(branchTreeData(play)).toEqual([{ value: 'a', label: 'A', children: [] }]);
   });
 });
 
@@ -176,6 +176,43 @@ describe('BranchTree', () => {
     await user.keyboard('{Enter}');
 
     expect(screen.getByTestId('branch-id')).toHaveTextContent(child.id);
+  });
+
+  it('selects a branch that has children with the Space key', async () => {
+    const user = userEvent.setup();
+    renderTree();
+    await user.click(screen.getByText(child.name));
+    expect(screen.getByTestId('branch-id')).toHaveTextContent(child.id);
+
+    screen.getByRole('button', { name: rootName }).focus();
+    await user.keyboard(' ');
+
+    expect(screen.getByTestId('branch-id')).toHaveTextContent(hornsPlay.rootBranchId);
+  });
+
+  it('exposes the hierarchy as nested lists', () => {
+    const play = withBranches([
+      branch('a', null, 'A'),
+      branch('b', 'a', 'B'),
+      branch('c', 'b', 'C'),
+      branch('e', 'a', 'E'),
+    ]);
+    renderTree(play);
+
+    const nav = screen.getByRole('navigation', { name: 'Play branches' });
+    const [top] = within(nav).getAllByRole('list');
+    const rootItem = within(top as HTMLElement).getAllByRole('listitem')[0] as HTMLElement;
+    const children = within(within(rootItem).getAllByRole('list')[0] as HTMLElement);
+
+    expect(within(rootItem).getByRole('button', { name: 'A' })).toBeInTheDocument();
+    // B and E are A's children; C is inside B's own nested list, not a sibling of B.
+    expect(
+      Array.from((children.getAllByRole('listitem')[0] as HTMLElement).closest('ul')?.children ?? []).map(
+        (li) => li.querySelector('button')?.textContent,
+      ),
+    ).toEqual(['B', 'E']);
+    const bItem = children.getAllByRole('listitem')[0] as HTMLElement;
+    expect(within(bItem).getByRole('button', { name: 'C' })).toBeInTheDocument();
   });
 
   it('restarts from the shared opening on a switch, without stopping playback', async () => {
