@@ -95,3 +95,23 @@ export const COURT_DIMENSIONS = {
   fiba: { length: 28, width: 15 },
   nba: { length: 28.65, width: 15.24 },
 } as const;
+
+export type IssueCode =
+  | 'fork-step-not-in-ancestors'
+  | 'keyframe-before-fork'
+  | 'ball-keyframe-missing-position'
+  | 'ball-keyframe-position-and-attachment'
+  | 'player-keyframe-has-attachment'
+  | 'keyframe-times-not-monotonic'
+  | 'duplicate-id'
+  | 'unknown-player-reference'
+  | 'branch-cycle'
+  | 'non-root-branch-without-fork'
+  | 'root-branch-with-parent'
+  | 'easing-out-of-range';
+
+export interface Issue {
+  code: IssueCode;
+  message: string;
+  entityId?: string;
+}
