@@ -90,7 +90,13 @@ When adding or changing a UI string:
 2. Run `pnpm --filter @phoopers/pwa extract:i18n`. This regenerates `apps/pwa/src/i18n/locales/<lng>/<ns>.json`. The English file is auto-populated from the second argument; the French file gets an empty string you must fill in.
 3. Commit the JSON deltas in the **same commit** as the source change. The `lint-staged` hook re-runs extraction and stages the JSON so this happens by default.
 
-Key naming: `<namespace>.<feature>.<purpose>` — e.g. `admin.members.title`, `admin.members.actions.create`, `cells.types.image`, `common.actions.save`. TypeScript module augmentation in `apps/pwa/src/i18n/i18next.d.ts` types `t()` against the
+Key naming: `<area>.<feature>.<purpose>` — e.g. `admin.members.title`,
+`admin.members.actions.create`, `cells.types.image`, `play.transport.play`. Note that the
+leading segment is a key PREFIX, not an i18next namespace: `nsSeparator` is `':'`, so
+`t('play.transport.play')` resolves inside the default `common` namespace and lands in
+`common.json`. A genuine second namespace needs the `t('ns:key')` form AND an entry in
+`resources.ts`; today the app has one namespace and prefixes keys by area, which is simpler
+and is what `pnpm i18n:check` enforces. TypeScript module augmentation in `apps/pwa/src/i18n/i18next.d.ts` types `t()` against the
 English resources — but **only for the single-argument form** `t('app.title')`. The
 two-argument form this project mandates, `t('app.title', 'Phoopers')`, accepts any key by
 design: supplying a default value tells i18next the key need not exist yet. A mistyped key
