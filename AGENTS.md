@@ -4,9 +4,14 @@ Web app for creating, saving, and replaying animated basketball plays (2D coach'
 
 ## Status
 
-No code yet — this is an empty scaffold. The full product vision, locked-in design
-decisions, and phase plan live in `documentation/roadmap.md`; read it before proposing
-features or architecture so you don't re-litigate decisions already made there.
+Phase 1a is implemented: a headless animation engine in `apps/pwa/src/engine/` that answers
+"where is every player and the ball at time `t`, on a given branch?" There is no UI yet —
+`apps/pwa` renders a placeholder. Next is 1b, the 2D coach's-whiteboard view and playback.
+
+The product vision, locked-in design decisions and phase plan live in
+`documentation/roadmap.md`; the validated designs are in `documentation/specs/` and the
+implementation plans in `documentation/plans/`. Read the roadmap and the relevant spec
+before proposing features or architecture, so you don't re-litigate decisions already made.
 
 ## Project Guidelines
 
