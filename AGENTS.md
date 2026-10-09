@@ -179,4 +179,13 @@ Adding a new locale: register it in `SUPPORTED_LOCALES` (`apps/pwa/src/i18n/i18n
 
 ### Communication
 
+- **Everything written around the code is in English.** This covers the README, everything
+  in `documentation/`, commit messages, branch names, pull request titles and descriptions,
+  code comments, identifiers, user-facing strings' English defaults, and this file. One
+  language in the repository means any contributor can read all of it, and it keeps the
+  history searchable with a single vocabulary.
+  The exception is translation content: the French catalogue under
+  `apps/pwa/src/i18n/locales/fr/` is French by definition.
+  This rule is about the artifacts, not the conversation — chat with the user happens in
+  whichever language they write in.
 - Always explain bash commands succinctly before running them.
