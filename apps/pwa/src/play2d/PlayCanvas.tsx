@@ -1,6 +1,7 @@
 import { usePlaybackContext } from './usePlaybackContext';
 import { Court } from './Court';
 import { PathLayer } from './PathLayer';
+import { TokenLayer } from './TokenLayer';
 import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
 
 interface Props {
@@ -32,6 +33,7 @@ export function PlayCanvas({ halfCourt }: Props) {
       </defs>
       <Court court={court} />
       <PathLayer />
+      <TokenLayer />
     </svg>
   );
 }
