@@ -338,6 +338,16 @@ recorded here because a 1b or 1c implementer will otherwise rediscover it the ha
   number on a keyframe, but not on steps or screens. A `NaN` step time validates clean and
   then silently empties the child's time window: every entity resolves to the court origin,
   with no `NaN` and no throw. Wrong but quiet, which is the hardest kind to notice.
+- **A hold keyframe between two moving spans drifts.** Repeating a position to mean "wait
+  here" does not hold the player still: the surrounding keyframes still produce Catmull-Rom
+  tangents, so the hold span is a real loop. Measured on the track (0,0)@0 → (5,0)@2 →
+  (5,0)@4 → (5,5)@6, the hold span has length 1.199 m and the player wanders to (5.31, −0.31)
+  and back, with `spanKindAt` reporting `dribble`. This is spec-conformant — the tangent
+  derivation above prescribes it — which makes it a design flaw rather than a bug. Zeroing
+  both handles when a span's endpoints coincide would fix it and is a small change, but it
+  is a behavioural decision rather than a correction, so it is recorded rather than taken.
+  A hold at the START or END of a track is unaffected, because one-sided differences give it
+  zero-length tangents. 1c's editor will meet this the first time a coach adds a wait.
 - **Two implementations of the same interpolation.** Fork synthesis evaluates a span with its
   own `positionOnTrack` rather than calling the sampler's. They agree today — by construction
   of their tangent neighbours, pinned by a test that fails if they drift — but they are two
