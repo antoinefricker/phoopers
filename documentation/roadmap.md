@@ -7,13 +7,12 @@ basketball plays, both as a schematic "coach's whiteboard" view and as a 3D view
 goal is to build a public, community-driven web application: a coach (or anyone) can
 draw an offensive or defensive play, organize it into steps with branching scenarios
 (e.g. a response to a defensive switch), and then replay it either on a 2D whiteboard
-or in 3D with a free camera or a camera centered on a given player. The project is
-entirely new (empty folder): everything remains to be built, from the data model to
-hosting.
+or in 3D with a free camera or a camera centered on a given player.
 
 The project is deliberately split into 3 successive sub-projects, each with its own
-spec and its own detailed implementation plan (to be produced later, via the
-brainstorming/writing-plans workflow, when tackling each phase).
+spec and its own detailed implementation plan, produced via the
+brainstorming/writing-plans workflow when tackling each phase. A phase too large for
+one spec is split further (1a, 1b, …), and each piece gets its own full cycle.
 
 ## Validated framing decisions
 
@@ -76,18 +75,31 @@ brainstorming/writing-plans workflow, when tackling each phase).
   **Husky** for git hooks, **lint-staged** to run linting/formatting on staged files
   before each commit.
 
-This stack choice will be validated/refined when writing the detailed Phase 1 spec.
+The parts this stack needed for 1a and 1b were validated in
+[spec 001](specs/001-09-10-2026-model-animation-engine.md) and
+[spec 002](specs/002-09-10-2026-2d-view-playback.md), and are in use: React 19,
+TypeScript, Vite, Mantine, SVG rendering, Vitest, GitHub Actions, Husky and
+lint-staged. The rest — TanStack Query, PWA packaging, Playwright, Supabase and
+hosting — is still a recommendation awaiting the phase that needs it.
 
 ## Phasing (sub-projects)
 
-### Phase 1 — Data model, editor, 2D view (next to be specified)
+### Phase 1 — Data model, editor, 2D view (in progress)
 
-- Data model: players (offense/defense), ball, keyframes, named steps, branch tree.
-- Editor: place/move players, draw paths (movement, pass, dribble, screen), create
-  steps, create alternative branches from a step.
-- 2D playback: coach's-whiteboard-style rendering, play/pause/scrubber,
+Too large for one spec, so split into four sub-projects:
+
+- **1a — Data model and animation engine**: players (offense/defense), ball,
+  keyframes, named steps, branch tree, and a headless engine answering where
+  everything is at time `t` on a given branch.
+- **1b — 2D playback**: coach's-whiteboard-style rendering, play/pause/scrubber,
   half-court/full-court, navigation through the branch tree.
-- Basic persistence (local or a minimal backend) to keep a play across sessions.
+- **1c — Editor**: place/move players, draw paths (movement, pass, dribble, screen),
+  create steps, create alternative branches from a step.
+- **1d — Basic persistence** (local or a minimal backend) to keep a play across
+  sessions.
+
+Which of these have shipped is recorded in the [spec](specs/index.md) and
+[plan](plans/index.md) indexes, so the status lives in one place rather than here.
 
 ### Phase 2 — 3D view
 
@@ -104,13 +116,11 @@ This stack choice will be validated/refined when writing the detailed Phase 1 sp
 
 ## Next steps
 
-1. Create `documentation/roadmap.md` in the project: an English translation of this
-   global plan, kept as a reference document versioned with the code.
-2. Kick off brainstorming + a detailed spec for **Phase 1** (data model, editor, 2D
-   view) — the sub-project that validates the functional core before investing in 3D
-   and community features.
-3. Once Phase 1 is implemented and validated, scope Phase 2 (3D view + cameras).
-4. Finally, scope Phase 3 (community features).
+1. Finish **Phase 1** — the sub-project that validates the functional core before
+   investing in 3D and community features. 1c (the editor) is next, then 1d
+   (persistence); each gets brainstorming, a spec and a plan before any code.
+2. Once Phase 1 is implemented and validated, scope **Phase 2** (3D view + cameras).
+3. Finally, scope **Phase 3** (community features).
 
 ## Verification
 
