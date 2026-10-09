@@ -113,6 +113,24 @@ Scrubbing writes the ref and pauses playback. Playback stops at `duration(timeli
 A span's kind is read at its midpoint. Each token is one SVG group so the whole symbol moves
 with a single `transform`.
 
+### Known limitation: very short dribbles
+
+The dribble wave tapers to zero over its final wavelength so the arrowhead points along the
+path rather than along the wiggle. A dribble shorter than about 0.4 m therefore has no
+untapered region left and renders nearly straight — indistinguishable from a run. Measured
+maximum deviation from a straight line, at 0.12 m amplitude against a 0.08 m stroke:
+
+| Dribble length   | Max deviation | Reads as             |
+| ---------------- | ------------- | -------------------- |
+| 0.3 m            | 0.027 m       | effectively straight |
+| 0.5 m            | 0.077 m       | a faint single bump  |
+| 0.8 m and longer | 0.120 m       | full amplitude       |
+
+A token's radius is 0.45 m, so a dribble that short covers less than one player width and is
+unlikely in practice — the sample play's shortest is 2.86 m. The alternative, an untapered
+wave, puts the arrowhead 40-68° off the true direction, which is worse. If short dribbles
+ever matter, taper over `min(wavelength, total / 2)` instead.
+
 ## Court geometry
 
 A pure module turns `COURT_DIMENSIONS` into markings: boundary, centre line and circle, both
