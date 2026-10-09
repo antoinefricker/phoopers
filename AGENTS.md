@@ -46,9 +46,10 @@ the git history, not in the spec documents which describe how the engine behaves
 promise of one. One row per decision that could reasonably have gone the other way: what was
 chosen, what was rejected, and why. Alternatives are rejected during brainstorming — two steps
 before the plan is written — so carrying them forward is deliberate work, not a by-product.
-Without this section the rule above is aspirational. Plan 002 predates the rule but has been
-retrofitted from the spec's first commit, before it was rewritten declaratively; plan 003 has
-not, so for Phase 1b the rationale lives in its pull request and the commit history.
+Without this section the rule above is aspirational. Plans 002 and 003 predate the rule and
+were retrofitted — 002 from the spec's first commit, before it was rewritten declaratively,
+and 003 from its pull request and commit history, since spec 002 was declarative from the
+outset and never held the argument.
 
 **Limitations are centralised, never duplicated.** When a spec or plan needs to mention one,
 it states the consequence in a sentence and links to the heading in `limitations.md`. Each
