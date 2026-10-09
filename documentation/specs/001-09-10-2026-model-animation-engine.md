@@ -119,6 +119,10 @@ preparation: concatenating ancestor tracks, deriving absent handles, resolving e
 presets, and building each span's arc-length lookup table. `stateAt` sees a flat, prepared
 timeline and knows nothing about branching, so it is cheap to call 60 times a second.
 
+A timeline carries both `spans` and `anchors`. Spans drive interpolation, but a track with a
+single keyframe has no spans at all, so `anchors` is what makes such an entity sample to its
+one position instead of nothing.
+
 ```ts
 interface PreparedSpan {
   fromT: number;
@@ -138,6 +142,7 @@ interface ResolvedTimeline {
   players: Player[];
   court: Play['court'];
   spans: Record<EntityId, PreparedSpan[]>;
+  anchors: Record<EntityId, Keyframe[]>; // flattened keyframes after ancestor concatenation
   steps: Step[];
   screens: ScreenEvent[];
   duration: number; // seconds; the last keyframe time across all tracks
