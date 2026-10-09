@@ -65,13 +65,12 @@ describe('hornsPlay', () => {
     expect(timeline.screens.map((s) => s.screenerId).sort()).toEqual(['o4', 'o5']);
     for (const screen of timeline.screens) {
       expect(screen.beneficiaryId).toBe('o1');
-      // Standing still is checked by displacement, not spanKindAt: the engine reports a
-      // zero-length hold span as 'move' because float noise leaves its length at ~1e-14.
       const start = stateAt(timeline, screen.t).players[screen.screenerId]?.position ?? { x: NaN, y: NaN };
       for (const fraction of [0.1, 0.5, 0.9, 1]) {
         const t = screen.t + screen.duration * fraction;
         const position = stateAt(timeline, t).players[screen.screenerId]?.position ?? { x: NaN, y: NaN };
         expect(dist(position, start)).toBeLessThan(0.001);
+        expect(spanKindAt(timeline, screen.screenerId, t)).toBe('idle');
         expect(stateAt(timeline, t).activeScreens.map((s) => s.id)).toContain(screen.id);
       }
     }
