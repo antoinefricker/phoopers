@@ -5,13 +5,32 @@ a 3D view later.
 
 ## Requirements
 
-- Node 24 (see `.nvmrc` — `nvm use` picks it up)
-- pnpm 10.8.0 (`corepack enable` installs the pinned version)
+- [nvm](https://github.com/nvm-sh/nvm) to pick up the pinned Node version, or Node 24
+  installed some other way (see `.nvmrc`)
+- [corepack](https://nodejs.org/api/corepack.html), shipped with Node, to install the
+  pinned pnpm 10.8.0
 
 ## Getting started
 
 ```bash
+git clone git@github.com:antoinefricker/phoopers.git
+cd phoopers
+nvm use          # Node 24, from .nvmrc
+corepack enable  # pnpm 10.8.0, from package.json's packageManager
 make install
+```
+
+`make install` also installs the Husky pre-commit hook, via the root `prepare` script.
+
+Confirm the setup before changing anything — this runs the same sequence CI does:
+
+```bash
+make ci
+```
+
+Then start the dev server:
+
+```bash
 make dev
 ```
 
