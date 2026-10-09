@@ -1,5 +1,5 @@
-import type { PlayerId, ResolvedTimeline, SpanKind, Vec2 } from '../../engine';
-import { ballStateAt, spanKindAt, stateAt } from '../../engine';
+import type { PlayerId, PreparedSpan, ResolvedTimeline, SpanKind, Vec2 } from '../../engine';
+import { ballStateAt, pointOnCubic, spanKindAt, stateAt } from '../../engine';
 
 export interface PathSegment {
   d: string;
@@ -85,44 +85,82 @@ const WAVY_SAMPLES_PER_WAVELENGTH = 12;
  * resampled at a fixed arc-length step first, so the squiggle is smooth and its
  * wavelength is true whatever the density of the input samples (a coarse input would
  * otherwise alias to a flat line).
+ *
+ * The wave is tapered to nothing over the final wavelength (a smoothstep envelope, so the
+ * envelope is flat as well as zero at the end). The path therefore ends exactly on the
+ * underlying curve and its last segment runs along the curve's end tangent: an arrowhead
+ * placed on the end points the way the path is going whatever phase the wave finishes in.
  */
 export function wavyPathD(points: readonly Vec2[], amplitude: number, wavelength: number): string {
   if (points.length < 2 || wavelength <= 0) {
     return '';
   }
 
-  const step = wavelength / WAVY_SAMPLES_PER_WAVELENGTH;
-  const wavy: Vec2[] = [];
-  let walked = 0; // arc length at the start of the current input segment
-  let nextSample = 0; // arc length of the next output sample
-
+  // Cumulative arc length at each input point, skipping nothing (zero-length steps are harmless).
+  const cumulative = [0];
   for (let i = 1; i < points.length; i += 1) {
     const from = points[i - 1];
     const to = points[i];
     if (from === undefined || to === undefined) {
+      return '';
+    }
+    cumulative.push((cumulative[i - 1] ?? 0) + Math.hypot(to.x - from.x, to.y - from.y));
+  }
+  const total = cumulative[cumulative.length - 1] ?? 0;
+  if (total < 1e-9) {
+    return '';
+  }
+
+  const step = wavelength / WAVY_SAMPLES_PER_WAVELENGTH;
+  const sampleCount = Math.ceil(total / step - 1e-9);
+  const wavy: Vec2[] = [];
+  let segment = 1;
+
+  for (let n = 0; n <= sampleCount; n += 1) {
+    // The last sample is the path end itself; its arc length is clamped BEFORE the offset is computed.
+    const arc = n === sampleCount ? total : n * step;
+    while (segment < points.length - 1 && (cumulative[segment] ?? 0) < arc) {
+      segment += 1;
+    }
+    const from = points[segment - 1];
+    const to = points[segment];
+    const start = cumulative[segment - 1];
+    const end = cumulative[segment];
+    if (from === undefined || to === undefined || start === undefined || end === undefined || end === start) {
       continue;
     }
 
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     const length = Math.hypot(dx, dy);
-    if (length === 0) {
-      continue;
-    }
+    const along = Math.min(Math.max(arc - start, 0), end - start) / (end - start);
+    const remaining = Math.min((total - arc) / wavelength, 1);
+    const envelope = remaining * remaining * (3 - 2 * remaining);
+    const offset = Math.sin((arc / wavelength) * Math.PI * 2) * amplitude * envelope;
 
-    const isLast = i === points.length - 1;
-    // Emit every sample falling in this segment; the very end of the path is always emitted.
-    while (nextSample <= walked + length + 1e-9 || (isLast && nextSample - step < walked + length - 1e-9)) {
-      const along = Math.min(Math.max(nextSample - walked, 0), length);
-      const offset = Math.sin((nextSample / wavelength) * Math.PI * 2) * amplitude;
-      wavy.push({
-        x: from.x + (dx / length) * along - (dy / length) * offset,
-        y: from.y + (dy / length) * along + (dx / length) * offset,
-      });
-      nextSample += step;
-    }
-    walked += length;
+    wavy.push({
+      x: from.x + dx * along - (dy / length) * offset,
+      y: from.y + dy * along + (dx / length) * offset,
+    });
   }
 
   return polylineD(wavy);
+}
+
+/** Points sampled along a span's cubic before the wiggle is applied; ample for a smooth curve. */
+const DRIBBLE_SPAN_SAMPLES = 48;
+
+/**
+ * The dribble symbol for one span: its cubic sampled into points, then wiggled. Empty for a
+ * zero-length span, which has no direction to draw.
+ */
+export function dribblePathD(
+  span: Pick<PreparedSpan, 'p0' | 'p1' | 'p2' | 'p3'>,
+  amplitude: number,
+  wavelength: number,
+): string {
+  const points = Array.from({ length: DRIBBLE_SPAN_SAMPLES + 1 }, (_, i) =>
+    pointOnCubic(span.p0, span.p1, span.p2, span.p3, i / DRIBBLE_SPAN_SAMPLES),
+  );
+  return wavyPathD(points, amplitude, wavelength);
 }

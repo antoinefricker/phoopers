@@ -24,6 +24,7 @@ export type {
   Vec2,
 } from './types';
 export { COURT_DIMENSIONS } from './types';
+export { pointOnCubic } from './curve';
 export { resolveBranch } from './resolve';
 export { ballStateAt, duration, spanKindAt, stateAt, stepsOf } from './sample';
 export { validatePlay } from './validate';

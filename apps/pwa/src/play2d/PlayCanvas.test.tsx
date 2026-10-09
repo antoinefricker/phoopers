@@ -1,8 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { describe, expect, it } from 'vitest';
-import { resolveBranch, type Vec2 } from '../engine';
-import { pointOnCubic } from '../engine/curve';
+import { pointOnCubic, resolveBranch, type Vec2 } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlayCanvas } from './PlayCanvas';
@@ -93,6 +92,44 @@ describe('PlayCanvas', () => {
 
     expect(width).toBe(COURT_SPEC.fiba.length);
     expect(height).toBe(COURT_SPEC.fiba.width);
+  });
+
+  it('never draws an empty path', () => {
+    const { container } = renderCanvas();
+
+    for (const path of container.querySelectorAll('[data-testid="player-path"] path, [data-testid="ball-path"]')) {
+      expect(path.getAttribute('d')).toMatch(/^M /);
+    }
+  });
+
+  it('points every dribble arrowhead along the span end tangent (horns)', () => {
+    const { container } = renderCanvas();
+    let checked = 0;
+
+    timeline.players.forEach((player, playerIndex) => {
+      const spans = timeline.spans[player.id] ?? [];
+      const paths =
+        container.querySelectorAll('[data-testid="player-path"]')[playerIndex]?.querySelectorAll('path') ?? [];
+      const drawn = Array.from(paths);
+      const kinds = playerPathSegments(timeline, player.id);
+      let cursor = 0;
+      kinds.forEach((segment, index) => {
+        if (segment.kind === 'idle') return;
+        const el = drawn[cursor];
+        cursor += 1;
+        const span = spans[index];
+        if (segment.kind !== 'dribble' || el === undefined || span === undefined) return;
+        const pts = pointsOf(el.getAttribute('d') ?? '');
+        const a = pts[pts.length - 2];
+        const b = pts[pts.length - 1];
+        if (a === undefined || b === undefined) throw new Error('short path');
+        const diff = Math.atan2(b.y - a.y, b.x - a.x) - Math.atan2(span.p3.y - span.p2.y, span.p3.x - span.p2.x);
+        expect(Math.abs((Math.atan2(Math.sin(diff), Math.cos(diff)) * 180) / Math.PI)).toBeLessThan(5);
+        checked += 1;
+      });
+    });
+
+    expect(checked).toBeGreaterThan(0);
   });
 
   describe('symbols', () => {

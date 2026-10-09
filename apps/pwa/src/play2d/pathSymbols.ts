@@ -8,6 +8,3 @@
  */
 export const DRIBBLE_AMPLITUDE = 0.12;
 export const DRIBBLE_WAVELENGTH = 0.6;
-
-/** Points sampled per span before the wiggle is applied; ample for a smooth cubic. */
-export const SPAN_SAMPLES = 48;
