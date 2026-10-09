@@ -10,6 +10,48 @@
 
 **Spec:** [documentation/specs/001-09-10-2026-model-animation-engine.md](../specs/001-09-10-2026-model-animation-engine.md)
 
+## Decisions
+
+Recovered from the brainstorming that produced [spec 001](../specs/001-09-10-2026-model-animation-engine.md)
+and from the rulings made while executing this plan. The spec is declarative by design, so
+this is where the argument lives.
+
+### Design decisions
+
+| #   | Chosen                                                   | Rejected, and why                                                                                                                                                                                                                                            |
+| --- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D1  | Per-entity keyframes with global named steps             | _Global keyframes_ — moving one player forces positions for all ten and the data grows as players × times. _Steps as the only keyframes_ — a multi-leg path between two named moments needs unnamed steps, reintroducing the distinction under a worse name. |
+| D2  | A branch forks at a step and owns the keyframes after it | _Sparse overlay_ — resolution turns ambiguous when the parent later moves an entity the branch also moved. _Full copy from t=0_ — editing the shared opening means editing every branch, and they drift apart silently.                                      |
+| D3  | Ball keyframes carry an optional `attachedTo`            | _Separate possession timeline_ — two structures that can contradict each other. _Plain entity_ — any edit to a carrier's path silently desynchronises the ball.                                                                                              |
+| D4  | Movement kinds derived; a screen is an explicit event    | _Explicit kind on every span_ — admits states that cannot happen, such as a span marked `pass` while the ball is attached. _Kinds authoritative, ball derived_ — makes the ball's position a side effect of annotations on ten separate timelines.           |
+| D5  | Cubic Bezier with optional explicit control points       | _Catmull-Rom only_ — no way to hand-tune a specific arc. _Linear_ — the roadmap promises smooth interpolation, and retrofitting would change the keyframe shape.                                                                                             |
+| D6  | Arc-length parameterisation                              | _Direct time → Bezier parameter_ — speed then varies with handle **length**, so handle length becomes a hidden speed control and reshaping a cut silently retimes it. See the note below.                                                                    |
+| D7  | Optional per-span cubic-bezier easing                    | _Named presets only_ — no way to express a specific acceleration profile, and widening it later changes the stored shape. _One easing per track_ — the common case needs two profiles on one path. _No easing_ — acceleration becomes manual keyframe spam.  |
+| D8  | No external maths dependency                             | _`gl-matrix`_ (`Float32Array`) and _three.js `Vector2`_ (a class) — either in `Keyframe.position` breaks the JSON-serialisability 1d and Phase 3 depend on, forcing conversion at every boundary. See the note below.                                        |
+
+**D6 reversed an earlier draft.** The first version mapped time directly onto the Bezier
+parameter. That is wrong once easing exists, and subtly wrong even without it, for the reason
+in the table. Shape and timing must not interfere.
+
+**D8 defers, it does not dismiss.** Curve splitting and point projection arrive in 1c, and
+`bezier-js` (MIT, ~1.5M weekly downloads, by the author of _A Primer on Bézier Curves_) does
+both. It ships no TypeScript types and `@types/bezier-js` is two majors behind the library, so
+adopting it needs a hand-written declaration. All curve maths sits behind `engine/curve.ts`
+with a small surface so the swap touches one file.
+
+### Rulings made during implementation
+
+Each changed the spec or overrode the plan, and each could have gone the other way.
+
+| Ruling                                                                     | Why                                                                                                                                                                                    | Cost if wrong                                                  |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Added a 13th issue code, `malformed-play` (`0005773`)                      | Wrapping validation in try/catch honoured the never-throw contract but returned `[]` for a corrupt play — telling the editor it was fine. Silence is worse than the throw it replaced. | One more code the editor must handle                           |
+| Step and screen windows are **inclusive** at a fork (`b00f59a`)            | A child must be able to name the step it forked from; the spec's half-open wording would drop it.                                                                                      | A parent and child may each contribute a marker at one instant |
+| The sampler's release-to-catch rule wins; `resolveBranch` changed to match | A thrown ball leaves the passer's hand where they stood when they threw it, not wherever they are at a later fork.                                                                     | The bug we already had                                         |
+| Mid-span fork drift recorded, not fixed (`b83ae34`, corrected `3fbe778`)   | Exactness needs de Casteljau splitting, already deferred to 1c. The first figure understated it 5×; the measured 0.5 m is now recorded.                                                | 1b sees ~0.5 m drift on forks placed off a keyframe            |
+| `isMoving` gained an epsilon (`f261ce9`)                                   | A stationary player's span has ~2.2e-14 length from float noise, so standing players reported as moving — and the renderer would have drawn them a movement arrow.                     | None; it restored the spec's stated behaviour                  |
+| TypeScript pinned to `^6.0.3`, not 7                                       | `typescript-eslint@8.71.1` declares `typescript: ">=4.8.4 <6.1.0"`; TS 7 breaks linting repo-wide.                                                                                     | No TS 7 features until typescript-eslint catches up            |
+
 ## Global Constraints
 
 - **No framework imports under `engine/`.** No `react`, `react-dom`, `@mantine/*`, `react-i18next`, and no DOM globals (`window`, `document`). `eslint.config.js` already enforces this for `apps/pwa/src/engine/**`.
