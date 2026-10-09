@@ -192,3 +192,48 @@ describe('cross-branch continuity', () => {
     expect(distance(a, b)).toBeLessThan(1e-6);
   });
 });
+
+describe('moving versus standing still', () => {
+  const walker = (end: { x: number; y: number }): ResolvedTimeline =>
+    resolveBranch(
+      {
+        id: 'p' as Play['id'],
+        name: 'standing',
+        court: 'fiba',
+        rootBranchId: ROOT,
+        players: [{ id: P1, team: 'offense', label: '1' }],
+        branches: [
+          {
+            id: ROOT,
+            parentId: null,
+            forkStepId: null,
+            name: 'Base',
+            steps: [],
+            screens: [],
+            tracks: {
+              [P1]: [
+                { t: 0, position: { x: 7.3, y: 4.1 } },
+                { t: 4, position: end },
+              ],
+              ball: [{ t: 0, attachedTo: P1 }],
+            },
+          },
+        ],
+      },
+      ROOT,
+    );
+
+  it('reports a player whose endpoints coincide as idle, not moving', () => {
+    const standing = walker({ x: 7.3, y: 4.1 });
+
+    expect(stateAt(standing, 2).players[P1]?.moving).toBe(false);
+    expect(spanKindAt(standing, P1, 2)).toBe('idle');
+  });
+
+  it('still reports a genuine 5 cm move as moving (the epsilon is not absurdly high)', () => {
+    const creeping = walker({ x: 7.35, y: 4.1 });
+
+    expect(stateAt(creeping, 2).players[P1]?.moving).toBe(true);
+    expect(spanKindAt(creeping, P1, 2)).toBe('dribble');
+  });
+});

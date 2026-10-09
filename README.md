@@ -52,34 +52,20 @@ source files, plus i18n extraction for anything under `apps/pwa/src`. The same c
 run in CI (`.github/workflows/ci.yml`) on every push and pull request, as a single
 sequential job: lint → typecheck → i18n:check → test → build.
 
-### A note on translation keys
-
-TypeScript module augmentation in `apps/pwa/src/i18n/i18next.d.ts` constrains `t()` to
-known keys — but only for the single-argument form `t('app.title')`. The two-argument
-form this project uses everywhere, `t('app.title', 'Phoopers')`, accepts any key by
-design: supplying a default value tells i18next the key need not exist yet.
-
-`pnpm i18n:check` is the guard that actually holds. It extracts the keys the source
-references into a throwaway directory and compares them with the committed catalogue,
-failing when a key is missing, orphaned, or in a namespace `resources.ts` never imports.
-It deliberately does not use `git diff`: the pre-commit hook regenerates and stages the
-catalogue on every commit, so a diff-based check would always see a clean tree, and a
-brand-new namespace file would be untracked and invisible to it.
-
-Extraction is non-destructive (`keepRemoved: true` in `i18next-parser.config.ts`), so
-mistyping a key never silently deletes the original key's translations — the orphan stays
-in the catalogue and `i18n:check` names it. Strings that are genuinely gone are deleted
-from the catalogue by hand, deliberately.
+`i18n:check` is the one worth knowing about before it fails on you: a mistyped translation
+key is **not** a compile error, so that step catches it instead. The reason, and the i18n
+conventions generally, are in [AGENTS.md](AGENTS.md).
 
 ## Documentation
 
 - [Roadmap](documentation/roadmap.md) — the product vision and phasing.
 - [Specs](documentation/specs/index.md) — validated designs, one per sub-project.
 - [Plans](documentation/plans/index.md) — implementation plans, one per spec.
+- [Known limitations](documentation/limitations.md) — every limitation, defect and coverage gap, with what it costs.
 
 ## Contributing
 
 - Conventional commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`).
-- All user-facing strings go through `t('<namespace>.<key>', 'English default')`;
-  commit the regenerated locale JSON alongside the source change.
+- All user-facing strings go through `t()` with an English default, and the regenerated
+  locale JSON is committed alongside the source change.
 - Further conventions live in [AGENTS.md](AGENTS.md).

@@ -16,6 +16,13 @@ import { lerp } from './vec2';
 
 const ORIGIN: Vec2 = { x: 0, y: 0 };
 
+// Smallest span length, in metres, that counts as movement. A span between identical points
+// still measures ~1e-14 m, because its arc length is the sum of 32 chords of floating-point
+// noise. One micrometre sits eight orders above that noise and far below any real move on a
+// 28 m court. Not vec2's 1e-9 point-equality tolerance: that compares two positions, this
+// bounds an accumulated length.
+const MOVING_EPSILON = 1e-6;
+
 // Clamp to the entity's anchored range; a non-finite time samples the start.
 function clampTime(anchors: readonly Keyframe[], t: number): number {
   const first = anchors[0];
@@ -113,7 +120,7 @@ function isMoving(timeline: ResolvedTimeline, entity: EntityId, rawT: number): b
   const t = clampTime(timeline.anchors[entity] ?? [], rawT);
   const span = spans[spanIndexAt(spans, t)];
   if (span === undefined || t >= span.toT) return false;
-  return span.length > 0;
+  return span.length > MOVING_EPSILON;
 }
 
 export function stateAt(timeline: ResolvedTimeline, rawT: number): PlayState {

@@ -1,6 +1,24 @@
 {
-  "app": {
-    "tagline": "Design and replay basketball plays",
-    "title": "Phoopers"
+  "play": {
+    "branches": {
+      "label": "Play branches",
+      "title": "Branches",
+      "toggle": "Toggle branches"
+    },
+    "canvas": {
+      "label": "Court diagram: {{name}}"
+    },
+    "court": {
+      "full": "Full court",
+      "half": "Half court",
+      "view": "Court view"
+    },
+    "transport": {
+      "nextStep": "Next step",
+      "pause": "Pause",
+      "play": "Play",
+      "previousStep": "Previous step",
+      "scrubber": "Playback position"
+    }
   }
 }
