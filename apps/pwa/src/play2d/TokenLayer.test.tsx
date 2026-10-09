@@ -2,7 +2,7 @@ import { Profiler, useEffect } from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolveBranch, stateAt, type Play, type Vec2 } from '../engine';
+import { resolveBranch, stateAt, type Branch, type Play, type Vec2 } from '../engine';
 import * as engine from '../engine';
 import { hornsPlay, HORNS_SWITCH } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
@@ -188,6 +188,32 @@ describe('TokenLayer', () => {
 
     // A leaked listener would still sample the timeline, even with nothing left to write to.
     expect(engine.stateAt).not.toHaveBeenCalled();
+  });
+
+  describe('a play with no ball track', () => {
+    const noBall: Play = {
+      ...hornsPlay,
+      branches: hornsPlay.branches.map((b) => ({
+        ...b,
+        tracks: Object.fromEntries(Object.entries(b.tracks).filter(([id]) => id !== 'ball')) as Branch['tracks'],
+      })),
+    };
+
+    it('premise: the sampler puts the ball at the origin', () => {
+      const timeline = resolveBranch(noBall, noBall.rootBranchId);
+
+      expect(timeline.anchors['ball'] ?? []).toHaveLength(0);
+      expect(stateAt(timeline, 0).ball.position).toEqual({ x: 0, y: 0 });
+    });
+
+    it('draws no ball token, so there is no phantom ball at the court corner', () => {
+      const { container } = renderTokens(noBall);
+
+      expect(container.querySelector('[data-testid="ball-token"]')).toBeNull();
+      expect(container.querySelectorAll('[data-testid="token"]')).toHaveLength(hornsPlay.players.length);
+      act(() => controls().seek(2));
+      expect(container.querySelector('[data-testid="ball-token"]')).toBeNull();
+    });
   });
 
   describe('a player listed in the play but with no track in the branch', () => {

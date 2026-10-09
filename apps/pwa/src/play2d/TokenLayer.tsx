@@ -6,7 +6,9 @@ import { usePlaybackContext } from './usePlaybackContext';
 const translate = (x: number, y: number): string => `translate(${x} ${y})`;
 
 /**
- * The animated layer: player tokens and the ball. It never re-renders as time advances.
+ * The animated layer: player tokens and the ball. It does not re-render as time advances (only when the
+ * stable context changes: a branch switch, or play, pause and end of play via `isPlaying`, which is
+ * harmless because transforms are ref-owned).
  * It subscribes to the clock and writes `transform` straight onto the SVG nodes, so a
  * position never passes through React state or props.
  */
@@ -20,7 +22,11 @@ export function TokenLayer() {
   // drawing a token would put a phantom player at the corner, so none is drawn.
   const tokenPlayers = timeline.players.filter((player) => (timeline.anchors[player.id]?.length ?? 0) > 0);
 
-  // Layout effect so the first paint already has every token in place, not at (0, 0).
+  // The ball follows the same rule: no ball keyframes means the sampler returns the origin.
+  const hasBall = (timeline.anchors['ball']?.length ?? 0) > 0;
+
+  // Layout effect so the first paint already has every token in place, not at (0, 0). The
+  // guarantee is not testable in jsdom (act flushes effects before any assertion).
   useLayoutEffect(() => {
     const paint = (t: number) => {
       const state = stateAt(timeline, t);
@@ -75,9 +81,11 @@ export function TokenLayer() {
           </text>
         </g>
       ))}
-      <g data-testid="ball-token" ref={ballRef}>
-        <circle r={0.18} fill="var(--mantine-color-orange-6)" />
-      </g>
+      {hasBall && (
+        <g data-testid="ball-token" ref={ballRef}>
+          <circle r={0.18} fill="var(--mantine-color-orange-6)" />
+        </g>
+      )}
     </g>
   );
 }
