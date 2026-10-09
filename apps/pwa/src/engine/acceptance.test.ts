@@ -59,6 +59,9 @@ describe('acceptance', () => {
     expect(spanKindAt(timeline, P2, 0.5)).toBe('move');
     expect(ballStateAt(timeline, 1.5)).toBe('inFlight');
     expect(ballStateAt(timeline, 3)).toBe('held');
+    // A pass is told from a shot by its arrival: it ends attached to a teammate.
+    expect(stateAt(timeline, 1.5).ball.attachedTo).toBeNull();
+    expect(stateAt(timeline, 2).ball.attachedTo).toBe(P2);
   });
 
   it('4. distinguishes a shot: a held ball released to a free position', () => {

@@ -169,10 +169,19 @@ function flattenTrack(chain: readonly Branch[], entity: EntityId): FlatTrack {
       const hasFork = window.some((k) => k.t === from);
       if (!hasFork) {
         const ancestors = chain.slice(0, i);
-        const state = stateOnTrack(flattenTrack(ancestors, entity).anchors, from, (id, at) =>
+        const parentAnchors = flattenTrack(ancestors, entity).anchors;
+        const state = stateOnTrack(parentAnchors, from, (id, at) =>
           positionOnTrack(flattenTrack(ancestors, id).anchors, at),
         );
-        if (state !== undefined) anchors.push({ t: from, ...state });
+        if (state !== undefined) {
+          // The parent's fork keyframe is excluded from its window, so its handles would be
+          // lost; carry them so the span that ends here keeps the parent's exact shape.
+          const parentFork = parentAnchors.find((k) => k.t === from);
+          const handles: Pick<Keyframe, 'handleIn' | 'handleOut'> = {};
+          if ('position' in state && parentFork?.handleIn !== undefined) handles.handleIn = parentFork.handleIn;
+          if ('position' in state && parentFork?.handleOut !== undefined) handles.handleOut = parentFork.handleOut;
+          anchors.push({ t: from, ...state, ...handles });
+        }
       }
 
       const parentTrack = flattenTrack(chain.slice(0, i), entity).anchors;

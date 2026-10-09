@@ -1,4 +1,15 @@
-import type { EntityId, Keyframe, PlayerId, PlayState, PreparedSpan, ResolvedTimeline, Step, Vec2 } from './types';
+import type {
+  BallState,
+  EntityId,
+  Keyframe,
+  PlayerId,
+  PlayState,
+  PreparedSpan,
+  ResolvedTimeline,
+  SpanKind,
+  Step,
+  Vec2,
+} from './types';
 import { lutToParam, pointOnCubic } from './curve';
 import { applyEasing } from './easing';
 import { lerp } from './vec2';
@@ -123,11 +134,11 @@ export function stateAt(timeline: ResolvedTimeline, rawT: number): PlayState {
   };
 }
 
-export function ballStateAt(timeline: ResolvedTimeline, t: number): 'held' | 'inFlight' {
+export function ballStateAt(timeline: ResolvedTimeline, t: number): BallState {
   return attachmentAt(timeline, t) === null ? 'inFlight' : 'held';
 }
 
-export function spanKindAt(timeline: ResolvedTimeline, playerId: PlayerId, t: number): 'idle' | 'move' | 'dribble' {
+export function spanKindAt(timeline: ResolvedTimeline, playerId: PlayerId, t: number): SpanKind {
   if (!isMoving(timeline, playerId, t)) return 'idle';
   return attachmentAt(timeline, t) === playerId ? 'dribble' : 'move';
 }

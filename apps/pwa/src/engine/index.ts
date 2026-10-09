@@ -1,4 +1,5 @@
 export type {
+  BallState,
   Branch,
   BranchId,
   CubicBezierEasing,
@@ -17,6 +18,7 @@ export type {
   ResolvedTimeline,
   ScreenEvent,
   ScreenId,
+  SpanKind,
   Step,
   StepId,
   Vec2,

@@ -84,6 +84,9 @@ export interface ResolvedTimeline {
   duration: number;
 }
 
+export type BallState = 'held' | 'inFlight';
+export type SpanKind = 'idle' | 'move' | 'dribble';
+
 export interface PlayState {
   t: number;
   players: Record<PlayerId, { position: Vec2; moving: boolean }>;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fixturePlay, P1, P2, ROOT, SWITCH } from './__fixtures__/play';
 import { resolveBranch } from './resolve';
+import { stateAt } from './sample';
 import { applyEasing } from './easing';
 import { lutToParam, pointOnCubic } from './curve';
 import type { Branch, Keyframe, Play, PlayerId, StepId } from './types';
@@ -215,5 +216,53 @@ describe('resolveBranch fork continuity', () => {
 
     expect(timeline.anchors.ball).toEqual([]);
     expect(timeline.spans.ball).toEqual([]);
+  });
+});
+
+describe('resolveBranch ancestor opening', () => {
+  // The invariant behind spec criterion 5: before the fork, the child IS the parent.
+  function expectSameOpening(play: Play): void {
+    const root = resolveBranch(play, ROOT);
+    const child = resolveBranch(play, SWITCH);
+
+    for (let t = 0; t < 2; t += 0.05) {
+      const a = stateAt(root, t);
+      const b = stateAt(child, t);
+      for (const id of Object.keys(a.players) as PlayerId[]) {
+        expect(b.players[id]?.position.x, `${id}.x @${t}`).toBeCloseTo(a.players[id]?.position.x ?? NaN, 9);
+        expect(b.players[id]?.position.y, `${id}.y @${t}`).toBeCloseTo(a.players[id]?.position.y ?? NaN, 9);
+      }
+      expect(b.ball.position.x, `ball.x @${t}`).toBeCloseTo(a.ball.position.x, 9);
+      expect(b.ball.position.y, `ball.y @${t}`).toBeCloseTo(a.ball.position.y, 9);
+      expect(b.ball.attachedTo).toBe(a.ball.attachedTo);
+    }
+  }
+
+  it('matches the root before the fork for every entity of the fixture', () => {
+    expectSameOpening(fixturePlay);
+  });
+
+  it('matches the root when the parent fork keyframe carries handles', () => {
+    const play = forkedPlay(
+      {
+        [P1]: [
+          { t: 0, position: { x: 0, y: 0 } },
+          { t: 2, position: { x: 6, y: 4 }, handleIn: { x: 8, y: 9 }, handleOut: { x: 9, y: 1 } },
+          { t: 4, position: { x: 12, y: 0 } },
+        ],
+        [P2]: [
+          { t: 0, position: { x: 1, y: 1 } },
+          { t: 2, position: { x: 5, y: 5 } },
+          { t: 4, position: { x: 9, y: 2 } },
+        ],
+        ball: [
+          { t: 0, attachedTo: P1 },
+          { t: 4, attachedTo: P1 },
+        ],
+      },
+      { [P1]: [{ t: 4, position: { x: 3, y: 3 } }] },
+    );
+
+    expectSameOpening(play);
   });
 });
