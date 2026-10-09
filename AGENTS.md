@@ -39,9 +39,16 @@ folder current, including the Status column — a plan marked "Not started" afte
 worse than no index.
 
 **Specs are declarative.** They describe what the system is, not how the decision was reached.
-Rejected alternatives and the argument that produced a design belong in the brainstorming
-conversation and the git history, not in the document a 1c implementer reads to learn how the
-engine behaves.
+Rejected alternatives and the argument that produced a design belong in the plan documents and
+the git history, not in the spec documents which describe how the engine behaves.
+
+**Plans open with a Decisions section**, so that rationale has a home rather than only a
+promise of one. One row per decision that could reasonably have gone the other way: what was
+chosen, what was rejected, and why. Alternatives are rejected during brainstorming — two steps
+before the plan is written — so carrying them forward is deliberate work, not a by-product.
+Without this section the rule above is aspirational: plans 002 and 003 predate it and record
+none, and for those the rationale is recoverable only from the spec's first commit, before it
+was rewritten declaratively.
 
 **Limitations are centralised, never duplicated.** When a spec or plan needs to mention one,
 it states the consequence in a sentence and links to the heading in `limitations.md`. Each
