@@ -184,14 +184,9 @@ there holding the parent's interpolated state at that instant — its position, 
 `attachedTo` for the ball. A branch whose first keyframe is later than the fork therefore
 enters without discontinuity.
 
-**Known limitation.** When a fork falls part-way along a parent span rather than on one of
-its keyframes, the synthesised anchor splits that span into two, and two Catmull-Rom spans
-joined at a point do not reproduce the original cubic. The ancestors' opening is therefore
-replayed approximately rather than exactly: measured worst-case divergence on a court-scale
-path is **0.5 m** for a player and up to 0.46 m for the ball — half a player's width, not a
-rounding error. 1b should budget for it rather than treat a mid-span fork as exact. Making it exact needs de Casteljau
-splitting at the fork parameter, which this sub-project defers along with the rest of the
-curve-splitting work (see Deferred). Forks placed on a keyframe are exact.
+**Known limitation.** A fork that falls part-way along a parent span replays the ancestors'
+opening only approximately — 0.5 m worst case for a player. Forks placed on a keyframe are
+exact. See [A mid-span fork replays the opening only approximately](../limitations.md#a-mid-span-fork-replays-the-opening-only-approximately).
 
 ### Evaluation pipeline
 
@@ -326,38 +321,17 @@ named step and one branch.
 
 ## Known defects
 
-Found by adversarial review at implementation time, deliberately not fixed in 1a. Each is
-recorded here because a 1b or 1c implementer will otherwise rediscover it the hard way.
+Found by adversarial review at implementation time and deliberately not fixed in 1a. The
+detail — what each costs, measured, and how to fix it — lives in
+[Known limitations](../limitations.md):
 
-- **The ball diverges at a fork on a mixed-attachment span.** When a child's fork keyframe is
-  an attachment and the ancestor's span into that fork mixes attached and free endpoints,
-  `ballPositionAt` interpolates toward the child's carrier and ignores the span's resolved
-  end position. Measured worst case: **7.04 m**. This is the one remaining edge where
-  acceptance criterion 5 does not hold, and it affects the ball only — players are exact.
-- **`Step.t` and `ScreenEvent.t` are not checked for finiteness.** `validatePlay` sweeps every
-  number on a keyframe, but not on steps or screens. A `NaN` step time validates clean and
-  then silently empties the child's time window: every entity resolves to the court origin,
-  with no `NaN` and no throw. Wrong but quiet, which is the hardest kind to notice.
-- **A hold keyframe between two moving spans drifts.** Repeating a position to mean "wait
-  here" does not hold the player still: the surrounding keyframes still produce Catmull-Rom
-  tangents, so the hold span is a real loop. Measured on the track (0,0)@0 → (5,0)@2 →
-  (5,0)@4 → (5,5)@6, the hold span has length 1.199 m and the player wanders to (5.31, −0.31)
-  and back, with `spanKindAt` reporting `dribble`. This is spec-conformant — the tangent
-  derivation above prescribes it — which makes it a design flaw rather than a bug. Zeroing
-  both handles when a span's endpoints coincide would fix it and is a small change, but it
-  is a behavioural decision rather than a correction, so it is recorded rather than taken.
-  A hold at the START or END of a track is unaffected, because one-sided differences give it
-  zero-length tangents.
-  **This is not hypothetical and not deferred to 1c.** The 1b sample play already works around
-  it: `apps/pwa/src/samples/horns.ts` defines a `hold()` helper that sets `handleIn` and
-  `handleOut` to the point itself, and seven of its ten tracks depend on it. That helper is
-  exactly the engine fix described above, applied by hand at the data layer — so every play
-  author must remember it until the engine does it for them.
-- **Two implementations of the same interpolation.** Fork synthesis evaluates a span with its
-  own `positionOnTrack` rather than calling the sampler's. They agree today — by construction
-  of their tangent neighbours, pinned by a test that fails if they drift — but they are two
-  copies of one piece of maths. Collapsing them is the obvious cleanup when 1c touches this
-  code for curve splitting.
+- [A hold keyframe between two moving spans drifts](../limitations.md#a-hold-keyframe-between-two-moving-spans-drifts)
+  — and the 1b sample already works around it by hand.
+- [Two implementations of the same interpolation](../limitations.md#two-implementations-of-the-same-interpolation)
+- [The ball diverges at a fork on a mixed-attachment span](../limitations.md#the-ball-diverges-at-a-fork-on-a-mixed-attachment-span)
+  — 7.04 m worst case, the one edge where acceptance criterion 5 does not hold.
+- [`Step.t` and `ScreenEvent.t` are not checked for finiteness](../limitations.md#stept-and-screeneventt-are-not-checked-for-finiteness)
+- [A player with no track vanishes silently](../limitations.md#a-player-with-no-track-vanishes-silently)
 
 ## Deferred
 

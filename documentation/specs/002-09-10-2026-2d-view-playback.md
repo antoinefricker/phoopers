@@ -115,21 +115,10 @@ with a single `transform`.
 
 ### Known limitation: very short dribbles
 
-The dribble wave tapers to zero over its final wavelength so the arrowhead points along the
-path rather than along the wiggle. A dribble shorter than about 0.4 m therefore has no
-untapered region left and renders nearly straight — indistinguishable from a run. Measured
-maximum deviation from a straight line, at 0.12 m amplitude against a 0.08 m stroke:
-
-| Dribble length   | Max deviation | Reads as             |
-| ---------------- | ------------- | -------------------- |
-| 0.3 m            | 0.027 m       | effectively straight |
-| 0.5 m            | 0.077 m       | a faint single bump  |
-| 0.8 m and longer | 0.120 m       | full amplitude       |
-
-A token's radius is 0.45 m, so a dribble that short covers less than one player width and is
-unlikely in practice — the sample play's shortest is 2.86 m. The alternative, an untapered
-wave, puts the arrowhead 40-68° off the true direction, which is worse. If short dribbles
-ever matter, taper over `min(wavelength, total / 2)` instead.
+A dribble shorter than about 0.4 m renders nearly straight, because the wave tapers so the
+arrowhead points along the path rather than along the wiggle. See
+[Very short dribbles render as runs](../limitations.md#very-short-dribbles-render-as-runs) for the measured
+deviation by length and the alternative that was rejected.
 
 ## Court geometry
 
@@ -172,10 +161,10 @@ A test asserts `validatePlay(samplePlay)` returns no issues.
 - **The clock hook** — tested in isolation with fake timers.
 - **Sample data** — `validatePlay` returns no issues.
 
-**Known coverage gap:** the `requestAnimationFrame` loop itself is not unit-testable. Its
-effects are covered indirectly — the clock hook under fake timers, and `stateAt` exhaustively
-by 1a — but no test proves the loop writes the right transform to the right element. End-to-end
-coverage waits for Playwright, which remains deferred.
+**Known coverage gaps:** neither the `requestAnimationFrame` loop nor the page layout is
+testable here. See
+[The animation loop is not unit-testable](../limitations.md#the-animation-loop-is-not-unit-testable) and
+[Layout is not testable in jsdom](../limitations.md#layout-is-not-testable-in-jsdom).
 
 ## Acceptance criteria
 

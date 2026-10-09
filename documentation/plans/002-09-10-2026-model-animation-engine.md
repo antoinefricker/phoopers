@@ -1864,6 +1864,12 @@ The phase is complete when:
 
 ## Follow-ups (not in this plan)
 
+Limitations this plan knowingly leaves behind are catalogued in
+[Known limitations](../limitations.md) — in particular
+[the hold-keyframe drift](../limitations.md#a-hold-keyframe-between-two-moving-spans-drifts),
+[the mid-span fork approximation](../limitations.md#a-mid-span-fork-replays-the-opening-only-approximately)
+and [the duplicated interpolation](../limitations.md#two-implementations-of-the-same-interpolation).
+
 - 1b: the 2D renderer and playback transport.
 - 1c: mutation helpers, curve splitting and point projection (see the spec's Deferred section on `bezier-js`).
 - 1d: serialisation and schema versioning.

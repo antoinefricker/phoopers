@@ -76,6 +76,7 @@ from the catalogue by hand, deliberately.
 - [Roadmap](documentation/roadmap.md) — the product vision and phasing.
 - [Specs](documentation/specs/index.md) — validated designs, one per sub-project.
 - [Plans](documentation/plans/index.md) — implementation plans, one per spec.
+- [Known limitations](documentation/limitations.md) — every limitation, defect and coverage gap, with what it costs.
 
 ## Contributing
 

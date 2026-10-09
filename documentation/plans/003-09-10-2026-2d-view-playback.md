@@ -2077,6 +2077,14 @@ git commit -m "feat(play2d): assemble the play view and wire it into the app"
 
 ## Follow-ups (not in this plan)
 
+Limitations this plan knowingly leaves behind are catalogued in
+[Known limitations](../limitations.md) — in particular
+[very short dribbles rendering as runs](../limitations.md#very-short-dribbles-render-as-runs),
+[shot versus pass being indistinguishable](../limitations.md#a-shot-is-indistinguishable-from-a-pass),
+[arrowhead colour in some browsers](../limitations.md#arrowheads-fall-back-to-black-in-some-browsers),
+[the attacking-half heuristic](../limitations.md#the-attacking-half-is-a-heuristic) and
+[the two testing gaps](../limitations.md#test-coverage-gaps).
+
 - Printing and vector export.
 - Side-by-side branch comparison.
 - Playwright coverage, including the animation loop.
