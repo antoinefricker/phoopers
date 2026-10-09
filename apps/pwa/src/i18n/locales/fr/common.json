@@ -13,6 +13,15 @@
       "half": "Demi-terrain",
       "view": "Vue du terrain"
     },
+    "editor": {
+      "addDefense": "Ajouter un défenseur",
+      "addOffense": "Ajouter un attaquant",
+      "formation": "Placement de départ",
+      "mode": {
+        "edit": "Éditer",
+        "play": "Jouer"
+      }
+    },
     "transport": {
       "nextStep": "Étape suivante",
       "pause": "Pause",

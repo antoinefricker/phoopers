@@ -13,6 +13,15 @@
       "half": "Half court",
       "view": "Court view"
     },
+    "editor": {
+      "addDefense": "Add defense",
+      "addOffense": "Add offense",
+      "formation": "Starting formation",
+      "mode": {
+        "edit": "Edit",
+        "play": "Play"
+      }
+    },
     "transport": {
       "nextStep": "Next step",
       "pause": "Pause",
