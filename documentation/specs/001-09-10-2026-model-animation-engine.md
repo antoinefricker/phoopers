@@ -324,6 +324,26 @@ named step and one branch.
 7. `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build` pass; the ESLint rule rejects
    a React import added anywhere under `engine/`.
 
+## Known defects
+
+Found by adversarial review at implementation time, deliberately not fixed in 1a. Each is
+recorded here because a 1b or 1c implementer will otherwise rediscover it the hard way.
+
+- **The ball diverges at a fork on a mixed-attachment span.** When a child's fork keyframe is
+  an attachment and the ancestor's span into that fork mixes attached and free endpoints,
+  `ballPositionAt` interpolates toward the child's carrier and ignores the span's resolved
+  end position. Measured worst case: **7.04 m**. This is the one remaining edge where
+  acceptance criterion 5 does not hold, and it affects the ball only — players are exact.
+- **`Step.t` and `ScreenEvent.t` are not checked for finiteness.** `validatePlay` sweeps every
+  number on a keyframe, but not on steps or screens. A `NaN` step time validates clean and
+  then silently empties the child's time window: every entity resolves to the court origin,
+  with no `NaN` and no throw. Wrong but quiet, which is the hardest kind to notice.
+- **Two implementations of the same interpolation.** Fork synthesis evaluates a span with its
+  own `positionOnTrack` rather than calling the sampler's. They agree today — by construction
+  of their tangent neighbours, pinned by a test that fails if they drift — but they are two
+  copies of one piece of maths. Collapsing them is the obvious cleanup when 1c touches this
+  code for curve splitting.
+
 ## Deferred
 
 - **Curve splitting and point projection** — needed by 1c to insert a keyframe mid-path and
