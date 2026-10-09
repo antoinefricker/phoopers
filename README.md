@@ -11,31 +11,58 @@ a 3D view later.
 ## Getting started
 
 ```bash
-pnpm install
-pnpm --filter @phoopers/pwa dev
+make install
+make dev
 ```
 
 The app is served at http://localhost:5173.
 
+## Make commands
+
+The Makefile is the entry point for everyday tasks; each target is a thin wrapper around
+the matching pnpm script, so nothing is duplicated. `make` on its own prints the list.
+
+| Target              | What it does                                              |
+| ------------------- | --------------------------------------------------------- |
+| `make help`         | Print every target with its description (the default)     |
+| `make install`      | Install every workspace dependency from the lockfile      |
+| `make dev`          | Start the PWA dev server on http://localhost:5173         |
+| `make build`        | Production build of every workspace                       |
+| `make preview`      | Serve the PWA production build locally                    |
+| `make lint`         | ESLint across the repo, then `prettier --check`           |
+| `make lint-fix`     | ESLint `--fix`, then `prettier --write`                   |
+| `make format`       | Prettier `--write` only                                   |
+| `make format-check` | Prettier `--check` only                                   |
+| `make typecheck`    | `tsc --noEmit` in every workspace                         |
+| `make test`         | Vitest, run once (no watch)                               |
+| `make test-watch`   | Vitest in watch mode on the PWA                           |
+| `make i18n-check`   | Fail if the locale catalogue is out of date               |
+| `make i18n-extract` | Regenerate `src/i18n/locales/*` from the `t()` calls      |
+| `make ci`           | The full CI pipeline, in the order GitHub Actions runs it |
+| `make clean`        | Remove build output and `node_modules`                    |
+
 ## Scripts
 
-Run from the repository root; each one fans out to every workspace.
+The underlying pnpm scripts, if you prefer to call them directly. Run from the
+repository root; each one fans out to every workspace.
 
-| Script            | What it does                                    |
-| ----------------- | ----------------------------------------------- |
-| `pnpm lint`       | ESLint across the repo, then `prettier --check` |
-| `pnpm lint:fix`   | ESLint `--fix`, then `prettier --write`         |
-| `pnpm format`     | Prettier `--write` only                         |
-| `pnpm typecheck`  | `tsc --noEmit` in every workspace               |
-| `pnpm test`       | Vitest, run once (no watch)                     |
-| `pnpm i18n:check` | Fail if the locale catalogue is out of date     |
-| `pnpm build`      | Production build of every workspace             |
+| Script              | What it does                                    |
+| ------------------- | ----------------------------------------------- |
+| `pnpm lint`         | ESLint across the repo, then `prettier --check` |
+| `pnpm lint:fix`     | ESLint `--fix`, then `prettier --write`         |
+| `pnpm format`       | Prettier `--write` only                         |
+| `pnpm format:check` | Prettier `--check` only                         |
+| `pnpm typecheck`    | `tsc --noEmit` in every workspace               |
+| `pnpm test`         | Vitest, run once (no watch)                     |
+| `pnpm i18n:check`   | Fail if the locale catalogue is out of date     |
+| `pnpm build`        | Production build of every workspace             |
 
 Workspace-specific:
 
 | Script                                     | What it does                               |
 | ------------------------------------------ | ------------------------------------------ |
 | `pnpm --filter @phoopers/pwa dev`          | Vite dev server                            |
+| `pnpm --filter @phoopers/pwa preview`      | Serve the production build                 |
 | `pnpm --filter @phoopers/pwa extract:i18n` | Regenerate `src/i18n/locales/*` from `t()` |
 
 ## Workspace layout
@@ -50,7 +77,8 @@ documentation   roadmap and implementation plans
 A Husky `pre-commit` hook runs `lint-staged`: ESLint `--fix` and Prettier on staged
 source files, plus i18n extraction for anything under `apps/pwa/src`. The same checks
 run in CI (`.github/workflows/ci.yml`) on every push and pull request, as a single
-sequential job: lint → typecheck → i18n:check → test → build.
+sequential job: lint → typecheck → i18n:check → test → build. `make ci` runs the same
+sequence locally.
 
 `i18n:check` is the one worth knowing about before it fails on you: a mistyped translation
 key is **not** a compile error, so that step catches it instead. The reason, and the i18n
