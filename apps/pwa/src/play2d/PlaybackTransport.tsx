@@ -72,12 +72,16 @@ export function PlaybackTransport() {
             keyboardMoveRef.current = false;
             scrubTo(snap ? snapToStep(value, timeline.steps, SNAP_THRESHOLD) : value);
           }}
-          marks={stepMarks(timeline.steps)}
-          // Neighbouring step names would otherwise overprint on a narrow track; clip each to a
-          // fixed width with an ellipsis instead.
+          marks={stepMarks(timeline.steps).map((mark) => ({
+            ...mark,
+            // The cap below can clip a long name; the title keeps it readable.
+            label: <span title={mark.label}>{mark.label}</span>,
+          }))}
+          // Neighbouring step names would otherwise overprint on a narrow track; clip each with an
+          // ellipsis instead. The cap grows with the viewport, so a wide screen has room to read.
           styles={{
             markLabel: {
-              maxWidth: '5.5rem',
+              maxWidth: 'clamp(5.5rem, 12vw, 10rem)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',

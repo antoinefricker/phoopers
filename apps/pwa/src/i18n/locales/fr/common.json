@@ -5,9 +5,13 @@
       "title": "Variantes",
       "toggle": "Afficher ou masquer les variantes"
     },
+    "canvas": {
+      "label": "Schéma du terrain : {{name}}"
+    },
     "court": {
       "full": "Terrain complet",
-      "half": "Demi-terrain"
+      "half": "Demi-terrain",
+      "view": "Vue du terrain"
     },
     "transport": {
       "nextStep": "Étape suivante",

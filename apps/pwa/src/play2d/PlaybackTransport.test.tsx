@@ -161,6 +161,12 @@ describe('PlaybackTransport', () => {
     expect(screen.getByText('Double high screen')).toBeInTheDocument();
   });
 
+  it('carries the full step name as a title, so a clipped label can still be read', () => {
+    renderTransport();
+
+    expect(screen.getByText('Double high screen')).toHaveAttribute('title', 'Double high screen');
+  });
+
   it('jumps to the next step, then the one after, then stops at the last', () => {
     renderTransport();
     const next = screen.getByRole('button', { name: 'Next step' });

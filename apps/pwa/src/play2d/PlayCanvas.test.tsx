@@ -1,11 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { describe, expect, it } from 'vitest';
-import { pointOnCubic, resolveBranch, type Vec2 } from '../engine';
-import { hornsPlay } from '../samples/horns';
+import { pointOnCubic, resolveBranch, stateAt, type Vec2 } from '../engine';
+import { HORNS_SWITCH, hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlayCanvas } from './PlayCanvas';
-import { COURT_SPEC, courtMarkings, fullCourtViewBox, halfCourtViewBox } from './geometry/court';
+import { COURT_SPEC, courtMarkings, fullCourtViewBox } from './geometry/court';
 import { playerPathSegments } from './geometry/paths';
 import { DRIBBLE_AMPLITUDE } from './pathSymbols';
 
@@ -13,7 +13,7 @@ function renderCanvas(halfCourt = false) {
   return render(
     <MantineProvider>
       <PlaybackContextProvider play={hornsPlay}>
-        <PlayCanvas halfCourt={halfCourt} />
+        <PlayCanvas halfCourt={halfCourt} playName={hornsPlay.name} />
       </PlaybackContextProvider>
     </MantineProvider>,
   );
@@ -61,11 +61,36 @@ describe('PlayCanvas', () => {
     const halfViewBox = screen.getByRole('img').getAttribute('viewBox');
 
     expect(fullPaths.length).toBeGreaterThan(10);
-    expect(halfViewBox).toBe(halfCourtViewBox('fiba'));
+    // The sample attacks the right basket, so the right half.
+    expect(halfViewBox).toBe('14 0 14 15');
     expect(halfViewBox).not.toBe(fullViewBox);
     // Every path's geometry and symbol attributes are identical, as is all the markup inside the svg.
     expect(snapshotPaths(half.container)).toEqual(fullPaths);
     expect(screen.getByRole('img').innerHTML).toBe(fullInner);
+  });
+
+  it.each([
+    ['root', hornsPlay.rootBranchId],
+    ['switch', HORNS_SWITCH],
+  ])('shows every entity inside the half-court viewBox at the start and end (%s branch)', (_name, branchId) => {
+    // Read the viewBox off the rendered svg, not off halfCourtViewBox: a function compared to
+    // itself cannot disagree with itself, which is how the wrong half once shipped.
+    const branch = resolveBranch(hornsPlay, branchId);
+    renderCanvas(true);
+    const [x, y, w, h] = (screen.getByRole('img').getAttribute('viewBox') ?? '').split(' ').map(Number);
+    if (x === undefined || y === undefined || w === undefined || h === undefined) throw new Error('bad viewBox');
+
+    for (const t of [0, branch.duration]) {
+      const state = stateAt(branch, t);
+      const points = [...Object.values(state.players).map((p) => p.position), state.ball.position];
+      expect(points.length).toBe(branch.players.length + 1);
+      for (const p of points) {
+        expect(p.x).toBeGreaterThanOrEqual(x);
+        expect(p.x).toBeLessThanOrEqual(x + w);
+        expect(p.y).toBeGreaterThanOrEqual(y);
+        expect(p.y).toBeLessThanOrEqual(y + h);
+      }
+    }
   });
 
   it('draws a path group per player', () => {
@@ -130,6 +155,41 @@ describe('PlayCanvas', () => {
     });
 
     expect(checked).toBeGreaterThan(0);
+  });
+
+  describe('screens', () => {
+    function marks(container: HTMLElement) {
+      return Array.from(container.querySelectorAll('[data-testid="screen-mark"]'));
+    }
+
+    it('draws one mark per screen in the resolved timeline', () => {
+      const { container } = renderCanvas();
+
+      expect(timeline.screens.length).toBeGreaterThanOrEqual(2);
+      expect(marks(container)).toHaveLength(timeline.screens.length);
+    });
+
+    it('centres each mark on its screener at the time of the screen, across the screener path', () => {
+      const { container } = renderCanvas();
+
+      timeline.screens.forEach((screenEvent, index) => {
+        const mark = marks(container)[index];
+        const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map((a) => Number(mark?.getAttribute(a)));
+        const at = stateAt(timeline, screenEvent.t).players[screenEvent.screenerId]?.position;
+        const before = stateAt(timeline, screenEvent.t - 0.1).players[screenEvent.screenerId]?.position;
+        if (at === undefined || before === undefined) throw new Error('no screener');
+
+        expect([x1, y1, x2, y2].every(Number.isFinite)).toBe(true);
+        expect(((x1 ?? NaN) + (x2 ?? NaN)) / 2).toBeCloseTo(at.x, 6);
+        expect(((y1 ?? NaN) + (y2 ?? NaN)) / 2).toBeCloseTo(at.y, 6);
+        // Not a dot: it has a real length, and it is perpendicular to the way the screener arrived.
+        expect(Math.hypot((x2 ?? 0) - (x1 ?? 0), (y2 ?? 0) - (y1 ?? 0))).toBeGreaterThan(0.5);
+        const dot = ((x2 ?? 0) - (x1 ?? 0)) * (at.x - before.x) + ((y2 ?? 0) - (y1 ?? 0)) * (at.y - before.y);
+        expect(Math.abs(dot)).toBeLessThan(1e-6);
+        // The screener actually travelled, so the perpendicular claim above is not vacuous.
+        expect(Math.hypot(at.x - before.x, at.y - before.y)).toBeGreaterThan(0.01);
+      });
+    });
   });
 
   describe('symbols', () => {

@@ -5,9 +5,13 @@
       "title": "Branches",
       "toggle": "Toggle branches"
     },
+    "canvas": {
+      "label": "Court diagram: {{name}}"
+    },
     "court": {
       "full": "Full court",
-      "half": "Half court"
+      "half": "Half court",
+      "view": "Court view"
     },
     "transport": {
       "nextStep": "Next step",

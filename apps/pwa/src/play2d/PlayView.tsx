@@ -34,6 +34,7 @@ export function PlayView({ play }: Props) {
           <Group gap="sm" wrap="nowrap">
             <SegmentedControl
               size="xs"
+              aria-label={t('play.court.view', 'Court view')}
               value={halfCourt ? 'half' : 'full'}
               onChange={(value) => setHalfCourt(value === 'half')}
               data={[
@@ -56,7 +57,7 @@ export function PlayView({ play }: Props) {
             instead of becoming blank bands inside the bordered panel. */}
         <Flex direction={{ base: 'column', sm: 'row' }} align="flex-start" gap="md">
           <Paper flex={1} w="100%" withBorder p="xs" style={{ minWidth: 0 }}>
-            <PlayCanvas halfCourt={halfCourt} />
+            <PlayCanvas halfCourt={halfCourt} playName={play.name} />
           </Paper>
           {sidebarOpen && (
             <Paper id={sidebarId} w={{ base: '100%', sm: 220 }} withBorder p="xs" style={{ flexShrink: 0 }}>

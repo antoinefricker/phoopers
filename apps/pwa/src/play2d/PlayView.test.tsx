@@ -7,7 +7,7 @@ import { HORNS_SWITCH, hornsPlay } from '../samples/horns';
 import { stubViewportWidth } from '../testUtils/viewport';
 import i18n from '../i18n/i18n';
 import { PlayView } from './PlayView';
-import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
+import { fullCourtViewBox } from './geometry/court';
 
 function renderView(widthPx = 1440) {
   stubViewportWidth(widthPx);
@@ -158,13 +158,30 @@ describe('PlayView', () => {
     });
   });
 
+  describe('accessible names', () => {
+    it('names the court image after the play, and the court toggle group', () => {
+      renderView();
+
+      expect(screen.getByRole('img', { name: `Court diagram: ${hornsPlay.name}` })).toBeInTheDocument();
+      expect(screen.getByRole('radiogroup', { name: 'Court view' })).toBeInTheDocument();
+    });
+
+    it('translates the labels but leaves the play name alone', async () => {
+      await i18n.changeLanguage('fr');
+      renderView();
+
+      expect(screen.getByRole('img', { name: `Schéma du terrain : ${hornsPlay.name}` })).toBeInTheDocument();
+      expect(screen.getByRole('radiogroup', { name: 'Vue du terrain' })).toBeInTheDocument();
+    });
+  });
+
   describe('court toggle', () => {
     it('toggles between full and half court and back', async () => {
       const user = userEvent.setup();
       renderView();
 
       await user.click(screen.getByRole('radio', { name: 'Half court' }));
-      expect(screen.getByRole('img')).toHaveAttribute('viewBox', halfCourtViewBox('fiba'));
+      expect(screen.getByRole('img')).toHaveAttribute('viewBox', '14 0 14 15');
 
       await user.click(screen.getByRole('radio', { name: 'Full court' }));
       expect(screen.getByRole('img')).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));

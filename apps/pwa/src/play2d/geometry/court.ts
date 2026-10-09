@@ -133,7 +133,11 @@ export const fullCourtViewBox = (court: CourtType): string => {
   return `0 0 ${spec.length} ${spec.width}`;
 };
 
-export const halfCourtViewBox = (court: CourtType): string => {
+export type CourtSide = 'left' | 'right';
+
+/** The half of the floor on `side`. Which half to show is the caller's call (see attackingSide). */
+export const halfCourtViewBox = (court: CourtType, side: CourtSide): string => {
   const spec = COURT_SPEC[court];
-  return `0 0 ${spec.length / 2} ${spec.width}`;
+  const half = spec.length / 2;
+  return `${side === 'left' ? 0 : half} 0 ${half} ${spec.width}`;
 };

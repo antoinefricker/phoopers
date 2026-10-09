@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { usePlaybackContext } from './usePlaybackContext';
 import { ballPathSegments, dribblePathD, playerPathSegments } from './geometry/paths';
+import { screenMarks } from './geometry/screens';
 import { DRIBBLE_AMPLITUDE, DRIBBLE_WAVELENGTH } from './pathSymbols';
 
 /**
@@ -12,7 +13,7 @@ import { DRIBBLE_AMPLITUDE, DRIBBLE_WAVELENGTH } from './pathSymbols';
 export function PathLayer() {
   const { timeline } = usePlaybackContext();
 
-  const { players, pass } = useMemo(() => {
+  const { players, pass, screens } = useMemo(() => {
     const players = timeline.players.map((player) => {
       const spans = timeline.spans[player.id] ?? [];
       const segments = playerPathSegments(timeline, player.id).flatMap((segment, index) => {
@@ -32,7 +33,12 @@ export function PathLayer() {
     // (hiding a dribble's wave). Only the pass is a ball symbol.
     const pass = ballPathSegments(timeline).filter((segment) => segment.inFlight);
 
-    return { players, pass };
+    // Drawn for the whole play, not only while a screen is live: a paused frame should read as a
+    // complete diagram, and a screen is as much a part of the set as the cuts around it.
+    const screenerTeam = new Map(timeline.players.map((player) => [player.id, player.team]));
+    const screens = screenMarks(timeline).map((mark) => ({ ...mark, team: screenerTeam.get(mark.screenerId) }));
+
+    return { players, pass, screens };
   }, [timeline]);
 
   return (
@@ -47,6 +53,18 @@ export function PathLayer() {
             <path key={segment.key} data-kind={segment.kind} d={segment.d} markerEnd="url(#arrowhead)" />
           ))}
         </g>
+      ))}
+      {screens.map((mark) => (
+        <line
+          key={mark.id}
+          data-testid="screen-mark"
+          x1={mark.x1}
+          y1={mark.y1}
+          x2={mark.x2}
+          y2={mark.y2}
+          stroke={mark.team === 'defense' ? 'var(--mantine-color-red-6)' : 'var(--mantine-color-blue-6)'}
+          strokeWidth={0.16}
+        />
       ))}
       {pass.map((segment, index) => (
         <path

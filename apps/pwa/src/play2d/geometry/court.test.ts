@@ -190,7 +190,9 @@ describe('viewBoxes', () => {
     expect(fullCourtViewBox('fiba')).toBe('0 0 28 15');
   });
 
-  it('half court spans the attacking half only', () => {
-    expect(halfCourtViewBox('fiba')).toBe('0 0 14 15');
+  it('half court spans exactly one half of the floor, chosen by side', () => {
+    expect(halfCourtViewBox('fiba', 'left')).toBe('0 0 14 15');
+    expect(halfCourtViewBox('fiba', 'right')).toBe('14 0 14 15');
+    expect(halfCourtViewBox('nba', 'right')).toBe(`${28.65 / 2} 0 ${28.65 / 2} 15.24`);
   });
 });
