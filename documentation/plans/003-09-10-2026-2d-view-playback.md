@@ -1182,12 +1182,14 @@ describe('PlayCanvas', () => {
   });
 
   it('switches only the viewBox for half court', () => {
-    const { container } = renderCanvas(false);
-    const fullPaths = container.querySelectorAll('[data-testid="player-path"]').length;
-    const { container: half } = renderCanvas(true);
+    const full = renderCanvas(false);
+    const fullPaths = full.container.querySelectorAll('[data-testid="player-path"]').length;
+    full.unmount();
 
-    expect(screen.getAllByRole('img')[1]).toHaveAttribute('viewBox', halfCourtViewBox('fiba'));
-    expect(half.querySelectorAll('[data-testid="player-path"]').length).toBe(fullPaths);
+    const half = renderCanvas(true);
+
+    expect(screen.getByRole('img')).toHaveAttribute('viewBox', halfCourtViewBox('fiba'));
+    expect(half.container.querySelectorAll('[data-testid="player-path"]').length).toBe(fullPaths);
   });
 
   it('draws a path group per player with a track', () => {
