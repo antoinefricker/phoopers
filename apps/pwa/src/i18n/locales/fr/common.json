@@ -16,6 +16,8 @@
     "editor": {
       "addDefense": "Ajouter un défenseur",
       "addOffense": "Ajouter un attaquant",
+      "dragBall": "Déplacer le ballon",
+      "dragPlayer": "Déplacer le joueur {{label}}",
       "formation": "Placement de départ",
       "mode": {
         "edit": "Éditer",
