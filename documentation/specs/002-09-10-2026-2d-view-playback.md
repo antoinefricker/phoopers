@@ -87,8 +87,9 @@ The animation loop advances the ref and mutates the DOM. It pushes to React stat
 the displayed tenth of a second changes — about 10 Hz — so the `Slider` stays controlled
 without sixty re-renders a second. Note that calling a `useState` setter with a value equal
 to the current one still costs a render (React renders, then bails), so the clock must track
-the last shown tenth and skip the call entirely rather than rely on the bail-out. Scrubbing writes the ref and pauses playback. Playback stops at
-`duration(timeline)`.
+the last shown tenth and skip the call entirely rather than rely on the bail-out.
+
+Scrubbing writes the ref and pauses playback. Playback stops at `duration(timeline)`.
 
 ## Transport behaviour
 
