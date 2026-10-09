@@ -142,8 +142,17 @@ function entityIds(chain: readonly Branch[]): EntityId[] {
   return [...ids];
 }
 
-function flattenTrack(chain: readonly Branch[], entity: EntityId): Keyframe[] {
+// The flattened anchors of an entity, plus the lookahead used to derive the tangent of the
+// span that ends at each fork boundary. That span belongs to the ancestors' opening, so its
+// shape must come from the ancestor's own next keyframe, never from the child's diverging one.
+interface FlatTrack {
+  anchors: Keyframe[];
+  lookahead: Map<number, Vec2 | null>;
+}
+
+function flattenTrack(chain: readonly Branch[], entity: EntityId): FlatTrack {
   const anchors: Keyframe[] = [];
+  const forks: { t: number; next: Vec2 | null }[] = [];
 
   for (let i = 0; i < chain.length; i += 1) {
     const branch = chain[i];
@@ -160,20 +169,33 @@ function flattenTrack(chain: readonly Branch[], entity: EntityId): Keyframe[] {
       const hasFork = window.some((k) => k.t === from);
       if (!hasFork) {
         const ancestors = chain.slice(0, i);
-        const state = stateOnTrack(flattenTrack(ancestors, entity), from, (id, at) =>
-          positionOnTrack(flattenTrack(ancestors, id), at),
+        const state = stateOnTrack(flattenTrack(ancestors, entity).anchors, from, (id, at) =>
+          positionOnTrack(flattenTrack(ancestors, id).anchors, at),
         );
         if (state !== undefined) anchors.push({ t: from, ...state });
       }
+
+      const parentTrack = flattenTrack(chain.slice(0, i), entity).anchors;
+      const parentNext = parentTrack.find((k) => k.t > from);
+      forks.push({ t: from, next: parentNext?.position ?? null });
     }
 
     anchors.push(...window);
   }
 
-  return anchors.sort((a, b) => a.t - b.t);
+  anchors.sort((a, b) => a.t - b.t);
+
+  const lookahead = new Map<number, Vec2 | null>();
+  for (const fork of forks) {
+    // The last anchor at the fork instant is the one the child departs from.
+    const index = anchors.findIndex((k) => k.t === fork.t);
+    if (index >= 0) lookahead.set(index, fork.next);
+  }
+
+  return { anchors, lookahead };
 }
 
-function prepareSpans(anchors: readonly Keyframe[]): PreparedSpan[] {
+function prepareSpans(anchors: readonly Keyframe[], lookahead: ReadonlyMap<number, Vec2 | null>): PreparedSpan[] {
   const spans: PreparedSpan[] = [];
 
   for (let i = 0; i < anchors.length - 1; i += 1) {
@@ -187,7 +209,7 @@ function prepareSpans(anchors: readonly Keyframe[]): PreparedSpan[] {
       anchors[i - 1]?.position ?? null,
       fromPosition,
       toPosition,
-      anchors[i + 2]?.position ?? null,
+      lookahead.has(i + 1) ? (lookahead.get(i + 1) ?? null) : (anchors[i + 2]?.position ?? null),
     );
     const p1 = from.handleOut ?? derived.handleOut;
     const p2 = to.handleIn ?? derived.handleIn;
@@ -219,9 +241,9 @@ export function resolveBranch(play: Play, branchId: BranchId): ResolvedTimeline 
   const spans: Record<EntityId, PreparedSpan[]> = { ball: [] };
 
   for (const entity of entityIds(chain)) {
-    const track = flattenTrack(chain, entity);
+    const { anchors: track, lookahead } = flattenTrack(chain, entity);
     anchors[entity] = track;
-    spans[entity] = prepareSpans(track);
+    spans[entity] = prepareSpans(track, lookahead);
   }
 
   const steps: Step[] = [];
