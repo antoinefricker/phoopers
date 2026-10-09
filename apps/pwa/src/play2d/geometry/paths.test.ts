@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resolveBranch } from '../../engine';
-import { fixturePlay, P1, ROOT } from '../../engine/__fixtures__/play';
+import { resolveBranch, spanKindAt } from '../../engine';
+import { fixturePlay, P1, P2, ROOT } from '../../engine/__fixtures__/play';
 import { ballPathSegments, playerPathSegments, polylineD, wavyPathD } from './paths';
 
 const timeline = resolveBranch(fixturePlay, ROOT);
@@ -31,8 +31,16 @@ describe('playerPathSegments', () => {
     segments.forEach((segment, index) => {
       const span = spans[index];
       if (span === undefined) throw new Error('missing span');
-      expect(['idle', 'move', 'dribble']).toContain(segment.kind);
+      expect(segment.kind).toBe(spanKindAt(timeline, P1, (span.fromT + span.toT) / 2));
     });
+  });
+
+  it('pins the fixture kinds at span midpoints', () => {
+    // P1 holds the ball only until t=1, so the midpoint (t=1) of its first span is already a
+    // move even though sampling at the span start (t=0) would say dribble.
+    expect(playerPathSegments(timeline, P1).map((s) => s.kind)).toEqual(['move', 'move']);
+    // P2 runs to the entry pass, then receives the ball and dribbles.
+    expect(playerPathSegments(timeline, P2).map((s) => s.kind)).toEqual(['move', 'dribble']);
   });
 
   it('returns no segments for a player with no track', () => {
@@ -53,8 +61,11 @@ describe('ballPathSegments', () => {
 
   it('produces finite coordinates only', () => {
     for (const segment of ballPathSegments(timeline)) {
-      for (const n of segment.d.match(/-?\d+(\.\d+)?/g) ?? []) {
-        expect(Number.isFinite(Number(n))).toBe(true);
+      expect(segment.d).not.toMatch(/NaN|Infinity/);
+      const tokens = segment.d.split(/\s+/).filter((token) => !/^[MLC]$/.test(token));
+      expect(tokens.length).toBeGreaterThan(0);
+      for (const token of tokens) {
+        expect(Number.isFinite(Number(token))).toBe(true);
       }
     }
   });
