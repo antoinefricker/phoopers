@@ -71,13 +71,23 @@ Players never have attached endpoints, so their spans are always drawable direct
 
 ## The clock
 
-`PlaybackContextProvider` / `usePlaybackContext` owns the `ResolvedTimeline` returned by
-`resolveBranch`, a `currentTime` **ref**, and `isPlaying` **state**. Selecting a branch calls
-`resolveBranch` again and replaces the timeline.
+`PlaybackContextProvider` owns the `ResolvedTimeline` returned by `resolveBranch`, a
+`currentTime` **ref**, and `isPlaying` **state**. Selecting a branch calls `resolveBranch`
+again and replaces the timeline.
+
+It exposes **two** contexts, because they change at different rates. `usePlaybackContext`
+carries everything stable — the timeline, the branch, `selectBranch`, the time ref,
+`isPlaying`, and the `play` / `pause` / `seek` / `subscribe` callbacks — and changes only on a
+branch switch or a transport action. `usePlaybackTimeContext` carries `displayTime` alone and
+changes about ten times a second. Putting them in one value would re-render every consumer at
+10 Hz, including the static court-and-paths layer that only needs a branch switch — which is
+the split this whole design exists to achieve.
 
 The animation loop advances the ref and mutates the DOM. It pushes to React state only when
-the rounded scrubber value changes — roughly 15 Hz — so the `Slider` stays controlled without
-sixty re-renders a second. Scrubbing writes the ref and pauses playback. Playback stops at
+the displayed tenth of a second changes — about 10 Hz — so the `Slider` stays controlled
+without sixty re-renders a second. Note that calling a `useState` setter with a value equal
+to the current one still costs a render (React renders, then bails), so the clock must track
+the last shown tenth and skip the call entirely rather than rely on the bail-out. Scrubbing writes the ref and pauses playback. Playback stops at
 `duration(timeline)`.
 
 ## Transport behaviour
