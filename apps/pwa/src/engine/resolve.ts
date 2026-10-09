@@ -96,7 +96,7 @@ function stateOf(keyframe: Keyframe): TrackState | undefined {
 function stateOnTrack(
   track: readonly Keyframe[],
   t: number,
-  holderPosition: (id: PlayerId) => Vec2 | undefined,
+  holderPosition: (id: PlayerId, at: number) => Vec2 | undefined,
 ): TrackState | undefined {
   const first = track[0];
   const last = track[track.length - 1];
@@ -121,7 +121,7 @@ function stateOnTrack(
 
     // Mixed or changing attachment: the entity is in flight between two endpoints.
     const endpoint = (k: Keyframe): Vec2 | undefined =>
-      k.position ?? (k.attachedTo === undefined ? undefined : holderPosition(k.attachedTo));
+      k.position ?? (k.attachedTo === undefined ? undefined : holderPosition(k.attachedTo, k.t));
     const start = endpoint(from);
     const end = endpoint(to);
     if (start === undefined || end === undefined) return stateOf(from);
@@ -160,8 +160,8 @@ function flattenTrack(chain: readonly Branch[], entity: EntityId): Keyframe[] {
       const hasFork = window.some((k) => k.t === from);
       if (!hasFork) {
         const ancestors = chain.slice(0, i);
-        const state = stateOnTrack(flattenTrack(ancestors, entity), from, (id) =>
-          positionOnTrack(flattenTrack(ancestors, id), from),
+        const state = stateOnTrack(flattenTrack(ancestors, entity), from, (id, at) =>
+          positionOnTrack(flattenTrack(ancestors, id), at),
         );
         if (state !== undefined) anchors.push({ t: from, ...state });
       }

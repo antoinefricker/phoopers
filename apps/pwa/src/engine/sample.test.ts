@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { fixturePlay, P1, P2, ROOT } from './__fixtures__/play';
+import { fixturePlay, P1, P2, ROOT, SWITCH } from './__fixtures__/play';
 import { resolveBranch } from './resolve';
 import { ballStateAt, duration, spanKindAt, stateAt, stepsOf } from './sample';
-import type { ResolvedTimeline } from './types';
+import type { Play, ResolvedTimeline, StepId } from './types';
 import { distance } from './vec2';
 
 const timeline = resolveBranch(fixturePlay, ROOT);
@@ -160,5 +160,35 @@ describe('ball flight', () => {
 
     expect(Number.isFinite(state.ball.position.x)).toBe(true);
     expect(Number.isFinite(state.players[P1]?.position.x)).toBe(true);
+  });
+});
+
+describe('time edge cases', () => {
+  it('clamps infinities to the ends and sanitises NaN in the returned time', () => {
+    expect(stateAt(timeline, Number.POSITIVE_INFINITY).players[P1]?.position).toEqual({ x: 12, y: 5 });
+    expect(stateAt(timeline, Number.NEGATIVE_INFINITY).players[P1]?.position).toEqual({ x: 4, y: 7.5 });
+    expect(stateAt(timeline, Number.NaN).t).toBe(0);
+  });
+});
+
+describe('cross-branch continuity', () => {
+  it('keeps the ball where it is when forking mid-pass', () => {
+    const MID = 'step-mid' as StepId;
+    const play: Play = {
+      ...fixturePlay,
+      branches: fixturePlay.branches.map((branch) =>
+        branch.id === ROOT
+          ? { ...branch, steps: [...branch.steps, { id: MID, t: 1.5, name: 'Mid pass' }] }
+          : branch.id === SWITCH
+            ? { ...branch, forkStepId: MID }
+            : branch,
+      ),
+    };
+    const parent = resolveBranch(play, ROOT);
+    const child = resolveBranch(play, SWITCH);
+    const a = stateAt(parent, 1.5).ball.position;
+    const b = stateAt(child, 1.5).ball.position;
+
+    expect(distance(a, b)).toBeLessThan(1e-6);
   });
 });

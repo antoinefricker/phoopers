@@ -10,7 +10,7 @@ function clampTime(anchors: readonly Keyframe[], t: number): number {
   const first = anchors[0];
   const last = anchors[anchors.length - 1];
   if (first === undefined || last === undefined) return 0;
-  if (!Number.isFinite(t)) return first.t;
+  if (Number.isNaN(t)) return first.t;
   return Math.min(last.t, Math.max(first.t, t));
 }
 
@@ -105,7 +105,8 @@ function isMoving(timeline: ResolvedTimeline, entity: EntityId, rawT: number): b
   return span.length > 0;
 }
 
-export function stateAt(timeline: ResolvedTimeline, t: number): PlayState {
+export function stateAt(timeline: ResolvedTimeline, rawT: number): PlayState {
+  const t = Number.isNaN(rawT) ? 0 : rawT;
   const players: PlayState['players'] = {};
 
   for (const entity of Object.keys(timeline.anchors)) {
