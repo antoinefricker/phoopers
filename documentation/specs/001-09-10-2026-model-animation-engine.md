@@ -237,7 +237,8 @@ type IssueCode =
   | 'branch-cycle'
   | 'non-root-branch-without-fork'
   | 'root-branch-with-parent'
-  | 'easing-out-of-range';
+  | 'easing-out-of-range'
+  | 'malformed-play';
 
 interface Issue {
   code: IssueCode;
@@ -248,6 +249,12 @@ interface Issue {
 
 `easing-out-of-range` covers an easing whose `x1` or `x2` falls outside `[0, 1]`; `y` may
 overshoot.
+
+`malformed-play` covers input so damaged that the checks above cannot run on it — a missing
+`steps` array, a null track, a `Play` that did not come from this engine. Validation stops at
+that point and returns whatever it found plus this issue. It exists because the alternative
+is silence: a validator that reports nothing for a corrupt play tells the editor the play is
+fine, which is worse than throwing.
 
 `Issue.code` is the stable identifier. 1c renders its own translated copy, so engine
 messages are never routed through `t()`.
