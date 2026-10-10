@@ -321,3 +321,18 @@ describe('PlaybackTransport', () => {
     expect(screen.getByTestId('current-time')).toHaveTextContent('0.0');
   });
 });
+
+describe('transport icons', () => {
+  it('draws each control as an icon, not a text glyph', async () => {
+    // The buttons used to read "<", "||" / ">" and ">" — prev and play looked alike. The
+    // existing cases find these buttons by their accessible name, so they pass either way;
+    // this one is what notices a silent fall back to glyphs.
+    renderTransport();
+
+    for (const name of ['Previous step', 'Play', 'Next step']) {
+      const button = screen.getByRole('button', { name });
+      expect(button.querySelector('svg')).toBeInTheDocument();
+      expect(button.textContent).toBe('');
+    }
+  });
+});

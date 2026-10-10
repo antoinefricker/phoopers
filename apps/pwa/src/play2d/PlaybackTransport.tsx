@@ -1,6 +1,7 @@
 import { ActionIcon, Box, Group, Slider, Text } from '@mantine/core';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { IconPlayerPause, IconPlayerPlay, IconPlayerSkipBack, IconPlayerSkipForward } from '@tabler/icons-react';
 import { adjacentStep, sliderMax, snapToStep, stepMarks } from './transportMath';
 import { usePlaybackContext } from './usePlaybackContext';
 import { usePlaybackTimeContext } from './usePlaybackTimeContext';
@@ -35,22 +36,24 @@ export function PlaybackTransport() {
 
   return (
     <Group gap="sm" align="center">
+      {/* The aria-labels are the only accessible name these buttons have now that the glyphs
+          are icons, so they carry the meaning rather than decorating it. */}
       <ActionIcon
         onClick={() => jump(-1)}
         aria-label={t('play.transport.previousStep', 'Previous step')}
         variant="default"
       >
-        {'<'}
+        <IconPlayerSkipBack size={18} stroke={1.5} />
       </ActionIcon>
       <ActionIcon
         onClick={isPlaying ? pause : play}
         aria-label={isPlaying ? t('play.transport.pause', 'Pause') : t('play.transport.play', 'Play')}
         variant="filled"
       >
-        {isPlaying ? '||' : '>'}
+        {isPlaying ? <IconPlayerPause size={18} stroke={1.5} /> : <IconPlayerPlay size={18} stroke={1.5} />}
       </ActionIcon>
       <ActionIcon onClick={() => jump(1)} aria-label={t('play.transport.nextStep', 'Next step')} variant="default">
-        {'>'}
+        <IconPlayerSkipForward size={18} stroke={1.5} />
       </ActionIcon>
       <Text size="sm" data-testid="current-time" w={48}>
         {displayTime.toFixed(1)}
