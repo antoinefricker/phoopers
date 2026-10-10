@@ -443,6 +443,24 @@ describe('screen bars', () => {
     expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.4, 6);
   });
 
+  it('shows an ancestor screen on a descendant branch without a handle or a remove control', async () => {
+    renderEditor(
+      fixturePlay,
+      <>
+        <SelectBranch branchId={SWITCH} />
+        <Timeline />
+      </>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: `select ${SWITCH}` }));
+
+    // The root's screen starts at 2, the instant SWITCH forks, so it is inside the dimmed region.
+    const bar = within(rowFor(P2)).getByTestId(`screen-bar-${SCREEN_1}`);
+    expect(bar).toHaveAttribute('data-inherited', 'true');
+    expect(within(rowFor(P2)).queryByTestId(`screen-handle-${SCREEN_1}`)).toBeNull();
+    expect(within(rowFor(P2)).queryByRole('button', { name: 'Remove screen' })).toBeNull();
+    expect(screensOfRoot()[0]?.duration).toBe(1);
+  });
+
   it('keeps the duration positive when the edge is dragged left of its own start', async () => {
     renderEditor(fixturePlay, <Timeline />);
 

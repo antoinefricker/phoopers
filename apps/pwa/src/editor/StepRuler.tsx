@@ -1,5 +1,6 @@
 import { Box, Button, Group, Popover, Text, TextInput } from '@mantine/core';
 import { useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Step, StepId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
@@ -12,6 +13,19 @@ import { useTimeDrag } from './useTimeDrag';
 const SNAP_FRACTION = 0.02;
 
 const percent = (t: number, duration: number) => `${fractionOf(t, duration) * 100}%`;
+
+const tickStyle = (t: number, duration: number): CSSProperties => ({
+  position: 'absolute',
+  top: '50%',
+  left: percent(t, duration),
+  transform: 'translate(-50%, -50%)',
+  padding: '0 4px',
+  whiteSpace: 'nowrap',
+  border: 0,
+  borderLeft: '2px solid var(--mantine-color-blue-filled)',
+  background: 'transparent',
+  color: 'var(--mantine-color-text)',
+});
 
 interface EditorProps {
   step: Step;
@@ -69,6 +83,7 @@ export function StepRuler() {
   const [openId, setOpenId] = useState<StepId | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const { duration, steps } = timeline;
+  const ownStepIds = new Set(play.branches.find((b) => b.id === branchId)?.steps.map((s) => s.id));
   const { bind, consumeDrag } = useTimeDrag(trackRef, duration);
 
   return (
@@ -92,6 +107,23 @@ export function StepRuler() {
         {steps.map((step) => {
           const others = steps.filter((s) => s.id !== step.id);
 
+          // An ancestor's step is shown (it is a snap mark) but belongs to that ancestor: moving,
+          // renaming or removing it from here would rewrite the base play and every sibling.
+          // The same rule keyframes follow in `TimelineRow`.
+          if (!ownStepIds.has(step.id)) {
+            return (
+              <Text
+                key={step.id}
+                size="xs"
+                component="span"
+                data-inherited="true"
+                style={{ ...tickStyle(step.t, duration), cursor: 'default', opacity: 0.6 }}
+              >
+                {step.name}
+              </Text>
+            );
+          }
+
           return (
             <Popover
               key={step.id}
@@ -106,20 +138,7 @@ export function StepRuler() {
                   onClick={() => {
                     if (!consumeDrag()) setOpenId(openId === step.id ? null : step.id);
                   }}
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: percent(step.t, duration),
-                    transform: 'translate(-50%, -50%)',
-                    padding: '0 4px',
-                    cursor: 'grab',
-                    touchAction: 'none',
-                    whiteSpace: 'nowrap',
-                    border: 0,
-                    borderLeft: '2px solid var(--mantine-color-blue-filled)',
-                    background: 'transparent',
-                    color: 'var(--mantine-color-text)',
-                  }}
+                  style={{ ...tickStyle(step.t, duration), cursor: 'grab', touchAction: 'none' }}
                   {...bind({
                     resolve: (rawT) =>
                       constrainStepRetime(play, step.id, step.t, rawT, others, SNAP_FRACTION * duration),

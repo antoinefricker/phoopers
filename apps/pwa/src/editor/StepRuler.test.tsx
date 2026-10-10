@@ -158,7 +158,8 @@ describe('StepRuler', () => {
     expect(screen.getByRole('button', { name: 'Entry pass' })).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('floors a step at the fork time of the branch that OWNS it, not the one being viewed', async () => {
+  it('does not let a descendant branch retime or edit an ancestor step', async () => {
+    stubLayout();
     renderEditor(
       fixturePlay,
       <>
@@ -168,11 +169,16 @@ describe('StepRuler', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: `select ${SWITCH}` }));
 
-    // Viewing SWITCH (forked at 2), the root's step is still the root's: its floor is 0. The raw
-    // drop is t=0, so a floor taken from the viewed branch would hold it at 2.
-    await dragElement(screen.getByRole('button', { name: 'Entry pass' }));
+    // Viewing SWITCH, the root's step is the root's: it is shown, but it is not a control.
+    expect(screen.queryByRole('button', { name: 'Entry pass' })).not.toBeInTheDocument();
+    const tick = screen.getByText('Entry pass');
+    expect(tick).toHaveAttribute('data-inherited', 'true');
 
-    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(0);
+    await dragElement(tick);
+    await userEvent.click(tick);
+
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(2);
+    expect(screen.queryByRole('textbox', { name: 'Step name' })).not.toBeInTheDocument();
   });
 
   it('floors a step drag at the fork time of the branch that owns it', async () => {
