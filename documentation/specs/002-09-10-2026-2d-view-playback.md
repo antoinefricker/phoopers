@@ -103,12 +103,16 @@ Scrubbing writes the ref and pauses playback. Playback stops at `duration(timeli
 
 | Element        | Rendering                                     | Source                                       |
 | -------------- | --------------------------------------------- | -------------------------------------------- |
-| Offense player | Numbered circle                               | `Player.label`, `team: 'offense'`            |
-| Defense player | X                                             | `Player.label`, `team: 'defense'`            |
+| Offense player | Numbered circle, filled                       | `Player.label`, `team: 'offense'`            |
+| Defense player | Numbered circle, outlined                     | `Player.label`, `team: 'defense'`            |
 | Movement       | Solid stroke, arrowhead                       | `spanKindAt` → `'move'`                      |
 | Dribble        | Wavy stroke, arrowhead                        | `spanKindAt` → `'dribble'`                   |
 | Pass           | Dashed stroke, arrowhead                      | ball span where `ballStateAt` → `'inFlight'` |
 | Screen         | Perpendicular tick across the screener's path | `PlayState.activeScreens`                    |
+
+Both teams use the same circle at the same size, distinguished by fill rather than by colour
+alone: a greyscale handout — the printable export the stack was chosen for — renders the two
+team colours as similar greys, so fill is what keeps them apart off-screen.
 
 A span's kind is read at its midpoint. Each token is one SVG group so the whole symbol moves
 with a single `transform`.

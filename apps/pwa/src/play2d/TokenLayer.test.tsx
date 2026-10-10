@@ -253,3 +253,44 @@ describe('TokenLayer', () => {
     });
   });
 });
+
+describe('team symbols', () => {
+  const circleIn = (container: HTMLElement, playerId: string) => tokenFor(container, playerId)?.querySelector('circle');
+
+  it('draws both teams as a circle of the same size', () => {
+    const { container } = renderTokens();
+    const [offense] = hornsPlay.players.filter((p) => p.team === 'offense');
+    const [defense] = hornsPlay.players.filter((p) => p.team === 'defense');
+    if (offense === undefined || defense === undefined) throw new Error('sample needs both teams');
+
+    expect(circleIn(container, offense.id)?.getAttribute('r')).toBe('0.45');
+    expect(circleIn(container, defense.id)?.getAttribute('r')).toBe('0.45');
+  });
+
+  it('separates the teams by fill, not only by colour', () => {
+    // The roadmap justifies SVG by printable handouts, and a greyscale print turns blue-6 and
+    // red-6 into two similar greys. Filled versus outlined is what survives that, so this is
+    // the assertion that keeps the two teams distinguishable off-screen.
+    const { container } = renderTokens();
+    const [offense] = hornsPlay.players.filter((p) => p.team === 'offense');
+    const [defense] = hornsPlay.players.filter((p) => p.team === 'defense');
+    if (offense === undefined || defense === undefined) throw new Error('sample needs both teams');
+
+    const theirs = circleIn(container, offense.id);
+    const ours = circleIn(container, defense.id);
+
+    expect(theirs?.getAttribute('fill')).not.toBe('none');
+    expect(theirs?.getAttribute('stroke')).toBeNull();
+    expect(ours?.getAttribute('fill')).toBe('none');
+    expect(ours?.getAttribute('stroke')).toBeTruthy();
+  });
+
+  it('centres the label inside the circle for both teams', () => {
+    const { container } = renderTokens();
+    const [defense] = hornsPlay.players.filter((p) => p.team === 'defense');
+    if (defense === undefined) throw new Error('sample needs a defender');
+
+    // The X sat under the label, so the label was pushed up by dy. A circle holds it.
+    expect(tokenFor(container, defense.id)?.querySelector('text')?.getAttribute('dy')).toBe('0');
+  });
+});

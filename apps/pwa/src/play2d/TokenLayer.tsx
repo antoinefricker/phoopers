@@ -62,20 +62,21 @@ export function TokenLayer() {
             }
           }}
         >
+          {/* Both teams are a circle of the same size; offense is filled, defense outlined.
+              The fill carries the distinction rather than the colour alone, because the
+              roadmap justifies SVG by printable handouts and a greyscale print collapses
+              blue-6 and red-6 into two similar greys. */}
           {player.team === 'offense' ? (
             <circle r={0.45} fill="var(--mantine-color-blue-6)" />
           ) : (
-            <g stroke="var(--mantine-color-red-6)" strokeWidth={0.12} strokeLinecap="round">
-              <line x1={-0.35} y1={-0.35} x2={0.35} y2={0.35} />
-              <line x1={-0.35} y1={0.35} x2={0.35} y2={-0.35} />
-            </g>
+            <circle r={0.45} fill="none" stroke="var(--mantine-color-red-6)" strokeWidth={0.12} />
           )}
           <text
             textAnchor="middle"
             dominantBaseline="central"
             fontSize={0.5}
             fill={player.team === 'offense' ? 'var(--mantine-color-white)' : 'var(--mantine-color-red-6)'}
-            dy={player.team === 'offense' ? 0 : -0.7}
+            dy={0}
           >
             {player.label}
           </text>
