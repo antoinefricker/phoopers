@@ -1,6 +1,7 @@
 export { addPlayer, applyFormation, nextLabel, removePlayer } from './players';
 export type { FormationIds } from './players';
-export { attachBall, forkTimeOf, moveKeyframe, releaseBall, removeKeyframe, setKeyframe } from './keyframes';
+export { forkTimeOf, stepCeiling } from './fork';
+export { attachBall, moveKeyframe, releaseBall, removeKeyframe, setKeyframe } from './keyframes';
 export {
   addScreen,
   addStep,

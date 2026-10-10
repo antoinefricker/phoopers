@@ -1,6 +1,6 @@
 import type { BranchId, EntityId, Play, Step, StepId } from '../engine';
 import { snapToStep } from '../play2d/transportMath';
-import { forkTimeOf } from './mutations';
+import { forkTimeOf, stepCeiling } from './mutations';
 
 // Keyframes may not cross: the model requires ascending times. A keyframe is therefore
 // confined to the open interval between its neighbours, less a hair so it never lands exactly
@@ -43,29 +43,6 @@ export function constrainRetime(
   const snapped = snapToStep(wanted, steps, snapThreshold);
 
   return Math.min(Math.max(snapped, min), max);
-}
-
-// The latest a step may sit: no later than anything a branch forked from it owns. `validatePlay`
-// reports a keyframe earlier than its branch's fork, and the editor's own writes refuse a step or
-// screen earlier than it, so dragging a fork step past any of them would reach a state the rest
-// of the UI forbids. The bound is inclusive (the failure is `t < fork`, so landing exactly on the
-// first keyframe is legal), and steps may share a time, so there is no epsilon. Grandchildren
-// need no recursion: they fork from a step on the child, which is counted here.
-function stepCeiling(play: Play, stepId: StepId): number {
-  let ceiling = Infinity;
-
-  for (const branch of play.branches) {
-    if (branch.forkStepId !== stepId) continue;
-
-    const times = [
-      ...Object.values(branch.tracks).flatMap((track) => track.map((k) => k.t)),
-      ...branch.steps.map((s) => s.t),
-      ...branch.screens.map((s) => s.t),
-    ];
-    ceiling = Math.min(ceiling, ...times);
-  }
-
-  return ceiling;
 }
 
 // The step counterpart of `constrainRetime`: same order (snap first, clamp second, so the result

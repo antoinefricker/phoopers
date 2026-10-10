@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Play, PlayerId } from '../../engine';
 import { validatePlay } from '../../engine';
 import { fixturePlay, P1, ROOT, SWITCH } from '../../engine/__fixtures__/play';
-import { attachBall, forkTimeOf, moveKeyframe, releaseBall, removeKeyframe, setKeyframe } from './keyframes';
+import { forkTimeOf } from './fork';
+import { attachBall, moveKeyframe, releaseBall, removeKeyframe, setKeyframe } from './keyframes';
 
 const track = (play: Play, branchId = ROOT, entity: Parameters<typeof setKeyframe>[2] = P1) =>
   play.branches.find((b) => b.id === branchId)?.tracks[entity] ?? [];

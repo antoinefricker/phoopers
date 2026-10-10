@@ -48,15 +48,40 @@ describe('renameStep and moveStep', () => {
   });
 
   it('moves a step and keeps ascending order', () => {
-    const withTwo = addStep(fixturePlay, ROOT, 3, 'Later', NEW_STEP);
-    const play = moveStep(withTwo, STEP_ENTRY, 3.5);
+    // On SWITCH, a leaf branch, so no child bounds the move.
+    const first = 'first' as StepId;
+    const withTwo = addStep(addStep(fixturePlay, SWITCH, 3, 'First', first), SWITCH, 3.5, 'Later', NEW_STEP);
+    const play = moveStep(withTwo, first, 3.8);
 
-    expect(steps(play).map((s) => s.id)).toEqual([NEW_STEP, STEP_ENTRY]);
+    expect(steps(play, SWITCH).map((s) => s.id)).toEqual([NEW_STEP, first]);
   });
 
   it('refuses a non-finite or negative time', () => {
     expect(moveStep(fixturePlay, STEP_ENTRY, Number.NaN)).toEqual(fixturePlay);
     expect(moveStep(fixturePlay, STEP_ENTRY, -1)).toEqual(fixturePlay);
+  });
+
+  // SWITCH forks from STEP_ENTRY and its earliest object sits at t = 2.
+  it('refuses to move a fork step later than anything its child branch owns', () => {
+    expect(moveStep(fixturePlay, STEP_ENTRY, 3)).toEqual(fixturePlay);
+  });
+
+  it('allows a fork step to land exactly on its child branch earliest object, and earlier', () => {
+    expect(steps(moveStep(fixturePlay, STEP_ENTRY, 2))[0]?.t).toBe(2);
+    expect(steps(moveStep(fixturePlay, STEP_ENTRY, 1.5))[0]?.t).toBe(1.5);
+    expect(validatePlay(moveStep(fixturePlay, STEP_ENTRY, 1.5))).toEqual([]);
+  });
+
+  it('refuses to move a step before the fork of the branch that owns it', () => {
+    const own = 'switch-step' as StepId;
+    const play = addStep(fixturePlay, SWITCH, 3, 'Own', own);
+
+    expect(moveStep(play, own, 1)).toEqual(play);
+    expect(steps(moveStep(play, own, 2), SWITCH).find((s) => s.id === own)?.t).toBe(2);
+  });
+
+  it('refuses an unknown step', () => {
+    expect(moveStep(fixturePlay, 'ghost' as StepId, 1)).toEqual(fixturePlay);
   });
 });
 

@@ -1,5 +1,5 @@
 import type { Branch, BranchId, Play, PlayerId, ScreenId, Step, StepId } from '../../engine';
-import { forkTimeOf } from './keyframes';
+import { stepCeiling, writable } from './fork';
 
 const mapBranch = (play: Play, branchId: BranchId, mutate: (b: Branch) => Branch): Play => ({
   ...play,
@@ -9,10 +9,6 @@ const mapBranch = (play: Play, branchId: BranchId, mutate: (b: Branch) => Branch
 // Steps are kept in ascending time order so the transport's marks and the ruler read the same
 // sequence without either having to sort.
 const ordered = (steps: readonly Step[]): Step[] => [...steps].sort((a, b) => a.t - b.t);
-
-// `validatePlay` does not check `Step.t` or `ScreenEvent.t`, so this is the only finiteness guard.
-const writable = (play: Play, branchId: BranchId, t: number): boolean =>
-  Number.isFinite(t) && t >= 0 && t >= forkTimeOf(play, branchId);
 
 export function addStep(play: Play, branchId: BranchId, t: number, name: string, id: StepId): Play {
   if (!writable(play, branchId, t)) return play;
@@ -31,8 +27,12 @@ const mapStep = (play: Play, stepId: StepId, mutate: (s: Step) => Step): Play =>
 export const renameStep = (play: Play, stepId: StepId, name: string): Play =>
   mapStep(play, stepId, (s) => ({ ...s, name }));
 
+// Bounded by the model, not only by the drag: the floor is the fork time of the branch that OWNS
+// the step (not the one on screen), the ceiling is `stepCeiling`. `constrainStepRetime` clamps to
+// the same bounds so a drag lands on them; this refuses what a caller bypassing it asks for.
 export function moveStep(play: Play, stepId: StepId, t: number): Play {
-  if (!Number.isFinite(t) || t < 0) return play;
+  const owner = play.branches.find((b) => b.steps.some((s) => s.id === stepId));
+  if (owner === undefined || !writable(play, owner.id, t) || t > stepCeiling(play, stepId)) return play;
 
   return mapStep(play, stepId, (s) => ({ ...s, t }));
 }

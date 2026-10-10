@@ -1,22 +1,5 @@
 import type { Branch, BranchId, EntityId, Keyframe, Play, PlayerId, Vec2 } from '../../engine';
-
-// A child branch inherits everything before its fork from its ancestors, and a keyframe
-// earlier than the fork is invalid (`keyframe-before-fork`). The editor refuses such a write
-// here as well as dimming the region, so a presentation bug cannot produce an invalid play.
-export function forkTimeOf(play: Play, branchId: BranchId): number {
-  const branch = play.branches.find((b) => b.id === branchId);
-  if (branch === undefined || branch.forkStepId === null) return 0;
-
-  for (const candidate of play.branches) {
-    const step = candidate.steps.find((s) => s.id === branch.forkStepId);
-    if (step !== undefined) return step.t;
-  }
-
-  return 0;
-}
-
-const writable = (play: Play, branchId: BranchId, t: number): boolean =>
-  Number.isFinite(t) && t >= 0 && t >= forkTimeOf(play, branchId);
+import { writable } from './fork';
 
 const mapBranch = (play: Play, branchId: BranchId, mutate: (branch: Branch) => Branch): Play => ({
   ...play,
