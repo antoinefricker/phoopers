@@ -6,7 +6,7 @@ import type { Step, StepId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { constrainStepRetime } from './constraints';
 import { LABEL_WIDTH } from './TimelineRow';
-import { fractionOf } from './timelineGeometry';
+import { TRACK_INSET_PX, fractionOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 
@@ -103,7 +103,8 @@ export function StepRuler() {
           {t('play.editor.addStep', 'Add step')}
         </Button>
       </Box>
-      <Box ref={trackRef} style={{ position: 'relative', flex: 1, height: '100%' }}>
+      {/* Same inset as TimelineRow's track, so the ruler's time axis lines up with the rows. */}
+      <Box ref={trackRef} style={{ position: 'relative', flex: 1, height: '100%', marginInline: TRACK_INSET_PX }}>
         {steps.map((step) => {
           const others = steps.filter((s) => s.id !== step.id);
 

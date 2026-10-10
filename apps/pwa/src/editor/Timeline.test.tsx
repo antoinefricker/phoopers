@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
+import { TRACK_INSET_PX } from './timelineGeometry';
 import { Timeline } from './Timeline';
 import { dragElement, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
 
@@ -469,5 +470,23 @@ describe('screen bars', () => {
     // No layout: the drop maps to t=0, before the screen starts. It floors, rather than being
     // refused (which would leave 1), so the drag demonstrably acted.
     expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.1, 6);
+  });
+});
+
+describe('track alignment', () => {
+  it('insets the row track, the ruler track and the overlay by the same amount', () => {
+    // jsdom has no layout, so it cannot see the overflow this inset exists to prevent. What it
+    // CAN pin is that the three containers sharing one time axis agree: if a later change insets
+    // the rows but not the overlay, the playhead drifts from the markers by that amount.
+    renderEditor(fixturePlay, <Timeline />);
+
+    const rowTrack = rowFor(P1).lastElementChild as HTMLElement;
+    const rulerTrack = screen.getByTestId('step-ruler').lastElementChild as HTMLElement;
+    const overlay = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
+
+    expect(rowTrack.style.marginInline).toBe(`${TRACK_INSET_PX}px`);
+    expect(rulerTrack.style.marginInline).toBe(`${TRACK_INSET_PX}px`);
+    expect(overlay.style.right).toBe(`${TRACK_INSET_PX}px`);
+    expect(overlay.style.left).toContain(`${TRACK_INSET_PX}px`);
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveBranch } from '../engine';
 import { fixturePlay, P1, ROOT } from '../engine/__fixtures__/play';
-import { fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
+import { MARKER_SIZE_PX, TRACK_INSET_PX, fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
 
 describe('fractionOf', () => {
   it('maps a time to its fraction of the duration', () => {
@@ -88,5 +88,21 @@ describe('timeFromClientX', () => {
   it('clamps beyond either end', () => {
     expect(timeFromClientX(0, rect(100, 200), 8)).toBe(0);
     expect(timeFromClientX(999, rect(100, 200), 8)).toBe(8);
+  });
+});
+
+describe('track inset', () => {
+  it('reserves half the marker diagonal, not half its width', () => {
+    // A marker is a square rotated 45deg, so its rendered box is MARKER_SIZE * sqrt(2) and it
+    // extends that much / 2 beyond the centre `translate(-50%)` puts it at. Reserving half the
+    // WIDTH (7px) would leave a marker at t = duration overflowing the track by ~3px.
+    expect(TRACK_INSET_PX).toBe(Math.ceil((MARKER_SIZE_PX * Math.SQRT2) / 2));
+    expect(TRACK_INSET_PX).toBeGreaterThan(MARKER_SIZE_PX / 2);
+  });
+
+  it('is enough for a marker at either end of the track', () => {
+    const halfRenderedBox = (MARKER_SIZE_PX * Math.SQRT2) / 2;
+
+    expect(TRACK_INSET_PX).toBeGreaterThanOrEqual(halfRenderedBox);
   });
 });

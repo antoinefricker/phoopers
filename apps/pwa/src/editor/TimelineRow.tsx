@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { EntityId, ScreenEvent, ScreenId } from '../engine';
 import { ConfirmDelete } from './ConfirmDelete';
 import { constrainRetime } from './constraints';
-import { fractionOf } from './timelineGeometry';
+import { MARKER_SIZE_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
 import { useEditorContext } from './useEditorContext';
@@ -56,7 +56,11 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
       <Text size="sm" w={LABEL_WIDTH} style={{ flexShrink: 0 }}>
         {label}
       </Text>
-      <Box ref={trackRef} style={{ position: 'relative', flex: 1, height: '100%' }}>
+      {/* Inset so a marker sitting at t=0 or t=duration fits inside the track: it is a rotated
+          square, so it reaches half its DIAGONAL past its time. Without this the last marker
+          overflows and the panel grows a horizontal scrollbar. StepRuler and Timeline's
+          overlay carry the same inset, or the playhead drifts from the markers. */}
+      <Box ref={trackRef} style={{ position: 'relative', flex: 1, height: '100%', marginInline: TRACK_INSET_PX }}>
         <Box
           style={{
             position: 'absolute',
@@ -196,8 +200,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 top: '50%',
                 left: percent(k.t, duration),
                 touchAction: owned ? 'none' : undefined,
-                width: 14,
-                height: 14,
+                width: MARKER_SIZE_PX,
+                height: MARKER_SIZE_PX,
                 padding: 0,
                 cursor: owned ? 'grab' : 'pointer',
                 transform: 'translate(-50%, -50%) rotate(45deg)',
