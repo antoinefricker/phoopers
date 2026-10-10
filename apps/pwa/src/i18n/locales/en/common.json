@@ -16,9 +16,11 @@
     "editor": {
       "addDefense": "Add defense",
       "addOffense": "Add offense",
+      "ballRow": "Ball",
       "dragBall": "Move the ball",
       "dragPlayer": "Move player {{label}}",
       "formation": "Starting formation",
+      "keyframeAt": "Keyframe at {{t}}s",
       "mode": {
         "edit": "Edit",
         "play": "Play"
