@@ -238,21 +238,6 @@ the mutation owns (`current.length <= 1`), and two copies of a rule drift.
 identity check `forkBranch` already uses), and have `Timeline` keep the selection and show a
 notice when it did not.
 
-### The screen-placement mode outlives a switch to Play and back
-
-Choosing "Place a screen" arms the next court click to pick a beneficiary. Nothing clears that
-arming when the editor leaves Edit mode. Measured in a browser: with a player selected and
-placement armed, the button reads "Cancel screen"; after switching to Play and back to Edit it
-still reads "Cancel screen", so the next court click is still consumed by a gesture the coach
-started before leaving. It is recoverable — the Cancel button stays visible, and selecting
-anything else clears it — so it surprises rather than traps.
-
-It was left because the fix touches the mode toggle rather than the gesture, and spec 003 does
-not say what a mode switch should do to an armed gesture.
-
-**Fix:** clear `placingScreen` in `setMode`, or let any `select()` that leaves Edit mode cancel
-it the way a selection change already does.
-
 ### The timeline gutter shows a label without its token
 
 Spec 003 says the gutter "carries each token and its label". Measured in a browser: a row's
@@ -281,19 +266,6 @@ throughout.
 **Fix:** handle arrow keys on the focusable controls, moving the object by one snap step and
 committing through the same `constrainRetime` the drag uses; and make the screen handle a
 `<button>` so its name is exposed and it can be reached.
-
-### A screen reader cannot tell an attached ball keyframe from a free one
-
-The ball's row distinguishes possession visually: a tinted segment while the ball is attached, a
-hollow marker where it is free. Measured in a browser: every ball marker's accessible name is
-`Keyframe at <t>s`, identical for both kinds, and the distinction lives only in a `data-kind`
-attribute, which is not exposed to assistive technology. The same applies to the filled and
-hollow shapes, which carry no text alternative.
-
-It was left because the labels were written before the ball's row gained its two renderings.
-
-**Fix:** include the kind in the accessible name — "Ball held at 4s" versus "Ball loose at 8s" —
-through the existing `t()` keys.
 
 ## Test coverage gaps
 

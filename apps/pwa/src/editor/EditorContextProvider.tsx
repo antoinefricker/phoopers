@@ -24,6 +24,12 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
     setSelection(next);
     setPlacingScreen(false);
   }, []);
+  // An armed screen placement waits for the next court click. Leaving Edit mode strands it, so
+  // returning would consume a click the coach means as a fresh gesture.
+  const changeMode = useCallback<EditorContextValue['setMode']>((next) => {
+    setMode(next);
+    setPlacingScreen(false);
+  }, []);
   const addPlayer = useCallback<EditorContextValue['addPlayer']>((team) => {
     setPlay((current) => mutations.addPlayer(current, team, newId<PlayerId>()));
   }, []);
@@ -116,7 +122,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
     () => ({
       play,
       mode,
-      setMode,
+      setMode: changeMode,
       selection,
       select,
       placingScreen,
@@ -144,6 +150,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
     [
       play,
       mode,
+      changeMode,
       selection,
       select,
       placingScreen,

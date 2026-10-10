@@ -17,6 +17,8 @@
       "addDefense": "Ajouter un défenseur",
       "addOffense": "Ajouter un attaquant",
       "addStep": "Ajouter une étape",
+      "ballHeldAt": "Ballon tenu à {{t}} s",
+      "ballLooseAt": "Ballon libre à {{t}} s",
       "ballRow": "Ballon",
       "cancel": "Annuler",
       "cancelScreen": "Annuler l'écran",

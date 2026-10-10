@@ -166,7 +166,15 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               type="button"
               data-kind={hollow ? 'position' : 'attached'}
               aria-pressed={selected}
-              aria-label={t('play.editor.keyframeAt', 'Keyframe at {{t}}s', { t: k.t })}
+              // Shape and colour carry the ball's possession on screen; neither reaches
+              // assistive technology, and `data-kind` is not exposed, so the name says it.
+              aria-label={
+                isBall
+                  ? hollow
+                    ? t('play.editor.ballLooseAt', 'Ball loose at {{t}}s', { t: k.t })
+                    : t('play.editor.ballHeldAt', 'Ball held at {{t}}s', { t: k.t })
+                  : t('play.editor.keyframeAt', 'Keyframe at {{t}}s', { t: k.t })
+              }
               onClick={() => {
                 if (!consumeDrag()) onSelectKeyframe(row.entityId, k.t);
               }}

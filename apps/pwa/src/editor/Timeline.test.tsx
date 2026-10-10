@@ -499,3 +499,28 @@ describe('text selection', () => {
     expect(surface.style.userSelect).toBe('none');
   });
 });
+
+describe('the ball row for a screen reader', () => {
+  it('names a held keyframe differently from a loose one', () => {
+    // The row shows possession as a tinted segment versus a hollow marker. Shape and colour
+    // carry nothing to assistive technology, and `data-kind` is not exposed, so the accessible
+    // name is the only place the distinction can live.
+    // The engine fixture's ball is attached at every keyframe, so a loose one is added here —
+    // without it the test passes even if every marker is named "held".
+    const withShot: Play = {
+      ...fixturePlay,
+      branches: fixturePlay.branches.map((b) =>
+        b.id === ROOT
+          ? { ...b, tracks: { ...b.tracks, ball: [...(b.tracks.ball ?? []), { t: 6, position: { x: 25, y: 7 } }] } }
+          : b,
+      ),
+    };
+    renderEditor(withShot, <Timeline />);
+    const ballRow = rowFor('ball');
+
+    expect(within(ballRow).getByRole('button', { name: 'Ball loose at 6s' })).toBeInTheDocument();
+    expect(within(ballRow).getByRole('button', { name: 'Ball held at 0s' })).toBeInTheDocument();
+    expect(within(ballRow).queryAllByRole('button', { name: /loose/i })).toHaveLength(1);
+    expect(within(ballRow).queryAllByRole('button', { name: /^Keyframe at/ })).toHaveLength(0);
+  });
+});
