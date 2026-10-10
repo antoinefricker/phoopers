@@ -118,3 +118,20 @@ describe('useEditorContext', () => {
     expect(() => render(<Probe />)).toThrow(/useEditorContext.*EditorContextProvider/s);
   });
 });
+
+describe('the mode toggle icons', () => {
+  it('adds an icon to each segment without changing its accessible name', () => {
+    // Four test files find these segments by the names "Play" and "Edit". An icon that
+    // replaced the text, or that contributed text of its own, would rename them and break
+    // those silently — so the name is the assertion that matters here, not the icon.
+    renderProbe();
+
+    for (const name of ['Play', 'Edit']) {
+      const radio = screen.getByRole('radio', { name }) as HTMLInputElement;
+      // Mantine renders the input as a SIBLING of its label, so `closest` finds nothing.
+      const label = radio.labels?.[0];
+      expect(label?.querySelector('svg')).toBeInTheDocument();
+      expect(label?.textContent).toBe(name);
+    }
+  });
+});
