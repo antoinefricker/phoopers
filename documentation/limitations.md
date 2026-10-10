@@ -193,6 +193,21 @@ there is no pass object. Changing the drop gesture is a spec-level decision, not
 **Fix:** either `attachBall` writes a second attachment keyframe to close a hold (at the next
 keyframe time or after a default hold), or the UI asks for a hold duration on drop.
 
+### "Add step" before the fork does nothing, silently
+
+On a child branch, `addStep` refuses a step earlier than the branch's fork (the same rule that
+refuses a keyframe there). `StepRuler` calls it and shows nothing either way. Measured (the
+"adds no step before the fork" case in `StepRuler.test.tsx`): viewing `Defence switches`, forked
+at t = 2, with the playhead at t = 0, pressing "Add step" leaves that branch's `steps` at 0
+entries and the ruler unchanged, with no message.
+
+It was left because the alternative has the component re-derive the fork rule the mutation
+owns, and two copies of a rule drift. It mirrors [the delete-refusal entry](#refusing-to-delete-a-players-last-keyframe-gives-no-feedback) below.
+
+**Fix:** have `addStep` in the context report whether it wrote anything (the identity check
+`forkBranch` already uses), and have `StepRuler` show a notice, or disable the button while the
+playhead is before the fork.
+
 ### Refusing to delete a player's last keyframe gives no feedback
 
 `removeKeyframe` refuses to remove the only keyframe of a player's track (a player with no

@@ -81,6 +81,24 @@ describe('StepRuler', () => {
     expect(stepsOfRoot().map((s) => s.name)).toContain('Step 2');
   });
 
+  it('adds no step before the fork, and says nothing', async () => {
+    renderEditor(
+      fixturePlay,
+      <>
+        <SelectBranch branchId={SWITCH} />
+        <StepRuler />
+      </>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: `select ${SWITCH}` }));
+    const stepsOfSwitch = () => readProbe().play.branches.find((b) => b.id === SWITCH)?.steps ?? [];
+
+    // The playhead is at 0 and SWITCH forks at 2. Recorded in limitations.md.
+    await userEvent.click(screen.getByRole('button', { name: 'Add step' }));
+
+    expect(stepsOfSwitch()).toHaveLength(0);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('renames a step', async () => {
     stubLayout();
     renderEditor(fixturePlay, <StepRuler />);
