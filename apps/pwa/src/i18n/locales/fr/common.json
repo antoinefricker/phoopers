@@ -16,9 +16,11 @@
     "editor": {
       "addDefense": "Ajouter un défenseur",
       "addOffense": "Ajouter un attaquant",
+      "ballRow": "Ballon",
       "dragBall": "Déplacer le ballon",
       "dragPlayer": "Déplacer le joueur {{label}}",
       "formation": "Placement de départ",
+      "keyframeAt": "Position à {{t}} s",
       "mode": {
         "edit": "Éditer",
         "play": "Jouer"

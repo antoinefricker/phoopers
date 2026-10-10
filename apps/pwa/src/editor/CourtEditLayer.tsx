@@ -110,8 +110,6 @@ export function CourtEditLayer() {
       key={entityId}
       data-testid={`edit-token-${entityId}`}
       data-entity={entityId}
-      role="button"
-      tabIndex={0}
       aria-label={label}
       style={{ cursor: 'grab', touchAction: 'none' }}
       onPointerDown={onPointerDown}
@@ -133,7 +131,7 @@ export function CourtEditLayer() {
         ),
       )}
       {hasBall && hitTarget('ball', BALL_HIT_RADIUS, t('play.editor.dragBall', 'Move the ball'))}
-      <g ref={ghostRef} visibility="hidden" pointerEvents="none">
+      <g ref={ghostRef} data-testid="edit-ghost" visibility="hidden" pointerEvents="none">
         <circle
           ref={ghostCircleRef}
           r={PLAYER_HIT_RADIUS}

@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Play } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SWITCH } from '../engine/__fixtures__/play';
 import { PlayCanvas } from '../play2d/PlayCanvas';
@@ -16,7 +16,7 @@ const layer = (
 );
 
 describe('CourtEditLayer', () => {
-  it('writes exactly one keyframe per gesture, on release', async () => {
+  it('replaces the keyframe at the playhead', async () => {
     renderEditor(fixturePlay, layer);
     const before = trackOf(readProbe().play, ROOT, P1).length;
 
@@ -28,7 +28,7 @@ describe('CourtEditLayer', () => {
     expect(trackOf(readProbe().play, ROOT, P1)).toHaveLength(before);
   });
 
-  it('adds one keyframe, not one per pointer move, when the playhead is between keyframes', async () => {
+  it('gains one keyframe at a fresh time', async () => {
     renderEditor(
       fixturePlay,
       <>
@@ -97,6 +97,56 @@ describe('CourtEditLayer', () => {
     await dragToken(P1);
 
     expect(JSON.stringify(readProbe().play)).toBe(before);
+  });
+
+  describe('the fork guard in the UI', () => {
+    // jsdom has no pointer capture; stub it so the gesture's first side effect is observable.
+    const setPointerCapture = vi.fn();
+    const original = SVGElement.prototype.setPointerCapture;
+    afterEach(() => {
+      SVGElement.prototype.setPointerCapture = original;
+      setPointerCapture.mockClear();
+    });
+
+    const renderOnChild = async (seekTo?: number) => {
+      SVGElement.prototype.setPointerCapture = setPointerCapture;
+      renderEditor(
+        fixturePlay,
+        <>
+          {layer}
+          <SelectBranch branchId={SWITCH} />
+          <SeekTo t={seekTo ?? 0} />
+        </>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: `select ${SWITCH}` }));
+      if (seekTo !== undefined) await userEvent.click(screen.getByRole('button', { name: `seek ${seekTo}` }));
+    };
+
+    const pressAndMove = async () => {
+      const token = screen.getByTestId(`edit-token-${P1}`);
+      await userEvent.setup().pointer([
+        { keys: '[MouseLeft>]', target: token },
+        { target: token, coords: { clientX: 80, clientY: 60 } },
+      ]);
+    };
+
+    it('takes no pointer capture and shows no ghost before the fork', async () => {
+      await renderOnChild();
+
+      await pressAndMove();
+
+      expect(setPointerCapture).not.toHaveBeenCalled();
+      expect(screen.getByTestId('edit-ghost')).toHaveAttribute('visibility', 'hidden');
+    });
+
+    it('takes pointer capture and shows the ghost mid-gesture after the fork', async () => {
+      await renderOnChild(3);
+
+      await pressAndMove();
+
+      expect(setPointerCapture).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('edit-ghost')).toHaveAttribute('visibility', 'visible');
+    });
   });
 
   it('writes on the child branch once the playhead is past the fork', async () => {

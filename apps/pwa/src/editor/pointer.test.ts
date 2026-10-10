@@ -44,9 +44,8 @@ describe('dropTargetAt', () => {
   });
 
   it('prefers the nearer player when two are in range', () => {
-    const near = dropTargetAt(timeline, 0, { x: 4.1, y: 7.5 }, 99);
-
-    expect(near).toBe(P1);
-    expect(near).not.toBe(P2);
+    // P2 sits at {4, 3} at t=0 and is second in iteration order, so a first-in-range-wins
+    // implementation would return P1 here.
+    expect(dropTargetAt(timeline, 0, { x: 4, y: 3.1 }, 99)).toBe(P2);
   });
 });
