@@ -40,7 +40,9 @@ export function Timeline() {
   return (
     <ScrollArea>
       {/* Keys arrive from the focused marker button and bubble up to here. */}
-      <Box style={{ position: 'relative' }} onKeyDown={onKeyDown}>
+      {/* Same reason as the court: dragging a marker must not highlight the row labels or a
+          step name. Inputs below re-enable selection for the text they actually edit. */}
+      <Box style={{ position: 'relative', userSelect: 'none' }} onKeyDown={onKeyDown}>
         <StepRuler />
         {rowsOf(timeline).map((row) => (
           <TimelineRow

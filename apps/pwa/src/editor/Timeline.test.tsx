@@ -490,3 +490,12 @@ describe('track alignment', () => {
     expect(overlay.style.left).toContain(`${TRACK_INSET_PX}px`);
   });
 });
+
+describe('text selection', () => {
+  it('makes the timeline unselectable, so a marker drag does not select row labels', () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const surface = screen.getByTestId('step-ruler').parentElement as HTMLElement;
+
+    expect(surface.style.userSelect).toBe('none');
+  });
+});

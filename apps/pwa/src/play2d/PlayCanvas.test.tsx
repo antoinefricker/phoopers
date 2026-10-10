@@ -291,3 +291,14 @@ describe('PlayCanvas', () => {
     });
   });
 });
+
+describe('text selection', () => {
+  it('makes the court unselectable, so a drag does not select the player labels', () => {
+    // Without this a drag across the court highlights "1 2 3 4 5 X1 …" — the classic
+    // drag-on-SVG artefact. The labels are not content to copy; they are part of the drawing.
+    const { container } = renderCanvas();
+    const svg = container.querySelector('svg');
+
+    expect(svg?.style.userSelect).toBe('none');
+  });
+});

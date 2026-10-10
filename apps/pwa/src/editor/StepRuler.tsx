@@ -40,11 +40,14 @@ function StepEditor({ step, onDone }: EditorProps) {
 
   return (
     <Group gap="xs" wrap="nowrap" align="flex-end">
+      {/* The timeline sets user-select: none so a drag cannot highlight labels. This field is
+          the one place inside it holding text the user edits, so it opts back in. */}
       <TextInput
         size="xs"
         label={t('play.editor.stepName', 'Step name')}
         value={name}
         onChange={(event) => setName(event.currentTarget.value)}
+        styles={{ input: { userSelect: 'text' } }}
       />
       <Button
         size="xs"
