@@ -2,8 +2,9 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { Play, PlayerId } from '../engine';
-import { fixturePlay, P1, ROOT } from '../engine/__fixtures__/play';
+import { fixturePlay, P1, ROOT, SWITCH } from '../engine/__fixtures__/play';
 import { IssuePanel } from './IssuePanel';
+import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { readProbe, renderEditor } from './testUtils/renderEditor';
 
 // A ball attached to a player who is not in `players`: exactly one `unknown-player-reference`.
@@ -14,8 +15,30 @@ const danglingBall: Play = {
   ),
 };
 
+// A screen that names an unknown player: its issue carries the screen's id, which selects nothing.
+const danglingScreen: Play = {
+  ...fixturePlay,
+  branches: fixturePlay.branches.map((b) =>
+    b.id === ROOT ? { ...b, screens: b.screens.map((sc) => ({ ...sc, screenerId: 'ghost' as PlayerId })) } : b,
+  ),
+};
+
 // A duplicated player id: the issue's entityId is that player, so its row is actionable.
 const duplicatePlayer: Play = { ...fixturePlay, players: [...fixturePlay.players, ...fixturePlay.players.slice(0, 1)] };
+
+// A keyframe on the variant before its fork (t = 2): the issue carries the variant's branch id.
+const keyframeBeforeFork: Play = {
+  ...fixturePlay,
+  branches: fixturePlay.branches.map((b) =>
+    b.id === SWITCH ? { ...b, tracks: { ...b.tracks, [P1]: [{ t: 1, position: { x: 6, y: 9 } }] } } : b,
+  ),
+};
+
+function ShownBranch() {
+  const { branchId } = usePlaybackContext();
+
+  return <output data-testid="shown-branch">{branchId}</output>;
+}
 
 describe('IssuePanel', () => {
   it('reports nothing for a valid play', () => {
@@ -62,8 +85,24 @@ describe('IssuePanel', () => {
     expect(readProbe().selection).toEqual({ kind: 'entity', entityId: P1 });
   });
 
-  it('gives a row that names no player no button', async () => {
-    renderEditor(danglingBall, <IssuePanel />);
+  it('selects the branch a row names', async () => {
+    renderEditor(
+      keyframeBeforeFork,
+      <>
+        <IssuePanel />
+        <ShownBranch />
+      </>,
+    );
+    expect(screen.getByTestId('shown-branch')).toHaveTextContent(ROOT);
+    await userEvent.click(screen.getByRole('button', { name: /Problems/ }));
+
+    await userEvent.click(await screen.findByRole('button', { name: /before the fork/ }));
+
+    expect(screen.getByTestId('shown-branch')).toHaveTextContent(SWITCH);
+  });
+
+  it('gives a row that names no player or branch no button', async () => {
+    renderEditor(danglingScreen, <IssuePanel />);
     await userEvent.click(screen.getByRole('button', { name: /Problems/ }));
     await screen.findByRole('listitem');
 

@@ -32,7 +32,8 @@ export function BranchTree({ play }: Props) {
   const editing = editor?.mode === 'edit';
   const [forkingFrom, setForkingFrom] = useState<BranchId | null>(null);
 
-  // The dialog stays mounted so Mantine can run its exit transition; `count` re-keys it per open
+  // The dialog stays mounted so Mantine can run its exit transition; `count` re-keys it per open as a
+  // guard for the future (ConfirmDelete is stateless today, so the key is currently inert)
   // and `target` is kept after closing so the body does not blank out mid-transition.
   const [deleting, setDeleting] = useState<{ target: BranchId | null; opened: boolean; count: number }>({
     target: null,

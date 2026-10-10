@@ -1,5 +1,6 @@
 import { Accordion, Box, Text, UnstyledButton } from '@mantine/core';
 import { Trans, useTranslation } from 'react-i18next';
+import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { useEditorContext } from './useEditorContext';
 
 // Reports, never blocks: a play under construction is invalid by nature, so nothing here
@@ -7,6 +8,7 @@ import { useEditorContext } from './useEditorContext';
 export function IssuePanel() {
   const { t } = useTranslation();
   const { issues, play, select } = useEditorContext();
+  const { selectBranch, seek } = usePlaybackContext();
 
   return (
     <Accordion variant="contained">
@@ -31,11 +33,24 @@ export function IssuePanel() {
               {issues.map((issue, index) => {
                 const entityId = issue.entityId;
                 const player = play.players.find((p) => p.id === entityId);
+                // Most issues carry a branch id: jump there. Screen ids are left alone, since a
+                // selection has no screen kind.
+                const branch = play.branches.find((b) => b.id === entityId);
 
                 return (
                   <li key={`${issue.code}-${entityId ?? ''}-${index}`}>
                     {player !== undefined ? (
                       <UnstyledButton fz="sm" onClick={() => select({ kind: 'entity', entityId: player.id })}>
+                        {issue.message}
+                      </UnstyledButton>
+                    ) : branch !== undefined ? (
+                      <UnstyledButton
+                        fz="sm"
+                        onClick={() => {
+                          selectBranch(branch.id);
+                          seek(0);
+                        }}
+                      >
                         {issue.message}
                       </UnstyledButton>
                     ) : (

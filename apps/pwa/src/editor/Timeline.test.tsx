@@ -132,6 +132,8 @@ describe('Timeline', () => {
     await userEvent.keyboard('{Delete}');
 
     expect(trackOf(readProbe().play, ROOT, P1)).toHaveLength(1);
+    // Pinned because it is documented: the refusal still clears the selection (limitations.md).
+    expect(readProbe().selection).toBeNull();
   });
 
   it('allows deleting the ball last keyframe', async () => {

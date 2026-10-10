@@ -7,7 +7,8 @@ import { useEditorContext } from './useEditorContext';
 export function EditorToolbar() {
   const { t } = useTranslation();
   const { mode, setMode, addPlayer, applyFormation, newPlay } = useEditorContext();
-  // The dialog stays mounted; a new key per open resets it without an effect.
+  // The dialog stays mounted. The `key` is a guard for the future: ConfirmDelete is stateless today,
+  // so removing it changes nothing, but it makes any state added later reset per open without an effect.
   const [asking, setAsking] = useState({ opened: false, count: 0 });
 
   return (
