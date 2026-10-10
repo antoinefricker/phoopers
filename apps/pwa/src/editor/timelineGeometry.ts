@@ -27,3 +27,14 @@ export function rowsOf(timeline: ResolvedTimeline): TimelineRowModel[] {
 
   return [...players, { entityId: 'ball', label: 'ball', team: 'ball', keyframes: timeline.anchors.ball ?? [] }];
 }
+
+// Maps a pointer's x to a time across a row. Without layout (jsdom, a hidden canvas) the box is
+// 0 wide, and nothing downstream checks a time for finiteness, so every degenerate input
+// resolves to 0 rather than NaN.
+export function timeFromClientX(clientX: number, rect: DOMRect, duration: number): number {
+  if (!(rect.width > 0) || !(duration > 0)) return 0;
+  const fraction = (clientX - rect.left) / rect.width;
+  if (!Number.isFinite(fraction)) return 0;
+
+  return Math.min(Math.max(fraction, 0), 1) * duration;
+}

@@ -1,10 +1,10 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
-import type { Play } from '../engine';
-import { fixturePlay, P1, P2, ROOT, SWITCH } from '../engine/__fixtures__/play';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Play, StepId } from '../engine';
+import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { Timeline } from './Timeline';
-import { readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
+import { dragElement, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
 
 const rowFor = (entityId: string) => screen.getByTestId(`timeline-row-${entityId}`);
 const markersIn = (entityId: string) => within(rowFor(entityId)).getAllByRole('button');
@@ -167,5 +167,170 @@ describe('Timeline', () => {
       'position',
       'attached',
     ]);
+  });
+});
+
+// jsdom has no layout. Where a test needs real arithmetic it gives every box this width, so the
+// drag helper's final clientX of 120 lands at 120 / WIDTH of the duration.
+const withRowWidth = (width: number) =>
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+    left: 0,
+    width,
+    right: width,
+    top: 0,
+    bottom: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  });
+
+const secondMarker = (entityId: string) => {
+  const marker = markersIn(entityId)[1];
+  if (marker === undefined) throw new Error('expected a second marker');
+
+  return marker;
+};
+
+describe('retiming', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('retimes one keyframe on release, without creating or losing any', async () => {
+    renderEditor(fixturePlay, <Timeline />);
+
+    await dragElement(secondMarker(P1));
+
+    // Without layout the drop maps to t=0, which the neighbour bound pushes just above the
+    // keyframe at 0. The exact 0.001 proves the keyframe MOVED; the length proves none was added.
+    const times = trackOf(readProbe().play, ROOT, P1).map((k) => k.t);
+    expect(times).toHaveLength(3);
+    expect(times[1]).toBeCloseTo(0.001, 6);
+  });
+
+  it('commits the pixel-derived time when the row has layout', async () => {
+    withRowWidth(200);
+    renderEditor(fixturePlay, <Timeline />);
+
+    await dragElement(secondMarker(P1));
+
+    // clientX 120 of a 200px row across a 4s play.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
+  });
+
+  it('never lets a keyframe cross its neighbour', async () => {
+    withRowWidth(200);
+    renderEditor(fixturePlay, <Timeline />);
+
+    // Drag the first marker (t=0) rightwards to 2.4s: it must stop short of the keyframe at 2.
+    const first = markersIn(P1)[0];
+    if (first === undefined) throw new Error('expected a first marker');
+    await dragElement(first);
+
+    const times = trackOf(readProbe().play, ROOT, P1).map((k) => k.t);
+    expect(times).toHaveLength(3);
+    expect(times[0]).toBeCloseTo(2 - 0.001, 6);
+    expect(times).toEqual([...times].sort((a, b) => a - b));
+  });
+
+  it('snaps to a nearby step', async () => {
+    // clientX 120 of 480px is 1.0s of a 4s play; a step at 1.03 is inside the 0.08s threshold.
+    withRowWidth(480);
+    const withNearbyStep = withBranch(fixturePlay, ROOT, (b) => ({
+      ...b,
+      steps: [...b.steps, { id: 'near' as StepId, t: 1.03, name: 'Near' }],
+    }));
+    renderEditor(withNearbyStep, <Timeline />);
+
+    await dragElement(secondMarker(P1));
+
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 1.03, 4]);
+  });
+
+  it('leaves the play untouched while the drag is in flight', async () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const user = userEvent.setup();
+    const second = secondMarker(P1);
+    const before = JSON.stringify(readProbe().play);
+    expect(second.style.left).toBe('50%');
+
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: second },
+      { target: second, coords: { clientX: 40, clientY: 0 } },
+    ]);
+
+    // The marker followed the pointer (so the gesture is live) yet nothing was committed.
+    expect(second.style.left).not.toBe('50%');
+    expect(JSON.stringify(readProbe().play)).toBe(before);
+  });
+
+  it('does not retime on a plain click', async () => {
+    // P1 starts at t=1, so a stray drop at t=0 would be a legal move: only the click rule stops it.
+    const gap = withBranch(fixturePlay, ROOT, (b) => ({
+      ...b,
+      tracks: {
+        ...b.tracks,
+        [P1]: [
+          { t: 1, position: { x: 4, y: 7.5 } },
+          { t: 2, position: { x: 8, y: 5 } },
+          { t: 4, position: { x: 12, y: 5 } },
+        ],
+      },
+    }));
+    renderEditor(gap, <Timeline />);
+    const first = markersIn(P1)[0];
+    if (first === undefined) throw new Error('expected a first marker');
+
+    await userEvent.click(first);
+
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([1, 2, 4]);
+    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 1 });
+  });
+
+  it('keeps the selection on the keyframe it dragged', async () => {
+    withRowWidth(200);
+    renderEditor(fixturePlay, <Timeline />);
+    await userEvent.click(secondMarker(P1));
+    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2 });
+
+    // The keyframe being dragged is the selected one, so selecting must follow it to its new time.
+    await dragElement(secondMarker(P1));
+
+    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2.4 });
+  });
+});
+
+describe('screen bars', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const screensOfRoot = () => readProbe().play.branches.find((b) => b.id === ROOT)?.screens ?? [];
+
+  it('renders a screen as a bar on its screener row, spanning its duration', () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const bar = within(rowFor(P2)).getByTestId(`screen-bar-${SCREEN_1}`);
+
+    // The fixture's screen: P2 screens for P1, from t=2 for 1s, of a 4s play.
+    expect(bar.style.left).toBe('50%');
+    expect(bar.style.width).toBe('25%');
+    expect(within(rowFor(P1)).queryByTestId(`screen-bar-${SCREEN_1}`)).toBeNull();
+  });
+
+  it('sets the duration by dragging the right edge', async () => {
+    withRowWidth(200);
+    renderEditor(fixturePlay, <Timeline />);
+
+    await dragElement(within(rowFor(P2)).getByTestId(`screen-handle-${SCREEN_1}`));
+
+    // clientX 120 of 200px is 2.4s; the screen starts at 2s.
+    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.4, 6);
+  });
+
+  it('keeps the duration positive when the edge is dragged left of its own start', async () => {
+    renderEditor(fixturePlay, <Timeline />);
+
+    await dragElement(within(rowFor(P2)).getByTestId(`screen-handle-${SCREEN_1}`));
+
+    // No layout: the drop maps to t=0, before the screen starts. It floors, rather than being
+    // refused (which would leave 1), so the drag demonstrably acted.
+    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.1, 6);
   });
 });

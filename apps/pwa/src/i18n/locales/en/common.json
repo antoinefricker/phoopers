@@ -16,6 +16,7 @@
     "editor": {
       "addDefense": "Add defense",
       "addOffense": "Add offense",
+      "addStep": "Add step",
       "ballRow": "Ball",
       "dragBall": "Move the ball",
       "dragPlayer": "Move player {{label}}",
@@ -24,7 +25,12 @@
       "mode": {
         "edit": "Edit",
         "play": "Play"
-      }
+      },
+      "remove": "Remove",
+      "save": "Save",
+      "screenDuration": "Screen duration",
+      "stepDefault": "Step {{n}}",
+      "stepName": "Step name"
     },
     "transport": {
       "nextStep": "Next step",

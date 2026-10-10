@@ -16,6 +16,7 @@
     "editor": {
       "addDefense": "Ajouter un défenseur",
       "addOffense": "Ajouter un attaquant",
+      "addStep": "Ajouter une étape",
       "ballRow": "Ballon",
       "dragBall": "Déplacer le ballon",
       "dragPlayer": "Déplacer le joueur {{label}}",
@@ -24,7 +25,12 @@
       "mode": {
         "edit": "Éditer",
         "play": "Jouer"
-      }
+      },
+      "remove": "Supprimer",
+      "save": "Enregistrer",
+      "screenDuration": "Durée de l'écran",
+      "stepDefault": "Étape {{n}}",
+      "stepName": "Nom de l'étape"
     },
     "transport": {
       "nextStep": "Étape suivante",

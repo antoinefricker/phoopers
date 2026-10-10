@@ -2,6 +2,7 @@ import { Box, ScrollArea } from '@mantine/core';
 import { useEffect, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
+import { StepRuler } from './StepRuler';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
 import { fractionOf, rowsOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
@@ -38,12 +39,20 @@ export function Timeline() {
     <ScrollArea>
       {/* Keys arrive from the focused marker button and bubble up to here. */}
       <Box style={{ position: 'relative' }} onKeyDown={onKeyDown}>
+        <StepRuler />
         {rowsOf(timeline).map((row) => (
           <TimelineRow
             key={row.entityId}
             row={row}
             duration={duration}
+            screens={timeline.screens.filter((screen) => screen.screenerId === row.entityId)}
             selection={selection}
+            onKeyframeRetimed={(entityId, fromT, toT) => {
+              // The selection names a keyframe by its time, which the drag just changed.
+              if (selection?.kind === 'keyframe' && selection.entityId === entityId && selection.t === fromT) {
+                select({ kind: 'keyframe', entityId, t: toT });
+              }
+            }}
             onSelectKeyframe={(entityId, t) => {
               select({ kind: 'keyframe', entityId, t });
               seek(t);

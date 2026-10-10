@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveBranch } from '../engine';
 import { fixturePlay, P1, ROOT } from '../engine/__fixtures__/play';
-import { fractionOf, rowsOf } from './timelineGeometry';
+import { fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
 
 describe('fractionOf', () => {
   it('maps a time to its fraction of the duration', () => {
@@ -60,5 +60,31 @@ describe('rowsOf', () => {
 
     expect(rowsOf(sparse)).toHaveLength(fixturePlay.players.length + 1);
     expect(rowsOf(sparse)[0]?.keyframes).toEqual([]);
+  });
+});
+
+const rect = (left: number, width: number) => ({ left, width }) as DOMRect;
+
+describe('timeFromClientX', () => {
+  it('maps a position across the row to a time', () => {
+    expect(timeFromClientX(150, rect(100, 200), 8)).toBe(2);
+  });
+
+  it('returns 0 for a zero-width row rather than NaN', () => {
+    // jsdom reports every bounding box as 0x0, so this is the only branch most component tests take.
+    expect(timeFromClientX(150, rect(100, 0), 8)).toBe(0);
+  });
+
+  it('returns 0 for a zero duration', () => {
+    expect(timeFromClientX(150, rect(100, 200), 0)).toBe(0);
+  });
+
+  it('returns 0 for a non-finite position rather than NaN', () => {
+    expect(timeFromClientX(Number.NaN, rect(100, 200), 8)).toBe(0);
+  });
+
+  it('clamps beyond either end', () => {
+    expect(timeFromClientX(0, rect(100, 200), 8)).toBe(0);
+    expect(timeFromClientX(999, rect(100, 200), 8)).toBe(8);
   });
 });
