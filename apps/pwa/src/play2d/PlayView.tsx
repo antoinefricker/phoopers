@@ -34,8 +34,9 @@ export function PlayView() {
           <Title order={2}>{play.name}</Title>
           <Group gap="sm" wrap="nowrap">
             <EditorToolbar />
+            {/* No size override: this control shares a row with the mode toggle and the toolbar
+                buttons, which all sit at Mantine's default. */}
             <SegmentedControl
-              size="xs"
               aria-label={t('play.court.view', 'Court view')}
               value={halfCourt ? 'half' : 'full'}
               onChange={(value) => setHalfCourt(value === 'half')}
@@ -47,7 +48,7 @@ export function PlayView() {
             <Burger
               opened={sidebarOpen}
               onClick={() => setSidebarChoice(!sidebarOpen)}
-              size="sm"
+              size="md"
               aria-label={t('play.branches.toggle', 'Toggle branches')}
               aria-expanded={sidebarOpen}
               aria-controls={sidebarOpen ? sidebarId : undefined}
