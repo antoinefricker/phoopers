@@ -21,6 +21,8 @@ export function PlayCanvas({ halfCourt, playName }: Props) {
   const court = timeline.court;
   // Read the context directly rather than through useEditorContext: the view still renders
   // without an editor around it (the 1b tests do), and then there is simply nothing to edit.
+  // `BranchTree` reads it the same way, for the same reason; `useEditorContext` is for the
+  // components that only exist inside an editor.
   const editing = useContext(EditorContext)?.mode === 'edit';
 
   return (
