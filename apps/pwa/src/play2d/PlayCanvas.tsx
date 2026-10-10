@@ -1,4 +1,7 @@
+import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CourtEditLayer } from '../editor/CourtEditLayer';
+import { EditorContext } from '../editor/useEditorContext';
 import { usePlaybackContext } from './usePlaybackContext';
 import { Court } from './Court';
 import { PathLayer } from './PathLayer';
@@ -16,6 +19,11 @@ export function PlayCanvas({ halfCourt, playName }: Props) {
   const { t } = useTranslation();
   const { timeline } = usePlaybackContext();
   const court = timeline.court;
+  // Read the context directly rather than through useEditorContext: the view still renders
+  // without an editor around it (the 1b tests do), and then there is simply nothing to edit.
+  // `BranchTree` reads it the same way, for the same reason; `useEditorContext` is for the
+  // components that only exist inside an editor.
+  const editing = useContext(EditorContext)?.mode === 'edit';
 
   return (
     <svg
@@ -42,6 +50,7 @@ export function PlayCanvas({ halfCourt, playName }: Props) {
       <Court court={court} />
       <PathLayer />
       <TokenLayer />
+      {editing && <CourtEditLayer />}
     </svg>
   );
 }

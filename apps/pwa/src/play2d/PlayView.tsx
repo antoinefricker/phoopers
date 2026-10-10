@@ -2,21 +2,22 @@ import { useId, useState } from 'react';
 import { Burger, Flex, Group, Paper, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
-import type { Play } from '../engine';
+import { SelectionActions } from '../editor/SelectionActions';
+import { IssuePanel } from '../editor/IssuePanel';
+import { EditorToolbar } from '../editor/EditorToolbar';
+import { Timeline } from '../editor/Timeline';
+import { useEditorContext } from '../editor/useEditorContext';
 import { BranchTree } from './BranchTree';
 import { PlayCanvas } from './PlayCanvas';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
 
-interface Props {
-  play: Play;
-}
-
 // Court (centre), transport (beneath) and branch tree (right). The half/full toggle is local
 // view state: it picks a viewBox and nothing else, so it never reaches the playback context or
 // the play data. Switching FIBA/NBA is deliberately absent; that edits `Play.court` (later work).
-export function PlayView({ play }: Props) {
+export function PlayView() {
   const { t } = useTranslation();
+  const { play, mode } = useEditorContext();
   const [halfCourt, setHalfCourt] = useState(false);
   const sidebarId = useId();
   // The branch list starts open where there is room for it beside the court and collapsed on a
@@ -26,12 +27,13 @@ export function PlayView({ play }: Props) {
   const sidebarOpen = sidebarChoice ?? roomForSidebar;
 
   return (
-    <PlaybackContextProvider play={play}>
+    <PlaybackContextProvider key={play.id} play={play}>
       {/* 100dvh as an inline override: a browser without dvh drops it and keeps the 100vh. */}
       <Stack mih="100vh" style={{ minHeight: '100dvh' }} p="md" gap="sm">
         <Group justify="space-between" align="center" gap="sm">
           <Title order={2}>{play.name}</Title>
           <Group gap="sm" wrap="nowrap">
+            <EditorToolbar />
             <SegmentedControl
               size="xs"
               aria-label={t('play.court.view', 'Court view')}
@@ -70,7 +72,10 @@ export function PlayView({ play }: Props) {
             </Paper>
           )}
         </Flex>
+        {mode === 'edit' && <SelectionActions />}
+        {mode === 'edit' && <Timeline />}
         <PlaybackTransport />
+        {mode === 'edit' && <IssuePanel />}
       </Stack>
     </PlaybackContextProvider>
   );

@@ -4,11 +4,12 @@ Web app for creating, saving, and replaying animated basketball plays (2D coach'
 
 ## Status
 
-Phases 1a and 1b are implemented. `apps/pwa/src/engine/` is a headless animation engine
+Phases 1a, 1b and 1c are implemented. `apps/pwa/src/engine/` is a headless animation engine
 answering "where is every player and the ball at time `t`, on a given branch?", and
 `apps/pwa/src/play2d/` draws it as a coach's whiteboard: court, paths in their conventional
-symbols, animated tokens, a transport with snapping step markers, and a branch tree. The app
-renders the sample play in `apps/pwa/src/samples/`. Next is 1c, the editor.
+symbols, animated tokens, a transport with snapping step markers, and a branch tree. `apps/pwa/src/editor/` is the
+editor on top of it: players, keyframes, steps, screens and branches, all with validation. The
+app renders the sample play in `apps/pwa/src/samples/`. Next is 1d, persistence.
 
 The product vision, locked-in design decisions and phase plan live in
 `documentation/roadmap.md`; the validated designs are in `documentation/specs/` and the
@@ -179,4 +180,13 @@ Adding a new locale: register it in `SUPPORTED_LOCALES` (`apps/pwa/src/i18n/i18n
 
 ### Communication
 
+- **Everything written around the code is in English.** This covers the README, everything
+  in `documentation/`, commit messages, branch names, pull request titles and descriptions,
+  code comments, identifiers, user-facing strings' English defaults, and this file. One
+  language in the repository means any contributor can read all of it, and it keeps the
+  history searchable with a single vocabulary.
+  The exception is translation content: the French catalogue under
+  `apps/pwa/src/i18n/locales/fr/` is French by definition.
+  This rule is about the artifacts, not the conversation — chat with the user happens in
+  whichever language they write in.
 - Always explain bash commands succinctly before running them.
