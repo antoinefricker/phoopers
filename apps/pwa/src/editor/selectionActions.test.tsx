@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fixturePlay, P1, P2, ROOT, SCREEN_1 } from '../engine/__fixtures__/play';
+import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { readProbe, renderEditor } from './testUtils/renderEditor';
@@ -23,6 +23,18 @@ const renderView = async () => {
   renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
   await enterEditMode();
 };
+
+describe('selecting a player on the court', () => {
+  it('leaves every track byte-identical: a click selects, it does not author', async () => {
+    await renderView();
+    const before = JSON.stringify(readProbe().play.branches.map((b) => b.tracks));
+
+    await selectOnCourt(P2);
+
+    expect(readProbe().selection).toEqual({ kind: 'entity', entityId: P2 });
+    expect(JSON.stringify(readProbe().play.branches.map((b) => b.tracks))).toBe(before);
+  });
+});
 
 describe('placing a screen', () => {
   it('offers nothing until a player is selected', async () => {
@@ -68,6 +80,25 @@ describe('placing a screen', () => {
 
     expect(rootScreens()).toHaveLength(before);
     expect(screen.queryByText(HINT)).not.toBeInTheDocument();
+  });
+
+  it('writes nothing before the fork of a child branch, and gives no feedback', async () => {
+    await renderView();
+    await userEvent.click(
+      within(screen.getByRole('navigation', { name: 'Play branches' })).getByRole('button', {
+        name: 'Defence switches',
+      }),
+    );
+    const screensOfSwitch = () => readProbe().play.branches.find((b) => b.id === SWITCH)?.screens ?? [];
+
+    // The playhead is at 0 and SWITCH forks at 2. Recorded in limitations.md.
+    await selectOnCourt(P1);
+    await userEvent.click(screen.getByRole('button', { name: 'Place a screen' }));
+    await userEvent.click(screen.getByTestId(`edit-token-${P2}`));
+
+    expect(screensOfSwitch()).toHaveLength(0);
+    expect(screen.queryByText(HINT)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('can be cancelled without writing anything', async () => {

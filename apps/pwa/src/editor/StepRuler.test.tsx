@@ -91,11 +91,13 @@ describe('StepRuler', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: `select ${SWITCH}` }));
     const stepsOfSwitch = () => readProbe().play.branches.find((b) => b.id === SWITCH)?.steps ?? [];
+    const rulerBefore = screen.getByTestId('step-ruler').innerHTML;
 
     // The playhead is at 0 and SWITCH forks at 2. Recorded in limitations.md.
     await userEvent.click(screen.getByRole('button', { name: 'Add step' }));
 
     expect(stepsOfSwitch()).toHaveLength(0);
+    expect(screen.getByTestId('step-ruler').innerHTML).toBe(rulerBefore);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 

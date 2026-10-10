@@ -4,6 +4,7 @@ import type { EntityId, PlayerId } from '../engine';
 import { stateAt } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { forkTimeOf } from './mutations';
+import { DRAG_SLOP_PX } from './useTimeDrag';
 import { courtPointFromEvent, dropTargetAt } from './pointer';
 import { useEditorContext } from './useEditorContext';
 
@@ -30,7 +31,9 @@ export function CourtEditLayer() {
   const ghostRef = useRef<SVGGElement | null>(null);
   const ghostCircleRef = useRef<SVGCircleElement | null>(null);
   // The in-flight gesture. A ref, not state: it changes per pointer move and must not render.
-  const dragRef = useRef<{ entityId: EntityId } | null>(null);
+  // `moved` flips once the pointer leaves the slop circle: until then it is a click, which selects
+  // and writes nothing.
+  const dragRef = useRef<{ entityId: EntityId; startX: number; startY: number; moved: boolean } | null>(null);
 
   const hitPlayers = timeline.players.filter((player) => (timeline.anchors[player.id]?.length ?? 0) > 0);
   const hasBall = (timeline.anchors['ball']?.length ?? 0) > 0;
@@ -80,15 +83,21 @@ export function CourtEditLayer() {
     if (currentTimeRef.current < forkTimeOf(play, branchId)) return;
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    dragRef.current = { entityId };
+    dragRef.current = { entityId, startX: event.clientX, startY: event.clientY, moved: false };
     ghostCircleRef.current?.setAttribute('r', String(entityId === 'ball' ? BALL_HIT_RADIUS : PLAYER_HIT_RADIUS));
     const point = pointOf(event);
     ghostRef.current?.setAttribute('transform', translate(point.x, point.y));
-    ghostRef.current?.setAttribute('visibility', 'visible');
   };
 
   const onPointerMove = (event: React.PointerEvent) => {
-    if (dragRef.current === null) return;
+    const drag = dragRef.current;
+    if (drag === null) return;
+    // Both axes: the court is two-dimensional.
+    if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > DRAG_SLOP_PX) {
+      drag.moved = true;
+      ghostRef.current?.setAttribute('visibility', 'visible');
+    }
+    if (!drag.moved) return;
 
     const point = pointOf(event);
     ghostRef.current?.setAttribute('transform', translate(point.x, point.y));
@@ -98,7 +107,7 @@ export function CourtEditLayer() {
     const drag = dragRef.current;
     dragRef.current = null;
     hideGhost();
-    if (drag === null) return;
+    if (drag === null || !drag.moved) return;
 
     const time = currentTimeRef.current;
     const point = pointOf(event);

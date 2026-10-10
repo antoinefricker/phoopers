@@ -199,7 +199,7 @@ On a child branch, `addStep` refuses a step earlier than the branch's fork (the 
 refuses a keyframe there). `StepRuler` calls it and shows nothing either way. Measured (the
 "adds no step before the fork" case in `StepRuler.test.tsx`): viewing `Defence switches`, forked
 at t = 2, with the playhead at t = 0, pressing "Add step" leaves that branch's `steps` at 0
-entries and the ruler unchanged, with no message.
+entries and the ruler's rendered content identical, and raises no `role="alert"` notice.
 
 It was left because the alternative has the component re-derive the fork rule the mutation
 owns, and two copies of a rule drift. It mirrors [the delete-refusal entry](#refusing-to-delete-a-players-last-keyframe-gives-no-feedback) below.
@@ -207,6 +207,21 @@ owns, and two copies of a rule drift. It mirrors [the delete-refusal entry](#ref
 **Fix:** have `addStep` in the context report whether it wrote anything (the identity check
 `forkBranch` already uses), and have `StepRuler` show a notice, or disable the button while the
 playhead is before the fork.
+
+### Placing a screen before the fork does nothing, silently
+
+On a child branch, `addScreen` refuses a screen earlier than the branch's fork. The court click
+that names the beneficiary calls it and ends the gesture either way. Measured (the "writes
+nothing before the fork" case in `selectionActions.test.tsx`): viewing `Defence switches`, forked
+at t = 2, with the playhead at t = 0, selecting player 1, choosing "Place a screen" and clicking
+player 2 leaves that branch's `screens` at 0 entries, the placement hint gone, and no
+`role="alert"` notice. The coach sees the mode end and nothing appear.
+
+Left for the same reason as [the add-step entry](#add-step-before-the-fork-does-nothing-silently):
+the alternative has the component re-derive the fork rule the mutation owns.
+
+**Fix:** the same one: have `addScreen` in the context report whether it wrote anything, and
+show a notice (or keep the placement mode open) when it did not.
 
 ### Refusing to delete a player's last keyframe gives no feedback
 
