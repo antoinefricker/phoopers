@@ -117,8 +117,8 @@ Which of these have shipped is recorded in the [spec](specs/index.md) and
 ## Next steps
 
 1. Finish **Phase 1** — the sub-project that validates the functional core before
-   investing in 3D and community features. 1c (the editor) is next, then 1d
-   (persistence); each gets brainstorming, a spec and a plan before any code.
+   investing in 3D and community features. 1a, 1b and 1c (the editor) are implemented;
+   1d (persistence) is next, and gets brainstorming, a spec and a plan before any code.
 2. Once Phase 1 is implemented and validated, scope **Phase 2** (3D view + cameras).
 3. Finally, scope **Phase 3** (community features).
 
