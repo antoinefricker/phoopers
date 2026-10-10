@@ -269,22 +269,26 @@ describe('team symbols', () => {
     expect(circleIn(container, defense.id)?.getAttribute('r')).toBe('0.45');
   });
 
-  it('separates the teams by fill, not only by colour', () => {
-    // The roadmap justifies SVG by printable handouts, and a greyscale print turns blue-6 and
-    // red-6 into two similar greys. Filled versus outlined is what survives that, so this is
-    // the assertion that keeps the two teams distinguishable off-screen.
+  it('separates the teams by how dark the fill is, not by hue alone', () => {
+    // The roadmap justifies SVG by printable handouts, and a greyscale print keeps hues apart
+    // only if their luminance differs. Both tokens are filled, so what carries the teams
+    // off-screen is one being dark and the other light — measured in a browser at 0.25 against
+    // 0.82. jsdom cannot resolve a CSS variable, so the shade NUMBER stands in for luminance:
+    // Mantine's 0-2 are light and its 5-9 are mid-to-dark.
     const { container } = renderTokens();
     const [offense] = hornsPlay.players.filter((p) => p.team === 'offense');
     const [defense] = hornsPlay.players.filter((p) => p.team === 'defense');
     if (offense === undefined || defense === undefined) throw new Error('sample needs both teams');
 
-    const theirs = circleIn(container, offense.id);
-    const ours = circleIn(container, defense.id);
+    const shadeOf = (fill: string | null | undefined) => Number(fill?.match(/-(\d)\)$/)?.[1]);
+    const theirs = circleIn(container, offense.id)?.getAttribute('fill');
+    const ours = circleIn(container, defense.id)?.getAttribute('fill');
 
-    expect(theirs?.getAttribute('fill')).not.toBe('none');
-    expect(theirs?.getAttribute('stroke')).toBeNull();
-    expect(ours?.getAttribute('fill')).toBe('none');
-    expect(ours?.getAttribute('stroke')).toBeTruthy();
+    expect(theirs).not.toBe('none');
+    expect(ours).not.toBe('none');
+    expect(theirs).not.toBe(ours);
+    expect(shadeOf(theirs)).toBeGreaterThanOrEqual(5);
+    expect(shadeOf(ours)).toBeLessThanOrEqual(2);
   });
 
   it('centres the label inside the circle for both teams', () => {

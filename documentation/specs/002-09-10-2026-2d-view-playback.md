@@ -103,16 +103,19 @@ Scrubbing writes the ref and pauses playback. Playback stops at `duration(timeli
 
 | Element        | Rendering                                     | Source                                       |
 | -------------- | --------------------------------------------- | -------------------------------------------- |
-| Offense player | Numbered circle, filled                       | `Player.label`, `team: 'offense'`            |
-| Defense player | Numbered circle, outlined                     | `Player.label`, `team: 'defense'`            |
+| Offense player | Numbered circle, dark fill                    | `Player.label`, `team: 'offense'`            |
+| Defense player | Numbered circle, light fill                   | `Player.label`, `team: 'defense'`            |
 | Movement       | Solid stroke, arrowhead                       | `spanKindAt` → `'move'`                      |
 | Dribble        | Wavy stroke, arrowhead                        | `spanKindAt` → `'dribble'`                   |
 | Pass           | Dashed stroke, arrowhead                      | ball span where `ballStateAt` → `'inFlight'` |
 | Screen         | Perpendicular tick across the screener's path | `PlayState.activeScreens`                    |
 
-Both teams use the same circle at the same size, distinguished by fill rather than by colour
-alone: a greyscale handout — the printable export the stack was chosen for — renders the two
-team colours as similar greys, so fill is what keeps them apart off-screen.
+Both teams use the same circle at the same size, distinguished by how dark the fill is rather
+than by hue alone: a greyscale handout — the printable export the stack was chosen for — keeps
+two hues apart only if their luminance differs. Measured in a browser, the offense fill sits at
+0.25 luminance against the defense fill's 0.82, so the teams stay apart with no colour at all.
+The defender's number is a full red on that light fill, which measures 4.51:1 — just over the
+4.5:1 WCAG AA floor for normal text.
 
 A span's kind is read at its midpoint. Each token is one SVG group so the whole symbol moves
 with a single `transform`.

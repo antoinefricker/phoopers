@@ -62,20 +62,22 @@ export function TokenLayer() {
             }
           }}
         >
-          {/* Both teams are a circle of the same size; offense is filled, defense outlined.
-              The fill carries the distinction rather than the colour alone, because the
-              roadmap justifies SVG by printable handouts and a greyscale print collapses
-              blue-6 and red-6 into two similar greys. */}
+          {/* Both teams are a circle of the same size, separated by how dark the fill is
+              rather than by hue alone: the roadmap justifies SVG by printable handouts, and a
+              greyscale print renders blue-6 at 0.25 luminance against red-1 at 0.82, so the
+              two stay apart with no colour at all. */}
           {player.team === 'offense' ? (
             <circle r={0.45} fill="var(--mantine-color-blue-6)" />
           ) : (
-            <circle r={0.45} fill="none" stroke="var(--mantine-color-red-6)" strokeWidth={0.12} />
+            <circle r={0.45} fill="var(--mantine-color-red-1)" />
           )}
+          {/* red-9 on red-1 measures 4.51:1, just over the 4.5:1 WCAG AA floor for normal text;
+              red-8 would drop it to 3.73:1. */}
           <text
             textAnchor="middle"
             dominantBaseline="central"
             fontSize={0.5}
-            fill={player.team === 'offense' ? 'var(--mantine-color-white)' : 'var(--mantine-color-red-6)'}
+            fill={player.team === 'offense' ? 'var(--mantine-color-white)' : 'var(--mantine-color-red-9)'}
             dy={0}
           >
             {player.label}
