@@ -238,6 +238,28 @@ the mutation owns (`current.length <= 1`), and two copies of a rule drift.
 identity check `forkBranch` already uses), and have `Timeline` keep the selection and show a
 notice when it did not.
 
+### The court diagram exposes nothing of its contents to assistive technology
+
+`PlayCanvas` gives the court SVG `role="img"` with the name "Court diagram: {{name}}". `img` is
+a children-presentational role, so every descendant is removed from the accessibility tree:
+players, their numbers, the paths, the screens and the ball are all unreachable. A screen-reader
+user learns the play's name and nothing else about it.
+
+Measured: adding `role="img"` and an `aria-label` to each of the ten player tokens changed
+nothing for assistive technology — the names sit inside a presentational subtree — and broke the
+five `PlayCanvas` cases that find the court with `getByRole('img')`, because the role was then
+ambiguous. The experiment was reverted.
+
+It was left because the fix is a design decision rather than an attribute: the court would stop
+being one labelled image and become a container whose children are each named, which changes
+what a screen reader hears from one sentence into a structure, and spec 002 specifies neither.
+Note this predates the editor — the tokens were never announced, including when defenders were
+labelled "X1".."X5".
+
+**Fix:** give the SVG `role="group"` (or `role="application"` once the court is interactive),
+name each token group, and give the paths text alternatives — then decide what a sensible
+reading order over a play actually is.
+
 ### The timeline gutter shows a label without its token
 
 Spec 003 says the gutter "carries each token and its label". Measured in a browser: a row's

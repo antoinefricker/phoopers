@@ -84,11 +84,13 @@ describe('TokenLayer', () => {
     expect(container.querySelectorAll('[data-testid="token"]')).toHaveLength(hornsPlay.players.length);
   });
 
-  it('labels offense with their number and defense with an X label', () => {
+  it('labels both teams with a bare number, one per player', () => {
     renderTokens();
 
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('X1')).toBeInTheDocument();
+    // Both teams now carry just their number; the circle's fill is what separates them, which
+    // the "separates the teams by fill" case below pins.
+    expect(screen.getAllByText('1')).toHaveLength(2);
+    expect(screen.queryByText('X1')).not.toBeInTheDocument();
   });
 
   it('positions every token exactly where the sampler puts it at t = 0, not at the origin', () => {

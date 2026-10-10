@@ -2,9 +2,11 @@ import type { Branch, Play, Player, PlayerId, Vec2 } from '../../engine';
 import { COURT_DIMENSIONS } from '../../engine';
 import { FORMATION } from '../formation';
 
-// Offense is numbered 1..5 and defense X1..X5, so each side counts on its own. A label is
-// never reused: the next free integer is one past the highest in use, which keeps numbering
-// stable when a middle player is removed.
+// Each side is numbered 1..5 on its own, so both teams hold a player called "2"; the court
+// tells them apart by the circle's fill. A label is never reused: the next free integer is one
+// past the highest in use, which keeps numbering stable when a middle player is removed.
+// The leading "X" is still stripped when reading existing labels, so a play authored before
+// defenders lost the prefix keeps numbering correctly.
 export function nextLabel(players: readonly Player[], team: 'offense' | 'defense'): string {
   const used = players
     .filter((p) => p.team === team)
@@ -12,7 +14,7 @@ export function nextLabel(players: readonly Player[], team: 'offense' | 'defense
     .filter((n) => Number.isFinite(n));
   const next = used.length === 0 ? 1 : Math.max(...used) + 1;
 
-  return team === 'offense' ? String(next) : `X${next}`;
+  return String(next);
 }
 
 const centre = (play: Play): Vec2 => {
