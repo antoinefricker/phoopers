@@ -16,9 +16,14 @@ const newId = <T extends string>(): T => crypto.randomUUID() as T;
 export function EditorContextProvider({ initialPlay, children }: Props) {
   const [play, setPlay] = useState(initialPlay);
   const [mode, setMode] = useState<'play' | 'edit'>('play');
-  const [selection, select] = useState<Selection>(null);
+  const [selection, setSelection] = useState<Selection>(null);
+  const [placingScreen, setPlacingScreen] = useState(false);
   const issues = useMemo(() => validatePlay(play), [play]);
 
+  const select = useCallback<EditorContextValue['select']>((next) => {
+    setSelection(next);
+    setPlacingScreen(false);
+  }, []);
   const addPlayer = useCallback<EditorContextValue['addPlayer']>((team) => {
     setPlay((current) => mutations.addPlayer(current, team, newId<PlayerId>()));
   }, []);
@@ -89,20 +94,23 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
 
   // A fresh play id is what makes `PlayView` remount its playback provider, so the clock and the
   // selected branch cannot outlive the play they pointed into.
-  const newPlay = useCallback<EditorContextValue['newPlay']>((name) => {
-    const rootBranchId = newId<BranchId>();
-    setPlay((current) => ({
-      id: newId<PlayId>(),
-      name,
-      court: current.court,
-      players: [],
-      rootBranchId,
-      branches: [
-        { id: rootBranchId, parentId: null, forkStepId: null, name, tracks: { ball: [] }, steps: [], screens: [] },
-      ],
-    }));
-    select(null);
-  }, []);
+  const newPlay = useCallback<EditorContextValue['newPlay']>(
+    (name) => {
+      const rootBranchId = newId<BranchId>();
+      setPlay((current) => ({
+        id: newId<PlayId>(),
+        name,
+        court: current.court,
+        players: [],
+        rootBranchId,
+        branches: [
+          { id: rootBranchId, parentId: null, forkStepId: null, name, tracks: { ball: [] }, steps: [], screens: [] },
+        ],
+      }));
+      select(null);
+    },
+    [select],
+  );
 
   const value = useMemo<EditorContextValue>(
     () => ({
@@ -111,6 +119,8 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       setMode,
       selection,
       select,
+      placingScreen,
+      setPlacingScreen,
       issues,
       addPlayer,
       applyFormation,
@@ -135,6 +145,8 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       play,
       mode,
       selection,
+      select,
+      placingScreen,
       issues,
       addPlayer,
       applyFormation,

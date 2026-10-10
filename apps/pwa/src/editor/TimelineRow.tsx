@@ -1,7 +1,8 @@
-import { Box, Text } from '@mantine/core';
-import { useRef } from 'react';
+import { Box, CloseButton, Text } from '@mantine/core';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { EntityId, ScreenEvent } from '../engine';
+import type { EntityId, ScreenEvent, ScreenId } from '../engine';
+import { ConfirmDelete } from './ConfirmDelete';
 import { constrainRetime } from './constraints';
 import { fractionOf } from './timelineGeometry';
 import type { TimelineRowModel } from './timelineGeometry';
@@ -30,11 +31,23 @@ const SNAP_FRACTION = 0.02;
 
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
   const { t } = useTranslation();
-  const { play, moveKeyframe, setScreenDuration } = useEditorContext();
+  const { play, moveKeyframe, setScreenDuration, removeScreen } = useEditorContext();
   const { branchId, timeline } = usePlaybackContext();
   const trackRef = useRef<HTMLDivElement>(null);
   const ownTrack = play.branches.find((b) => b.id === branchId)?.tracks[row.entityId] ?? [];
   const { bind, consumeDrag } = useTimeDrag(trackRef, duration);
+  // A child branch's timeline carries its ancestors' screens too. Like their keyframes and steps,
+  // they belong to the ancestor: shown, but not editable from here.
+  const ownScreenIds = new Set(play.branches.find((b) => b.id === branchId)?.screens.map((s) => s.id));
+  // The dialog stays mounted for Mantine's exit transition; `target` outlives the close so the body
+  // does not blank mid-transition, and `count` re-keys it per open (see ConfirmDelete).
+  const [removing, setRemoving] = useState<{ target: ScreenId | null; opened: boolean; count: number }>({
+    target: null,
+    opened: false,
+    count: 0,
+  });
+  const labelOf = (id: string) => timeline.players.find((p) => p.id === id)?.label ?? id;
+  const removingScreen = screens.find((s) => s.id === removing.target);
   const isBall = row.team === 'ball';
   const label = isBall ? t('play.editor.ballRow', 'Ball') : row.label;
 
@@ -58,6 +71,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           <Box
             key={screen.id}
             data-testid={`screen-bar-${screen.id}`}
+            data-inherited={ownScreenIds.has(screen.id) ? undefined : 'true'}
             style={{
               position: 'absolute',
               top: '20%',
@@ -69,38 +83,49 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               pointerEvents: 'none',
             }}
           >
-            <div
-              data-testid={`screen-handle-${screen.id}`}
-              aria-label={t('play.editor.screenDuration', 'Screen duration')}
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                right: -3,
-                width: 6,
-                cursor: 'ew-resize',
-                touchAction: 'none',
-                pointerEvents: 'auto',
-                background: 'var(--mantine-color-grape-filled)',
-              }}
-              {...bind({
-                // The edge cannot go left of the screen's own start: it floors at a minimum duration.
-                resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
-                place: (element, end) => {
-                  const bar = element.parentElement;
-                  if (bar !== null) {
-                    bar.style.width = `${(fractionOf(end, duration) - fractionOf(screen.t, duration)) * 100}%`;
-                  }
-                },
-                restore: (element) => {
-                  const bar = element.parentElement;
-                  if (bar !== null) {
-                    bar.style.width = `${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`;
-                  }
-                },
-                commit: (end) => setScreenDuration(screen.id, end - screen.t),
-              })}
-            />
+            {ownScreenIds.has(screen.id) ? (
+              <>
+                <div
+                  data-testid={`screen-handle-${screen.id}`}
+                  aria-label={t('play.editor.screenDuration', 'Screen duration')}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    right: -3,
+                    width: 6,
+                    cursor: 'ew-resize',
+                    touchAction: 'none',
+                    pointerEvents: 'auto',
+                    background: 'var(--mantine-color-grape-filled)',
+                  }}
+                  {...bind({
+                    // The edge cannot go left of the screen's own start: it floors at a minimum duration.
+                    resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
+                    place: (element, end) => {
+                      const bar = element.parentElement;
+                      if (bar !== null) {
+                        bar.style.width = `${(fractionOf(end, duration) - fractionOf(screen.t, duration)) * 100}%`;
+                      }
+                    },
+                    restore: (element) => {
+                      const bar = element.parentElement;
+                      if (bar !== null) {
+                        bar.style.width = `${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`;
+                      }
+                    },
+                    commit: (end) => setScreenDuration(screen.id, end - screen.t),
+                  })}
+                />
+                <CloseButton
+                  size="xs"
+                  data-testid={`screen-remove-${screen.id}`}
+                  aria-label={t('play.editor.removeScreen', 'Remove screen')}
+                  onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
+                  style={{ position: 'absolute', top: 0, bottom: 0, left: 0, height: 'auto', pointerEvents: 'auto' }}
+                />
+              </>
+            ) : null}
           </Box>
         ))}
         {isBall &&
@@ -183,6 +208,21 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           );
         })}
       </Box>
+      <ConfirmDelete
+        key={removing.count}
+        opened={removing.opened}
+        title={t('play.editor.removeScreenTitle', 'Remove this screen?')}
+        body={t('play.editor.removeScreenBody', 'The screen set by {{screener}} for {{beneficiary}} will be removed.', {
+          screener: removingScreen === undefined ? '' : labelOf(removingScreen.screenerId),
+          beneficiary: removingScreen === undefined ? '' : labelOf(removingScreen.beneficiaryId),
+        })}
+        confirmLabel={t('play.editor.remove', 'Remove')}
+        onConfirm={() => {
+          if (removing.target !== null) removeScreen(removing.target);
+          setRemoving((r) => ({ ...r, opened: false }));
+        }}
+        onClose={() => setRemoving((r) => ({ ...r, opened: false }))}
+      />
     </Box>
   );
 }

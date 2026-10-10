@@ -23,7 +23,8 @@ const translate = (x: number, y: number): string => `translate(${x} ${y})`;
  */
 export function CourtEditLayer() {
   const { t } = useTranslation();
-  const { play, setKeyframe, attachBall, releaseBall } = useEditorContext();
+  const { play, selection, select, placingScreen, setPlacingScreen, setKeyframe, attachBall, releaseBall, addScreen } =
+    useEditorContext();
   const { timeline, branchId, currentTimeRef, subscribe } = usePlaybackContext();
   const layerRef = useRef<SVGGElement | null>(null);
   const ghostRef = useRef<SVGGElement | null>(null);
@@ -62,6 +63,19 @@ export function CourtEditLayer() {
 
   const onPointerDown = (event: React.PointerEvent<SVGGElement>) => {
     const entityId = event.currentTarget.dataset['entity'] as EntityId;
+
+    // Choosing the beneficiary of a screen: the click is the gesture, not the start of a drag.
+    // The mutation owns the rules (no self-screen, no unknown player, nothing before the fork).
+    if (placingScreen) {
+      if (selection !== null && selection.entityId !== 'ball' && entityId !== 'ball') {
+        addScreen(branchId, currentTimeRef.current, selection.entityId as PlayerId, entityId as PlayerId);
+      }
+      setPlacingScreen(false);
+      return;
+    }
+
+    // Selecting is not a write, so it is not subject to the fork rule below.
+    if (entityId !== 'ball') select({ kind: 'entity', entityId });
     // Presentation half of the fork rule. The mutation refuses the same write independently.
     if (currentTimeRef.current < forkTimeOf(play, branchId)) return;
 

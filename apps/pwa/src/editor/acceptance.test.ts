@@ -40,6 +40,8 @@ const branchOf = (play: Play, id: BranchId) => {
   return branch;
 };
 
+// This drives the mutations directly, so it proves the model, not the UI: that a control reaches
+// each mutation is proved in selectionActions.test.tsx.
 describe('building a play from an empty court', () => {
   it('produces a valid, watchable play with players, motion, a ball, a step, a screen and a fork', () => {
     let play = applyFormation(emptyPlay, { offense, defense });

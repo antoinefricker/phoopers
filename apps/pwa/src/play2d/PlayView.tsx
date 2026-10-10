@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { Burger, Flex, Group, Paper, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
+import { SelectionActions } from '../editor/SelectionActions';
 import { IssuePanel } from '../editor/IssuePanel';
 import { EditorToolbar } from '../editor/EditorToolbar';
 import { Timeline } from '../editor/Timeline';
@@ -71,6 +72,7 @@ export function PlayView() {
             </Paper>
           )}
         </Flex>
+        {mode === 'edit' && <SelectionActions />}
         {mode === 'edit' && <Timeline />}
         <PlaybackTransport />
         {mode === 'edit' && <IssuePanel />}

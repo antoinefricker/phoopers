@@ -9,7 +9,15 @@ export interface EditorContextValue {
   mode: 'play' | 'edit';
   setMode: (mode: 'play' | 'edit') => void;
   selection: Selection;
+  /** Changing the selection also cancels a pending screen placement: it was about the old one. */
   select: (selection: Selection) => void;
+  /**
+   * True between choosing "Place a screen" and the court click that names the beneficiary. The
+   * screener is the selected player. Lives here, not in a component, because the control that
+   * starts it (`SelectionActions`) and the court layer that finishes it are far apart.
+   */
+  placingScreen: boolean;
+  setPlacingScreen: (placing: boolean) => void;
   issues: Issue[];
   addPlayer: (team: 'offense' | 'defense') => void;
   applyFormation: () => void;
