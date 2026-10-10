@@ -69,9 +69,20 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
   const removeScreen = useCallback<EditorContextValue['removeScreen']>((screenId) => {
     setPlay((current) => mutations.removeScreen(current, screenId));
   }, []);
-  const forkBranch = useCallback<EditorContextValue['forkBranch']>((parentBranchId, forkStepId, name) => {
-    setPlay((current) => mutations.forkBranch(current, parentBranchId, forkStepId, name, newId<BranchId>()));
-  }, []);
+  // The id is minted before the update, outside the updater, so the caller learns which branch it
+  // created (to select it) and a StrictMode double-invoked updater cannot mint a second one. The
+  // mutation is run against the current play first: a refused fork returns null rather than an
+  // id naming a branch that does not exist.
+  const forkBranch = useCallback<EditorContextValue['forkBranch']>(
+    (parentBranchId, forkStepId, name) => {
+      const id = newId<BranchId>();
+      if (mutations.forkBranch(play, parentBranchId, forkStepId, name, id) === play) return null;
+      setPlay((current) => mutations.forkBranch(current, parentBranchId, forkStepId, name, id));
+
+      return id;
+    },
+    [play],
+  );
   const removeBranch = useCallback<EditorContextValue['removeBranch']>((branchId) => {
     setPlay((current) => mutations.removeBranch(current, branchId));
   }, []);

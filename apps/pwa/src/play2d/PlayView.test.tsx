@@ -6,6 +6,7 @@ import { resolveBranch, stateAt, type ResolvedTimeline, type Vec2 } from '../eng
 import { HORNS_SWITCH, hornsPlay } from '../samples/horns';
 import { stubViewportWidth } from '../testUtils/viewport';
 import i18n from '../i18n/i18n';
+import { EditorContextProvider } from '../editor/EditorContextProvider';
 import { PlayView } from './PlayView';
 import { fullCourtViewBox } from './geometry/court';
 
@@ -13,7 +14,9 @@ function renderView(widthPx = 1440) {
   stubViewportWidth(widthPx);
   return render(
     <MantineProvider>
-      <PlayView play={hornsPlay} />
+      <EditorContextProvider initialPlay={hornsPlay}>
+        <PlayView />
+      </EditorContextProvider>
     </MantineProvider>,
   );
 }

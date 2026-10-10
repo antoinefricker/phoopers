@@ -26,7 +26,8 @@ export interface EditorContextValue {
   addScreen: (branchId: BranchId, t: number, screenerId: PlayerId, beneficiaryId: PlayerId) => void;
   setScreenDuration: (screenId: ScreenId, duration: number) => void;
   removeScreen: (screenId: ScreenId) => void;
-  forkBranch: (parentBranchId: BranchId, forkStepId: StepId, name: string) => void;
+  /** Returns the new branch's id, or `null` when the fork was refused (nothing was written). */
+  forkBranch: (parentBranchId: BranchId, forkStepId: StepId, name: string) => BranchId | null;
   removeBranch: (branchId: BranchId) => void;
 }
 

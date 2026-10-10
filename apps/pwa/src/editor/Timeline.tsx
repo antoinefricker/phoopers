@@ -3,15 +3,17 @@ import { useEffect, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { StepRuler } from './StepRuler';
+import { forkTimeOf } from './mutations';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
 import { fractionOf, rowsOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 
 export function Timeline() {
-  const { selection, select, removeKeyframe } = useEditorContext();
+  const { play, selection, select, removeKeyframe } = useEditorContext();
   const { timeline, branchId, currentTimeRef, subscribe, seek } = usePlaybackContext();
   const playheadRef = useRef<HTMLDivElement>(null);
   const { duration } = timeline;
+  const forkTime = forkTimeOf(play, branchId);
 
   // The playhead moves by writing its style directly, as the court tokens do, so a playing
   // clock does not re-render every row on every frame.
@@ -60,6 +62,22 @@ export function Timeline() {
           />
         ))}
         <Box style={{ position: 'absolute', top: 0, bottom: 0, left: LABEL_WIDTH, right: 0, pointerEvents: 'none' }}>
+          {/* Dims what the branch inherits and cannot change. Presentation only: the court layer
+              and the mutations refuse the same writes on their own. */}
+          {forkTime > 0 && (
+            <div
+              data-testid="pre-fork-mask"
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: 0,
+                width: `${fractionOf(forkTime, duration) * 100}%`,
+                background: 'var(--mantine-color-default-hover)',
+                opacity: 0.6,
+              }}
+            />
+          )}
           <div
             ref={playheadRef}
             data-testid="timeline-playhead"

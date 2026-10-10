@@ -18,8 +18,17 @@
       "addOffense": "Ajouter un attaquant",
       "addStep": "Ajouter une étape",
       "ballRow": "Ballon",
+      "delete": "Supprimer",
+      "deleteBranch": "Supprimer {{name}}",
       "dragBall": "Déplacer le ballon",
       "dragPlayer": "Déplacer le joueur {{label}}",
+      "fork": "Dupliquer",
+      "forkCancel": "Annuler",
+      "forkCreate": "Créer",
+      "forkFrom": "Créer une variante à partir de {{name}}",
+      "forkNoSteps": "Cette branche n'a aucune étape à partir de laquelle se diviser. Ajoutez d'abord une étape sur la ligne de temps.",
+      "forkStep": "Diverger à partir de l'étape",
+      "forkTitle": "Créer une variante",
       "formation": "Placement de départ",
       "keyframeAt": "Position à {{t}} s",
       "mode": {
@@ -30,7 +39,8 @@
       "save": "Enregistrer",
       "screenDuration": "Durée de l'écran",
       "stepDefault": "Étape {{n}}",
-      "stepName": "Nom de l'étape"
+      "stepName": "Nom de l'étape",
+      "variantName": "Nom de la variante"
     },
     "transport": {
       "nextStep": "Étape suivante",

@@ -2,21 +2,20 @@ import { useId, useState } from 'react';
 import { Burger, Flex, Group, Paper, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
-import type { Play } from '../engine';
+import { EditorToolbar } from '../editor/EditorToolbar';
+import { Timeline } from '../editor/Timeline';
+import { useEditorContext } from '../editor/useEditorContext';
 import { BranchTree } from './BranchTree';
 import { PlayCanvas } from './PlayCanvas';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
 
-interface Props {
-  play: Play;
-}
-
 // Court (centre), transport (beneath) and branch tree (right). The half/full toggle is local
 // view state: it picks a viewBox and nothing else, so it never reaches the playback context or
 // the play data. Switching FIBA/NBA is deliberately absent; that edits `Play.court` (later work).
-export function PlayView({ play }: Props) {
+export function PlayView() {
   const { t } = useTranslation();
+  const { play, mode } = useEditorContext();
   const [halfCourt, setHalfCourt] = useState(false);
   const sidebarId = useId();
   // The branch list starts open where there is room for it beside the court and collapsed on a
@@ -32,6 +31,7 @@ export function PlayView({ play }: Props) {
         <Group justify="space-between" align="center" gap="sm">
           <Title order={2}>{play.name}</Title>
           <Group gap="sm" wrap="nowrap">
+            <EditorToolbar />
             <SegmentedControl
               size="xs"
               aria-label={t('play.court.view', 'Court view')}
@@ -70,6 +70,7 @@ export function PlayView({ play }: Props) {
             </Paper>
           )}
         </Flex>
+        {mode === 'edit' && <Timeline />}
         <PlaybackTransport />
       </Stack>
     </PlaybackContextProvider>

@@ -18,8 +18,17 @@
       "addOffense": "Add offense",
       "addStep": "Add step",
       "ballRow": "Ball",
+      "delete": "Delete",
+      "deleteBranch": "Delete {{name}}",
       "dragBall": "Move the ball",
       "dragPlayer": "Move player {{label}}",
+      "fork": "Fork",
+      "forkCancel": "Cancel",
+      "forkCreate": "Create",
+      "forkFrom": "Create a variant from {{name}}",
+      "forkNoSteps": "This branch has no step to fork from. Add a step on the timeline first.",
+      "forkStep": "Fork from step",
+      "forkTitle": "Create a variant",
       "formation": "Starting formation",
       "keyframeAt": "Keyframe at {{t}}s",
       "mode": {
@@ -30,7 +39,8 @@
       "save": "Save",
       "screenDuration": "Screen duration",
       "stepDefault": "Step {{n}}",
-      "stepName": "Step name"
+      "stepName": "Step name",
+      "variantName": "Variant name"
     },
     "transport": {
       "nextStep": "Next step",
