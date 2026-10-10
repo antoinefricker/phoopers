@@ -101,6 +101,8 @@ const ancestorChain = (play: Play, branchId: BranchId): Branch[] => {
   return chain;
 };
 
+// Returns the SAME `play` reference when it refuses: the editor context detects a refused fork by
+// identity (`=== play`), so changing this to return a copy would make every refusal look accepted.
 export function forkBranch(play: Play, parentBranchId: BranchId, forkStepId: StepId, name: string, id: BranchId): Play {
   const onChain = ancestorChain(play, parentBranchId).some((b) => b.steps.some((s) => s.id === forkStepId));
   if (!onChain || play.branches.some((b) => b.id === id)) return play;

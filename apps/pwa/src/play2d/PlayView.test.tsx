@@ -321,3 +321,21 @@ describe('PlayView', () => {
     });
   });
 });
+
+describe('PlayView assembly', () => {
+  it('shows no timeline in play mode', () => {
+    renderView();
+
+    expect(screen.queryByTestId('step-ruler')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Problems/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the timeline and the issue panel in edit mode', async () => {
+    renderView();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
+
+    expect(screen.getByTestId('step-ruler')).toBeInTheDocument();
+    expect(screen.getByTestId('issue-count')).toHaveTextContent('0');
+  });
+});

@@ -169,6 +169,21 @@ only grows when a keyframe is authored on the court at a later clock time.
 by padding the track with a spare fraction of the duration) and clamp to that instead. It changes
 how the ruler scales mid-gesture, which is a design decision rather than a correction.
 
+### Refusing to delete a player's last keyframe gives no feedback
+
+`removeKeyframe` refuses to remove the only keyframe of a player's track (a player with no
+keyframe has no position and would vanish). `Timeline` still calls `select(null)` after pressing
+Delete, so for that refusal the marker stays exactly where it was, its selection ring disappears
+and nothing says why. Measured (the `soleKeyframe` case in `Timeline.test.tsx`): with a player's only
+keyframe selected, Delete leaves the track at one keyframe and `selection` at `null`.
+
+It was accepted rather than fixed because the alternative has the component duplicate the rule
+the mutation owns (`current.length <= 1`), and two copies of a rule drift.
+
+**Fix:** have `removeKeyframe` in the context return whether it removed anything (the same
+identity check `forkBranch` already uses), and have `Timeline` keep the selection and show a
+notice when it did not.
+
 ## Test coverage gaps
 
 ### The animation loop is not unit-testable

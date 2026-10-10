@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import type { BranchId, Play, PlayerId, ScreenId, StepId } from '../engine';
+import type { BranchId, Play, PlayId, PlayerId, ScreenId, StepId } from '../engine';
 import { validatePlay } from '../engine';
 import * as mutations from './mutations';
 import { EditorContext, type EditorContextValue, type Selection } from './useEditorContext';
@@ -87,6 +87,23 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
     setPlay((current) => mutations.removeBranch(current, branchId));
   }, []);
 
+  // A fresh play id is what makes `PlayView` remount its playback provider, so the clock and the
+  // selected branch cannot outlive the play they pointed into.
+  const newPlay = useCallback<EditorContextValue['newPlay']>((name) => {
+    const rootBranchId = newId<BranchId>();
+    setPlay((current) => ({
+      id: newId<PlayId>(),
+      name,
+      court: current.court,
+      players: [],
+      rootBranchId,
+      branches: [
+        { id: rootBranchId, parentId: null, forkStepId: null, name, tracks: { ball: [] }, steps: [], screens: [] },
+      ],
+    }));
+    select(null);
+  }, []);
+
   const value = useMemo<EditorContextValue>(
     () => ({
       play,
@@ -112,6 +129,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       removeScreen,
       forkBranch,
       removeBranch,
+      newPlay,
     }),
     [
       play,
@@ -135,6 +153,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       removeScreen,
       forkBranch,
       removeBranch,
+      newPlay,
     ],
   );
 

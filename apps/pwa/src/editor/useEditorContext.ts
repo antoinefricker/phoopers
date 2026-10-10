@@ -29,6 +29,8 @@ export interface EditorContextValue {
   /** Returns the new branch's id, or `null` when the fork was refused (nothing was written). */
   forkBranch: (parentBranchId: BranchId, forkStepId: StepId, name: string) => BranchId | null;
   removeBranch: (branchId: BranchId) => void;
+  /** Replaces the whole play with an empty one: new ids, one root branch, nothing selected. */
+  newPlay: (name: string) => void;
 }
 
 export const EditorContext = createContext<EditorContextValue | null>(null);

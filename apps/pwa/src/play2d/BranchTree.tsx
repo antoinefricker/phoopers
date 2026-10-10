@@ -2,6 +2,7 @@ import { useContext, useMemo, useState } from 'react';
 import { Box, Button, Group, NavLink, type TreeNodeData } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { BranchId, Play } from '../engine';
+import { ConfirmDelete } from '../editor/ConfirmDelete';
 import { ForkDialog } from '../editor/ForkDialog';
 import { descendantsOf } from '../editor/mutations';
 import { EditorContext } from '../editor/useEditorContext';
@@ -31,6 +32,15 @@ export function BranchTree({ play }: Props) {
   const editing = editor?.mode === 'edit';
   const [forkingFrom, setForkingFrom] = useState<BranchId | null>(null);
 
+  // The dialog stays mounted so Mantine can run its exit transition; `count` re-keys it per open
+  // and `target` is kept after closing so the body does not blank out mid-transition.
+  const [deleting, setDeleting] = useState<{ target: BranchId | null; opened: boolean; count: number }>({
+    target: null,
+    opened: false,
+    count: 0,
+  });
+  const nameOf = (id: BranchId) => play.branches.find((b) => b.id === id)?.name ?? id;
+
   const remove = (id: BranchId) => {
     if (editor === null) return;
     // Deleting a branch deletes its descendants too. If the one on screen is among them, return
@@ -41,6 +51,19 @@ export function BranchTree({ play }: Props) {
       selectBranch(play.rootBranchId);
       seek(0);
     }
+  };
+
+  // Says what goes with the branch: deleting one deletes everything forked from it.
+  const deleteBody = () => {
+    if (deleting.target === null) return null;
+    const names = descendantsOf(play, deleting.target).map(nameOf);
+    if (names.length === 0) return t('play.editor.deleteBranchBody', 'This branch will be deleted.');
+
+    return t(
+      'play.editor.deleteBranchBodyWithDescendants',
+      'This branch and the variants forked from it will be deleted: {{names}}.',
+      { names: names.join(', ') },
+    );
   };
 
   const select = (id: BranchId) => {
@@ -72,7 +95,7 @@ export function BranchTree({ play }: Props) {
                 <Button
                   size="compact-xs"
                   variant="subtle"
-                  aria-label={t('play.editor.forkFrom', 'Create a variant from {{name}}', { name: node.label })}
+                  aria-label={t('play.editor.forkFrom', 'Fork from {{name}}', { name: node.label })}
                   onClick={() => setForkingFrom(node.value as BranchId)}
                 >
                   {t('play.editor.fork', 'Fork')}
@@ -84,7 +107,9 @@ export function BranchTree({ play }: Props) {
                     variant="subtle"
                     color="red"
                     aria-label={t('play.editor.deleteBranch', 'Delete {{name}}', { name: node.label })}
-                    onClick={() => remove(node.value as BranchId)}
+                    onClick={() =>
+                      setDeleting((d) => ({ target: node.value as BranchId, opened: true, count: d.count + 1 }))
+                    }
                   >
                     {t('play.editor.delete', 'Delete')}
                   </Button>
@@ -101,6 +126,20 @@ export function BranchTree({ play }: Props) {
   return (
     <>
       <nav aria-label={t('play.branches.label', 'Play branches')}>{renderNodes(data, false)}</nav>
+      <ConfirmDelete
+        key={deleting.count}
+        opened={deleting.opened}
+        title={t('play.editor.deleteBranchTitle', 'Delete {{name}}?', {
+          name: deleting.target === null ? '' : nameOf(deleting.target),
+        })}
+        body={deleteBody()}
+        confirmLabel={t('play.editor.delete', 'Delete')}
+        onConfirm={() => {
+          if (deleting.target !== null) remove(deleting.target);
+          setDeleting((d) => ({ ...d, opened: false }));
+        }}
+        onClose={() => setDeleting((d) => ({ ...d, opened: false }))}
+      />
       {forkingFrom !== null && <ForkDialog parentBranchId={forkingFrom} onClose={() => setForkingFrom(null)} />}
     </>
   );

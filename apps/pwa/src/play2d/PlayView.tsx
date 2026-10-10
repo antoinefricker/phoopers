@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { Burger, Flex, Group, Paper, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
+import { IssuePanel } from '../editor/IssuePanel';
 import { EditorToolbar } from '../editor/EditorToolbar';
 import { Timeline } from '../editor/Timeline';
 import { useEditorContext } from '../editor/useEditorContext';
@@ -25,7 +26,7 @@ export function PlayView() {
   const sidebarOpen = sidebarChoice ?? roomForSidebar;
 
   return (
-    <PlaybackContextProvider play={play}>
+    <PlaybackContextProvider key={play.id} play={play}>
       {/* 100dvh as an inline override: a browser without dvh drops it and keeps the 100vh. */}
       <Stack mih="100vh" style={{ minHeight: '100dvh' }} p="md" gap="sm">
         <Group justify="space-between" align="center" gap="sm">
@@ -72,6 +73,7 @@ export function PlayView() {
         </Flex>
         {mode === 'edit' && <Timeline />}
         <PlaybackTransport />
+        {mode === 'edit' && <IssuePanel />}
       </Stack>
     </PlaybackContextProvider>
   );

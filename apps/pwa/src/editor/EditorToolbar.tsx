@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Button, Group, SegmentedControl } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { ConfirmDelete } from './ConfirmDelete';
 import { useEditorContext } from './useEditorContext';
 
 export function EditorToolbar() {
   const { t } = useTranslation();
-  const { mode, setMode, addPlayer, applyFormation } = useEditorContext();
+  const { mode, setMode, addPlayer, applyFormation, newPlay } = useEditorContext();
+  // The dialog stays mounted; a new key per open resets it without an effect.
+  const [asking, setAsking] = useState({ opened: false, count: 0 });
 
   return (
     <Group gap="sm">
@@ -27,8 +31,27 @@ export function EditorToolbar() {
           <Button variant="default" onClick={applyFormation}>
             {t('play.editor.formation', 'Starting formation')}
           </Button>
+          <Button
+            variant="default"
+            color="red"
+            onClick={() => setAsking((a) => ({ opened: true, count: a.count + 1 }))}
+          >
+            {t('play.editor.newPlay', 'New play')}
+          </Button>
         </>
       )}
+      <ConfirmDelete
+        key={asking.count}
+        opened={asking.opened}
+        title={t('play.editor.newPlayTitle', 'Start a new play?')}
+        body={t('play.editor.newPlayBody', 'The current play, with all its branches, will be discarded.')}
+        confirmLabel={t('play.editor.newPlayConfirm', 'Start over')}
+        onConfirm={() => {
+          newPlay(t('play.editor.newPlayName', 'Untitled play'));
+          setAsking((a) => ({ ...a, opened: false }));
+        }}
+        onClose={() => setAsking((a) => ({ ...a, opened: false }))}
+      />
     </Group>
   );
 }

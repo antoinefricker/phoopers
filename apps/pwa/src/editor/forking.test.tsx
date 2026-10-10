@@ -38,7 +38,7 @@ describe('forking a branch', () => {
     renderEditor(twoSteps, <PlayView />, { wrapPlayback: false });
     await enterEditMode();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create a variant from Base' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Fork from Base' }));
     await userEvent.click(screen.getByRole('combobox', { name: 'Fork from step' }));
     await userEvent.click(await screen.findByRole('option', { name: 'Late cut', hidden: true }));
     await userEvent.click(screen.getByRole('textbox', { name: 'Variant name' }));
@@ -61,7 +61,7 @@ describe('forking a branch', () => {
     renderEditor(twoSteps, <PlayView />, { wrapPlayback: false });
     await enterEditMode();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create a variant from Base' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Fork from Base' }));
 
     expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
   });
@@ -75,10 +75,22 @@ describe('forking a branch', () => {
     expect(screen.getByRole('button', { name: 'Delete Defence switches' })).toBeInTheDocument();
   });
 
+  it("keeps each action's visible label inside its accessible name", async () => {
+    renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+    await enterEditMode();
+
+    // WCAG 2.5.3 Label in Name: a voice-control user saying "click Fork" must hit the button.
+    for (const name of ['Fork from Base', 'Fork from Defence switches', 'Delete Defence switches']) {
+      const button = screen.getByRole('button', { name });
+      expect(button.getAttribute('aria-label') ?? '').toContain(button.textContent ?? '');
+      expect(button.textContent).not.toBe('');
+    }
+  });
+
   it('offers no fork or delete action outside edit mode', () => {
     renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
 
-    expect(screen.queryByRole('button', { name: /^Create a variant/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Fork from/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Delete / })).not.toBeInTheDocument();
   });
 
@@ -88,6 +100,7 @@ describe('forking a branch', () => {
     await userEvent.click(branchButton('Defence switches'));
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete Defence switches' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete' }));
 
     expect(readProbe().play.branches.some((b) => b.id === SWITCH)).toBe(false);
     expect(branchButton('Base')).toHaveAttribute('aria-current', 'true');
