@@ -33,6 +33,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   const { play, moveKeyframe, setScreenDuration } = useEditorContext();
   const { branchId, timeline } = usePlaybackContext();
   const trackRef = useRef<HTMLDivElement>(null);
+  const ownTrack = play.branches.find((b) => b.id === branchId)?.tracks[row.entityId] ?? [];
   const { bind, consumeDrag } = useTimeDrag(trackRef, duration);
   const isBall = row.team === 'ball';
   const label = isBall ? t('play.editor.ballRow', 'Ball') : row.label;
@@ -125,6 +126,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         {row.keyframes.map((k) => {
           const selected = selection?.kind === 'keyframe' && selection.entityId === row.entityId && selection.t === k.t;
           const hollow = isBall && k.attachedTo === undefined;
+          // A child branch's anchors include its ancestors' keyframes and the synthesised one at
+          // its fork instant. They are not in this branch's own track, so there is nothing here
+          // to retime: the marker is shown but, like the pre-fork part of the court, is locked.
+          const owned = ownTrack.some((own) => own.t === k.t);
 
           return (
             <button
@@ -136,29 +141,40 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               onClick={() => {
                 if (!consumeDrag()) onSelectKeyframe(row.entityId, k.t);
               }}
-              {...bind({
-                resolve: (rawT) =>
-                  constrainRetime(play, branchId, row.entityId, k.t, rawT, timeline.steps, SNAP_FRACTION * duration),
-                place: (element, value) => {
-                  element.style.left = percent(value, duration);
-                },
-                restore: (element) => {
-                  element.style.left = percent(k.t, duration);
-                },
-                commit: (value) => {
-                  moveKeyframe(branchId, row.entityId, k.t, value);
-                  onKeyframeRetimed(row.entityId, k.t, value);
-                },
-              })}
+              data-inherited={owned ? undefined : 'true'}
+              {...(owned
+                ? bind({
+                    resolve: (rawT) =>
+                      constrainRetime(
+                        play,
+                        branchId,
+                        row.entityId,
+                        k.t,
+                        rawT,
+                        timeline.steps,
+                        SNAP_FRACTION * duration,
+                      ),
+                    place: (element, value) => {
+                      element.style.left = percent(value, duration);
+                    },
+                    restore: (element) => {
+                      element.style.left = percent(k.t, duration);
+                    },
+                    commit: (value) => {
+                      moveKeyframe(branchId, row.entityId, k.t, value);
+                      onKeyframeRetimed(row.entityId, k.t, value);
+                    },
+                  })
+                : {})}
               style={{
                 position: 'absolute',
                 top: '50%',
                 left: percent(k.t, duration),
-                touchAction: 'none',
+                touchAction: owned ? 'none' : undefined,
                 width: 14,
                 height: 14,
                 padding: 0,
-                cursor: 'pointer',
+                cursor: owned ? 'grab' : 'pointer',
                 transform: 'translate(-50%, -50%) rotate(45deg)',
                 border: `2px solid var(--mantine-color-${selected ? 'blue-filled' : 'text'})`,
                 background: hollow ? 'transparent' : 'var(--mantine-color-text)',

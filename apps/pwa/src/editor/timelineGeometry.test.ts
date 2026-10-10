@@ -75,8 +75,10 @@ describe('timeFromClientX', () => {
     expect(timeFromClientX(150, rect(100, 0), 8)).toBe(0);
   });
 
-  it('returns 0 for a zero duration', () => {
-    expect(timeFromClientX(150, rect(100, 200), 0)).toBe(0);
+  it('returns 0 for a non-positive or NaN duration', () => {
+    // A zero duration alone would not pin the guard: clamp(f) * 0 is 0 either way.
+    expect(timeFromClientX(150, rect(100, 200), -8)).toBe(0);
+    expect(timeFromClientX(150, rect(100, 200), Number.NaN)).toBe(0);
   });
 
   it('returns 0 for a non-finite position rather than NaN', () => {

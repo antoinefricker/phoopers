@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StepId } from '../engine';
 import { fixturePlay, ROOT, STEP_ENTRY, SWITCH } from '../engine/__fixtures__/play';
 import { StepRuler } from './StepRuler';
@@ -28,7 +28,33 @@ const renderLive = () =>
 
 const stepsOfRoot = () => readProbe().play.branches.find((b) => b.id === ROOT)?.steps ?? [];
 
+// jsdom has no layout, so floating-ui sees every reference as clipped by a 0x0 viewport and Mantine
+// hides the popover dropdown (display: none), which cannot then be focused. Give the page a real
+// viewport and every box a non-zero size. Applied only to the tests that open the editor, because
+// it would also give the ruler a width.
+const stubLayout = () => {
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+    left: 10,
+    top: 10,
+    width: 100,
+    height: 20,
+    right: 110,
+    bottom: 30,
+    x: 10,
+    y: 10,
+    toJSON: () => ({}),
+  });
+  Object.defineProperty(document.documentElement, 'clientWidth', { value: 1000, configurable: true });
+  Object.defineProperty(document.documentElement, 'clientHeight', { value: 800, configurable: true });
+};
+
 describe('StepRuler', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Reflect.deleteProperty(document.documentElement, 'clientWidth');
+    Reflect.deleteProperty(document.documentElement, 'clientHeight');
+  });
+
   it('renders one tick per step, labelled with its name, plus the add button', () => {
     renderEditor(fixturePlay, <StepRuler />);
     const ruler = screen.getByTestId('step-ruler');
@@ -56,6 +82,7 @@ describe('StepRuler', () => {
   });
 
   it('renames a step', async () => {
+    stubLayout();
     renderEditor(fixturePlay, <StepRuler />);
 
     await userEvent.click(screen.getByText('Entry pass'));
@@ -68,6 +95,7 @@ describe('StepRuler', () => {
   });
 
   it('refuses to remove a step a branch forks from', async () => {
+    stubLayout();
     renderEditor(fixturePlay, <StepRuler />);
     const before = stepsOfRoot().length;
 
@@ -80,6 +108,7 @@ describe('StepRuler', () => {
   });
 
   it('removes a step no branch forks from', async () => {
+    stubLayout();
     renderLive();
     await userEvent.click(screen.getByRole('button', { name: 'Add step' }));
     const added = stepsOfRoot().find((s) => s.id !== STEP_ENTRY);
@@ -150,5 +179,27 @@ describe('StepRuler', () => {
 
     const steps = readProbe().play.branches.find((b) => b.id === SWITCH)?.steps ?? [];
     expect(steps.find((s) => s.id === own)?.t).toBe(2);
+  });
+
+  it('stops a fork step at its child branch first keyframe when dragged later', async () => {
+    // A 100px ruler over a 4s play: the release at clientX 120 clamps to the end, t=4.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 100,
+      height: 20,
+      right: 100,
+      bottom: 20,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    renderEditor(fixturePlay, <StepRuler />);
+
+    await dragElement(screen.getByRole('button', { name: 'Entry pass' }));
+
+    // SWITCH forks from this step and its first keyframe is at 2: moving the step later would
+    // put that keyframe before its own fork.
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(2);
   });
 });

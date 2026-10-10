@@ -170,19 +170,17 @@ describe('Timeline', () => {
   });
 });
 
-// jsdom has no layout. Where a test needs real arithmetic it gives every box this width, so the
-// drag helper's final clientX of 120 lands at 120 / WIDTH of the duration.
-const withRowWidth = (width: number) =>
-  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
-    left: 0,
-    width,
-    right: width,
-    top: 0,
-    bottom: 0,
-    height: 0,
-    x: 0,
-    y: 0,
-    toJSON: () => ({}),
+// jsdom has no layout. Where a test needs real arithmetic, the timeline rows get this width, and
+// a draggable (a marker or a screen handle) is a zero-width box whose centre is `markerCentre`.
+// The drag helper presses at clientX 0 and releases at 120, so with the centre at 0 the grab
+// offset is 0 and the release lands at 120 / width of the duration.
+const withRowWidth = (width: number, markerCentre = 0) =>
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const draggable = this.tagName === 'BUTTON' || (this.dataset['testid'] ?? '').startsWith('screen-handle');
+    const left = draggable ? markerCentre : 0;
+    const w = draggable ? 0 : width;
+
+    return { left, width: w, right: left + w, top: 0, bottom: 0, height: 0, x: left, y: 0, toJSON: () => ({}) };
   });
 
 const secondMarker = (entityId: string) => {
@@ -296,6 +294,125 @@ describe('retiming', () => {
     await dragElement(secondMarker(P1));
 
     expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2.4 });
+  });
+});
+
+describe('drag feel', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // P1 starts at t=1, so a drop anywhere near 0 would be a legal move: only the rules under test stop it.
+  const gap = withBranch(fixturePlay, ROOT, (b) => ({
+    ...b,
+    tracks: {
+      ...b.tracks,
+      [P1]: [
+        { t: 1, position: { x: 4, y: 7.5 } },
+        { t: 2, position: { x: 8, y: 5 } },
+        { t: 4, position: { x: 12, y: 5 } },
+      ],
+    },
+  }));
+
+  it('moves by the pointer delta, not its absolute position, when grabbed off-centre', async () => {
+    // Marker centre at 20px; pressed at 25px (5px right of centre), released at 120px. The marker
+    // lands where its centre would be: (120 - 5) / 200 * 4 = 2.3s, not 120 / 200 * 4 = 2.4s.
+    withRowWidth(200, 20);
+    renderEditor(fixturePlay, <Timeline />);
+    const user = userEvent.setup();
+
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: secondMarker(P1), coords: { clientX: 25, clientY: 0 } },
+      { target: secondMarker(P1), coords: { clientX: 80, clientY: 0 } },
+      { target: secondMarker(P1), coords: { clientX: 120, clientY: 0 } },
+      { keys: '[/MouseLeft]', target: secondMarker(P1) },
+    ]);
+
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.3, 4]);
+  });
+
+  it('treats a twitch under the slop as a click, not a retime', async () => {
+    withRowWidth(200);
+    renderEditor(gap, <Timeline />);
+    const user = userEvent.setup();
+    const first = markersIn(P1)[0];
+    if (first === undefined) throw new Error('expected a first marker');
+
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: first, coords: { clientX: 0, clientY: 0 } },
+      { target: first, coords: { clientX: 2, clientY: 0 } },
+      { keys: '[/MouseLeft]', target: first },
+    ]);
+
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([1, 2, 4]);
+    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 1 });
+  });
+
+  it('starts dragging once the pointer clears the slop', async () => {
+    withRowWidth(200);
+    renderEditor(gap, <Timeline />);
+    const user = userEvent.setup();
+    const first = markersIn(P1)[0];
+    if (first === undefined) throw new Error('expected a first marker');
+
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: first, coords: { clientX: 0, clientY: 0 } },
+      { target: first, coords: { clientX: 4, clientY: 0 } },
+      { keys: '[/MouseLeft]', target: first },
+    ]);
+
+    // 4px of 200px across 4s.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0.08, 2, 4]);
+  });
+});
+
+describe('inherited markers', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const viewSwitch = async () => {
+    renderEditor(
+      fixturePlay,
+      <>
+        <SelectBranch branchId={SWITCH} />
+        <Timeline />
+      </>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: `select ${SWITCH}` }));
+  };
+
+  it('marks the synthesised fork anchor as inherited and the branch own keyframe as its own', async () => {
+    await viewSwitch();
+    const [ancestor, forkAnchor, own] = markersIn(P1);
+
+    // P1 on SWITCH has one keyframe, at 3. The root's keyframe at 0 is inherited, and so is the
+    // one synthesised at the fork instant (2).
+    expect(ancestor).toHaveAttribute('data-inherited', 'true');
+    expect(forkAnchor).toHaveAttribute('data-inherited', 'true');
+    expect(own).not.toHaveAttribute('data-inherited');
+  });
+
+  it('does not move the selection when an inherited marker is dragged', async () => {
+    withRowWidth(200);
+    await viewSwitch();
+    const forkAnchor = markersIn(P1)[1];
+    if (forkAnchor === undefined) throw new Error('expected the fork anchor');
+
+    await userEvent.click(forkAnchor);
+    await dragElement(forkAnchor);
+
+    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2 });
+    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([3]);
+  });
+
+  it('still lets the branch own marker be dragged', async () => {
+    withRowWidth(200);
+    await viewSwitch();
+    const own = markersIn(P1)[2];
+    if (own === undefined) throw new Error('expected the own marker');
+
+    await dragElement(own);
+
+    // Released at 2.4s, inside the branch's bounds (floor 2).
+    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([2.4]);
   });
 });
 

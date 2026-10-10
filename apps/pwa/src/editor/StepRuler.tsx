@@ -1,20 +1,15 @@
 import { Box, Button, Group, Popover, Text, TextInput } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { EntityId, Step, StepId } from '../engine';
+import type { Step, StepId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
-import { constrainRetime } from './constraints';
+import { constrainStepRetime } from './constraints';
 import { LABEL_WIDTH } from './TimelineRow';
 import { fractionOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 
 const SNAP_FRACTION = 0.02;
-
-// `constrainRetime` takes an entity whose track supplies the neighbour bounds. A step has no
-// neighbours (steps may share a time, and two at one time is legal at a fork), so it is given an
-// id with no track: the only bound left is the floor, the fork time of the branch that owns it.
-const NO_TRACK = 'step' as EntityId;
 
 const percent = (t: number, duration: number) => `${fractionOf(t, duration) * 100}%`;
 
@@ -95,8 +90,6 @@ export function StepRuler() {
       </Box>
       <Box ref={trackRef} style={{ position: 'relative', flex: 1, height: '100%' }}>
         {steps.map((step) => {
-          // The branch that owns the step sets its floor, which is not always the one being viewed.
-          const owner = play.branches.find((b) => b.steps.some((s) => s.id === step.id));
           const others = steps.filter((s) => s.id !== step.id);
 
           return (
@@ -106,9 +99,6 @@ export function StepRuler() {
               onChange={(opened) => setOpenId(opened ? step.id : null)}
               position="bottom"
               withArrow
-              // The ruler scrolls with the timeline; the editor should stay with the step it edits
-              // rather than vanish when floating-ui judges the tick clipped (it always does in jsdom).
-              hideDetached={false}
             >
               <Popover.Target>
                 <button
@@ -132,15 +122,7 @@ export function StepRuler() {
                   }}
                   {...bind({
                     resolve: (rawT) =>
-                      constrainRetime(
-                        play,
-                        owner?.id ?? branchId,
-                        NO_TRACK,
-                        step.t,
-                        rawT,
-                        others,
-                        SNAP_FRACTION * duration,
-                      ),
+                      constrainStepRetime(play, step.id, step.t, rawT, others, SNAP_FRACTION * duration),
                     place: (element, value) => {
                       element.style.left = percent(value, duration);
                     },

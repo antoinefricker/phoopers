@@ -151,6 +151,24 @@ rather than `NaN`.
 
 **Fix:** let a play declare its attacking basket, which is data the editor should own.
 
+## Editor
+
+### A drag cannot lengthen the play
+
+A timeline drag maps the pointer to a time with `timeFromClientX`, which clamps to the row, so
+the latest time a drag can produce is the current duration. The model allows more:
+`constrainRetime` returns `9` for the last keyframe of the fixture's 4 s P1 track dragged to 9,
+and `retimeBounds` leaves it unbounded above. Measured in the UI: releasing that keyframe far
+beyond the right edge commits `t = 4`, not later. The same clamp applies to a step tick and to a
+screen's right edge.
+
+So a coach cannot extend a play by dragging its last keyframe, step or screen later; the play
+only grows when a keyframe is authored on the court at a later clock time.
+
+**Fix:** let the row's time axis extend past the duration while a drag is in flight (for example
+by padding the track with a spare fraction of the duration) and clamp to that instead. It changes
+how the ruler scales mid-gesture, which is a design decision rather than a correction.
+
 ## Test coverage gaps
 
 ### The animation loop is not unit-testable
