@@ -169,6 +169,30 @@ only grows when a keyframe is authored on the court at a later clock time.
 by padding the track with a spare fraction of the duration) and clamp to that instead. It changes
 how the ruler scales mid-gesture, which is a design decision rather than a correction.
 
+### One ball drop cannot express a hold
+
+A span's `attachedTo` is non-null only when both of its keyframes name the same player
+(`resolve.ts`, `from.attachedTo === to.attachedTo`), so holding the ball takes a pair of
+attachment keyframes bracketing the hold, as the `horns` sample writes (`{4: O1}, {5: O2}` the
+pass, `{5: O2}, {7: O2}` the hold, `{7: O2}, {8: position}` the shot). The drop gesture writes
+one attachment keyframe per drop (`attachBall`, called once from `CourtEditLayer`).
+
+Measured on the acceptance play's ball track `{0: o1}, {3: o2}, {5: position}`: `stateAt` returns
+`ball.attachedTo === null` at t = 0, 1, 2.9, 3, 4 and 5, so the ball is never held. A coach
+expects o1 to carry it until the pass and o2 to carry it from t = 3 until the shot.
+
+The pass and the shot are not wrong: each is spread across the whole span, which is a legitimate
+reading of the keyframes. What cannot be expressed by one drop is the hold, and nothing in the UI
+tells the coach they must drop twice. This is a different problem from
+[the fork-boundary entry](#the-ball-diverges-at-a-fork-on-a-mixed-attachment-span), which is about
+interpolation at a fork and involves no editor gesture.
+
+Left as is because spec 003's ball model is deliberate: a pass is two consecutive attachments and
+there is no pass object. Changing the drop gesture is a spec-level decision, not a defect.
+
+**Fix:** either `attachBall` writes a second attachment keyframe to close a hold (at the next
+keyframe time or after a default hold), or the UI asks for a hold duration on drop.
+
 ### Refusing to delete a player's last keyframe gives no feedback
 
 `removeKeyframe` refuses to remove the only keyframe of a player's track (a player with no
