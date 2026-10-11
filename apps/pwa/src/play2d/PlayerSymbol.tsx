@@ -1,4 +1,3 @@
-import { IconBallBasketball } from '@tabler/icons-react';
 import type { Player } from '../engine';
 
 // The token geometry, in court metres, shared by the court and by the timeline's gutter so one
@@ -21,8 +20,9 @@ export const TOKEN_REACH = (DIAMOND_SIDE * Math.SQRT2) / 2;
 const BADGE_REACH = TOKEN_REACH;
 
 // Larger than a real ball against these tokens — a true 0.12 m radius would be a speck beside
-// a 0.9 m player — and sized so the basketball's seams have room to read rather than to scale.
-export const BALL_RADIUS = 0.22;
+// a 0.9 m player — but no larger than it needs to be: it was briefly 0.22 to give the
+// basketball icon's seams room, and that icon is gone.
+export const BALL_RADIUS = 0.18;
 
 // A white rim around every token. On the wood floor the fills lose most of their contrast —
 // measured 1.2:1 for the blue disc, 1.3:1 for the red square and 1.7:1 for the ball, against
@@ -104,36 +104,11 @@ export function PlayerSymbolBadge({ team, label, sizePx, name }: Props & { sizeP
   );
 }
 
-// The seams are drawn at a constant one device pixel rather than in court metres, so they stay
-// a hairline whatever the court's scale. `vector-effect` is NOT inherited — measured: set on
-// the parent svg, a child path still computes `none` — and Tabler renders paths this component
-// cannot reach through props, so the rule is carried by a <style> element inside the symbol.
-const BALL_SEAM_CLASS = 'ball-seams';
-const BALL_SEAM_RULE = `.${BALL_SEAM_CLASS} path { vector-effect: non-scaling-stroke; }`;
-const BALL_STROKE = 1;
-
-// Centred on the origin, in court metres, like PlayerSymbol. The filled disc carries the shape
-// at any size — on the court the ball is about 7px across, where the icon's seams fall below a
-// pixel — and the white icon over it adds the detail wherever there is room for it.
-export function BallSymbol() {
+// Centred on the origin, in court metres, like PlayerSymbol: a plain disc with the same white
+// rim the player tokens carry, which is what separates it from the floor.
+export function BallSymbol({ r = BALL_RADIUS }: { r?: number }) {
   return (
-    <>
-      <circle
-        r={BALL_RADIUS}
-        fill="var(--mantine-color-orange-6)"
-        stroke="var(--mantine-color-white)"
-        strokeWidth={TOKEN_RIM}
-      />
-      <style>{BALL_SEAM_RULE}</style>
-      <IconBallBasketball
-        className={BALL_SEAM_CLASS}
-        size={BALL_RADIUS * 2}
-        stroke={BALL_STROKE}
-        color="var(--mantine-color-white)"
-        x={-BALL_RADIUS}
-        y={-BALL_RADIUS}
-      />
-    </>
+    <circle r={r} fill="var(--mantine-color-orange-6)" stroke="var(--mantine-color-white)" strokeWidth={TOKEN_RIM} />
   );
 }
 
@@ -142,7 +117,6 @@ export function BallSymbolBadge({ sizePx, name }: { sizePx: number; name: string
   // The ball is a disc too, so it is drawn at the offense disc's size rather than its own: a
   // ball larger than a player would read as the bigger object. Its court proportion — a speck
   // beside a token — stays true where it means something, on the floor.
-  const scale = TOKEN_SIZE / 2 / BALL_RADIUS;
   const box = BADGE_REACH * 2;
 
   return (
@@ -154,9 +128,10 @@ export function BallSymbolBadge({ sizePx, name }: { sizePx: number; name: string
       aria-label={name}
       style={{ flexShrink: 0 }}
     >
-      <g transform={`scale(${scale})`}>
-        <BallSymbol />
-      </g>
+      {/* Drawn at the offense disc's radius rather than scaled up to it: a scale transform
+          would thicken the rim with it, leaving the ball a heavier outline than the tokens
+          beside it. */}
+      <BallSymbol r={TOKEN_SIZE / 2} />
     </svg>
   );
 }
