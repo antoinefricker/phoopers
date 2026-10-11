@@ -27,8 +27,8 @@ one spec is split further (1a, 1b, …), and each piece gets its own full cycle.
 - **Branch navigation**: a visual tree representation; selecting a branch animates it
   from start to end (no side-by-side comparative playback in v1).
 - **2D view ("coach's whiteboard")**: standard symbols (a numbered token per player, the two
-  teams told apart by shape AND by luminance rather than by hue alone, so a greyscale handout
-  stays readable — the exact shapes belong to the spec, not here; solid arrow = movement, wavy arrow = dribble,
+  teams told apart by shape rather than by hue alone, so a greyscale handout stays readable —
+  the exact shapes belong to the spec, not here; solid arrow = movement, wavy arrow = dribble,
   dashed arrow = pass, perpendicular line = screen), playback with play/pause and a scrubber,
   toggle between half-court and full-court.
 - **3D view**: **stylized/schematic** rendering (colored pawns/capsules, ball = a

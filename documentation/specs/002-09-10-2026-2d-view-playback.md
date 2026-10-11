@@ -110,19 +110,22 @@ Scrubbing writes the ref and pauses playback. Playback stops at `duration(timeli
 | Pass           | Dashed stroke, arrowhead                      | ball span where `ballStateAt` → `'inFlight'` |
 | Screen         | Perpendicular tick across the screener's path | `PlayState.activeScreens`                    |
 
-**The invariant:** the two teams are told apart by shape _and_ by luminance, never by hue
+**The invariant:** the two teams are told apart by **shape**, never by hue
 alone, and their tokens carry the same visual weight so neither team reads as the smaller one.
 A greyscale handout — the printable export the stack was chosen for — keeps two hues apart only
-if their luminance differs, and shape carries the teams even where luminance is close.
+if their luminance differs, and the team colours no longer differ: blue-6 and red-6 measure
+0.245 and 0.270, 1.08:1 apart, which prints as one grey. Shape is what carries the teams, there
+and for anyone who cannot tell the hues apart.
 
-As drawn today: the offense is a disc filled at 0.25 luminance, the defense a square rotated 45°
-filled at 0.82. Equal weight means equal **area**, not equal width: a rotated square occupies
-its diagonal, so matching widths would leave it covering 64% of the disc and reading as a
-smaller player. The square's side is therefore derived from the disc's area, which costs 25%
-more width — 1.13 m against 0.9 m. The
-defender's number is a full red on the light fill, measuring 4.51:1 — just over the 4.5:1 WCAG
-AA floor for normal text — while the defender's silhouette sits at 1.21:1 against the white
-court, so a defender is read by its number more than by its outline.
+As drawn today: the offense is a blue disc, the defense a red square rotated 45°, both with a
+white number. Equal weight means equal **area**, not equal width: a rotated square occupies its
+diagonal, so matching widths would leave it covering 64% of the disc and reading as a smaller
+player. The square's side is therefore derived from the disc's area, which costs 25% more width
+— 1.13 m against 0.9 m.
+
+Both numbers sit under the 4.5:1 AA floor for normal text — white on blue-6 is 3.56:1 and on
+red-6 is 3.28:1 — and both tokens clear the 3:1 floor for a meaningful graphic against the
+white court.
 
 A span's kind is read at its midpoint. Each token is one SVG group so the whole symbol moves
 with a single `transform`.

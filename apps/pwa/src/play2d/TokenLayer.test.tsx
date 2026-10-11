@@ -264,11 +264,11 @@ describe('TokenLayer', () => {
 });
 
 describe('team symbols', () => {
-  // Offense is a circle, defense a rotated square, so the shape element differs by team.
-  const shapeIn = (container: HTMLElement, playerId: string) =>
-    tokenFor(container, playerId)?.querySelector('circle, rect');
-
   it('gives the two teams different shapes of equal visual weight', () => {
+    // Shape is now the ONLY thing separating the teams: blue-6 and red-6 sit 1.08:1 apart in
+    // luminance, so a greyscale handout renders them the same grey and the disc and the square
+    // are what survive it. If both teams ever drew the same element, the two would merge in
+    // print and for anyone who cannot tell the hues apart.
     // A rotated square occupies its DIAGONAL, not its side — the same arithmetic that put a
     // scrollbar under the timeline. Matching WIDTHS would leave the square covering 64% of the
     // disc and reading as a smaller player, so the areas are matched instead.
@@ -285,28 +285,6 @@ describe('team symbols', () => {
     const side = Number(diamond?.getAttribute('width'));
     expect(side * side).toBeCloseTo(Math.PI * 0.45 * 0.45, 3);
     expect(diamond?.getAttribute('transform')).toContain('rotate(45)');
-  });
-
-  it('separates the teams by how dark the fill is, not by hue alone', () => {
-    // The roadmap justifies SVG by printable handouts, and a greyscale print keeps hues apart
-    // only if their luminance differs. Both tokens are filled, so what carries the teams
-    // off-screen is one being dark and the other light — measured in a browser at 0.25 against
-    // 0.82. jsdom cannot resolve a CSS variable, so the shade NUMBER stands in for luminance:
-    // Mantine's 0-2 are light and its 5-9 are mid-to-dark.
-    const { container } = renderTokens();
-    const [offense] = hornsPlay.players.filter((p) => p.team === 'offense');
-    const [defense] = hornsPlay.players.filter((p) => p.team === 'defense');
-    if (offense === undefined || defense === undefined) throw new Error('sample needs both teams');
-
-    const shadeOf = (fill: string | null | undefined) => Number(fill?.match(/-(\d)\)$/)?.[1]);
-    const theirs = shapeIn(container, offense.id)?.getAttribute('fill');
-    const ours = shapeIn(container, defense.id)?.getAttribute('fill');
-
-    expect(theirs).not.toBe('none');
-    expect(ours).not.toBe('none');
-    expect(theirs).not.toBe(ours);
-    expect(shadeOf(theirs)).toBeGreaterThanOrEqual(5);
-    expect(shadeOf(ours)).toBeLessThanOrEqual(2);
   });
 
   it('centres the label inside the circle for both teams', () => {

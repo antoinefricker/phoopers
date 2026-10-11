@@ -36,10 +36,13 @@ interface Props {
 export function PlayerSymbol({ team, label }: Props) {
   return (
     <>
-      {/* Offense is a disc, defense a rotated square, and the two differ in luminance as well
-          as in shape — the roadmap justifies SVG by printable handouts, and a greyscale print
-          renders blue-6 at 0.25 against red-1 at 0.82, so the teams stay apart with neither
-          colour nor shape alone carrying the whole load. */}
+      {/* SHAPE alone separates the teams: blue-6 and red-6 sit at 0.245 and 0.270 luminance,
+          1.08:1 apart, so a greyscale handout — the printable export the stack was chosen for
+          — renders them the same grey. The disc and the rotated square are what survive it.
+          Measured trade against the earlier light fill: the defender's silhouette rises from
+          1.21:1 to 3.28:1 against the white court, clearing the 3:1 floor for a meaningful
+          graphic, while its number falls from 4.51:1 to 3.28:1 — the same footing as the
+          offense's white on blue at 3.56:1, and under the 4.5:1 AA floor for both. */}
       {team === 'offense' ? (
         <circle r={TOKEN_SIZE / 2} fill="var(--mantine-color-blue-6)" />
       ) : (
@@ -48,19 +51,12 @@ export function PlayerSymbol({ team, label }: Props) {
           height={DIAMOND_SIDE}
           x={-DIAMOND_SIDE / 2}
           y={-DIAMOND_SIDE / 2}
-          fill="var(--mantine-color-red-1)"
+          fill="var(--mantine-color-red-6)"
           transform="rotate(45)"
         />
       )}
-      {/* red-9 on red-1 measures 4.51:1, just over the 4.5:1 WCAG AA floor for normal text;
-          red-8 would drop it to 3.73:1. */}
-      <text
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={0.5}
-        fill={team === 'offense' ? 'var(--mantine-color-white)' : 'var(--mantine-color-red-9)'}
-        dy={0}
-      >
+
+      <text textAnchor="middle" dominantBaseline="central" fontSize={0.5} fill="var(--mantine-color-white)" dy={0}>
         {label}
       </text>
     </>
