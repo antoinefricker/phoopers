@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
-import { Burger, Flex, Group, Paper, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
+import { ActionIcon, Flex, Group, Paper, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
+import { IconMenu2, IconX } from '@tabler/icons-react';
 import { useMediaQuery } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
 import { SelectionActions } from '../editor/SelectionActions';
@@ -45,14 +46,20 @@ export function PlayView() {
                 { value: 'half', label: t('play.court.half', 'Half court') },
               ]}
             />
-            <Burger
-              opened={sidebarOpen}
+            {/* An ActionIcon rather than Mantine's Burger: it takes the border, radius and
+                background the neighbouring controls get from the theme, and an explicit 36
+                matches their height exactly. The cost is Burger's bars-to-cross animation,
+                replaced by swapping the icon. */}
+            <ActionIcon
+              variant="default"
+              size={36}
               onClick={() => setSidebarChoice(!sidebarOpen)}
-              size="md"
               aria-label={t('play.branches.toggle', 'Toggle branches')}
               aria-expanded={sidebarOpen}
               aria-controls={sidebarOpen ? sidebarId : undefined}
-            />
+            >
+              {sidebarOpen ? <IconX size={18} stroke={1.5} /> : <IconMenu2 size={18} stroke={1.5} />}
+            </ActionIcon>
           </Group>
         </Group>
         {/* Beside the court on a wide screen, stacked beneath it on a narrow one. The court panel
