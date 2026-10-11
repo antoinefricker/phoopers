@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { stateAt } from '../engine';
 import type { PlayerId } from '../engine';
 import { usePlaybackContext } from './usePlaybackContext';
-import { BALL_RADIUS, PlayerSymbol } from './PlayerSymbol';
+import { BALL_RADIUS, HELD_BALL_OFFSET, PlayerSymbol } from './PlayerSymbol';
 
 const translate = (x: number, y: number): string => `translate(${x} ${y})`;
 
@@ -40,7 +40,13 @@ export function TokenLayer() {
       }
 
       if (ballRef.current !== null) {
-        ballRef.current.setAttribute('transform', translate(state.ball.position.x, state.ball.position.y));
+        // Only while held: a loose ball is at its own position and must stay there, or a pass
+        // and a shot would land off their target.
+        const held = state.ball.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+        ballRef.current.setAttribute(
+          'transform',
+          translate(state.ball.position.x + held, state.ball.position.y + held),
+        );
       }
     };
 

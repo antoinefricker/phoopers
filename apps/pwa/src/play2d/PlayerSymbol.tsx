@@ -16,6 +16,14 @@ export const TOKEN_REACH = (DIAMOND_SIDE * Math.SQRT2) / 2;
 
 export const BALL_RADIUS = 0.18;
 
+// A held ball is drawn down and to the right of its carrier instead of dead centre, where the
+// token's own symbol would swallow it and hide the player's number. The offset puts the ball's
+// centre on the offense disc's rim — half overlapping, which reads as held rather than parked
+// beside. Derived from the token so it follows a size change.
+// A defender's diamond points this way, its corner reaching 0.564, so the ball sits deeper
+// inside that symbol than inside a disc.
+export const HELD_BALL_OFFSET = TOKEN_SIZE / 2 / Math.SQRT2;
+
 interface Props {
   team: Player['team'];
   label: string;

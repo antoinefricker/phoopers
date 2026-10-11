@@ -8,6 +8,7 @@ import { hornsPlay, HORNS_SWITCH } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { usePlaybackContext, type PlaybackContextValue } from './usePlaybackContext';
 import { TokenLayer } from './TokenLayer';
+import { HELD_BALL_OFFSET } from './PlayerSymbol';
 
 vi.mock('../engine', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../engine')>();
@@ -66,8 +67,11 @@ function expectTokensAt(container: HTMLElement, timeline: typeof rootTimeline, t
     expect(actual.y).toBeCloseTo(expected.y, 5);
   }
   const ball = positionOf(container.querySelector('[data-testid="ball-token"]'));
-  expect(ball.x).toBeCloseTo(state.ball.position.x, 5);
-  expect(ball.y).toBeCloseTo(state.ball.position.y, 5);
+  // A held ball is drawn down-right of its carrier so the token does not swallow it; a loose
+  // one stays exactly where the sampler puts it, or a pass and a shot would miss their target.
+  const held = state.ball.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+  expect(ball.x).toBeCloseTo(state.ball.position.x + held, 5);
+  expect(ball.y).toBeCloseTo(state.ball.position.y + held, 5);
 }
 
 afterEach(() => {
@@ -106,7 +110,10 @@ describe('TokenLayer', () => {
     const { container } = renderTokens();
     const ball = positionOf(container.querySelector('[data-testid="ball-token"]'));
 
-    expect(ball).toEqual(stateAt(rootTimeline, 0).ball.position);
+    const sampled = stateAt(rootTimeline, 0).ball;
+    const held = sampled.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+    expect(ball.x).toBeCloseTo(sampled.position.x + held, 5);
+    expect(ball.y).toBeCloseTo(sampled.position.y + held, 5);
     expect(ball.x !== 0 || ball.y !== 0).toBe(true);
   });
 
