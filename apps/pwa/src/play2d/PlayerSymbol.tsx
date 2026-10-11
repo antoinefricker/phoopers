@@ -70,13 +70,19 @@ export function PlayerSymbol({ team, label }: Props) {
 // A standalone badge for anywhere outside the court's own SVG — the timeline's gutter draws the
 // same token the court does, at row height, rather than restating it as text.
 export function PlayerSymbolBadge({ team, label, sizePx, name }: Props & { sizePx: number; name: string }) {
-  const box = TOKEN_REACH * 2;
+  // Each badge frames its own symbol edge to edge, so every symbol in the gutter is drawn at
+  // the same size whatever it measures on the court. The gutter identifies a row; it is not a
+  // scale drawing, and the court keeps the true proportions. A defender's square is framed on
+  // its diagonal, so it fills the box corner to corner and reads a little lighter than the
+  // disc that fills it edge to edge.
+  const reach = team === 'defense' ? TOKEN_REACH : TOKEN_SIZE / 2;
+  const box = reach * 2;
 
   return (
     <svg
       width={sizePx}
       height={sizePx}
-      viewBox={`${-TOKEN_REACH} ${-TOKEN_REACH} ${box} ${box}`}
+      viewBox={`${-reach} ${-reach} ${box} ${box}`}
       role="img"
       aria-label={name}
       style={{ flexShrink: 0 }}
@@ -116,13 +122,20 @@ export function BallSymbol() {
 
 // The ball has no number, so it is its own badge rather than a case inside PlayerSymbol.
 export function BallSymbolBadge({ sizePx, name }: { sizePx: number; name: string }) {
-  const box = TOKEN_REACH * 2;
+  // Framed on the ball itself rather than on a player's reach: in the gutter a badge identifies
+  // a row, it does not draw entities to scale. Sharing the player viewBox left the ball at 9px
+  // inside a 24px badge, a speck beside the tokens it sits under. On the court the proportion
+  // between ball and player stays true, which is where it means something.
+  // Framed edge to edge like the player badges, so the ball is drawn at the same size as the
+  // tokens it sits under rather than as the speck it is on the court.
+  const reach = BALL_RADIUS;
+  const box = reach * 2;
 
   return (
     <svg
       width={sizePx}
       height={sizePx}
-      viewBox={`${-TOKEN_REACH} ${-TOKEN_REACH} ${box} ${box}`}
+      viewBox={`${-reach} ${-reach} ${box} ${box}`}
       role="img"
       aria-label={name}
       style={{ flexShrink: 0 }}
