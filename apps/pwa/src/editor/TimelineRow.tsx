@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { EntityId, ScreenEvent, ScreenId } from '../engine';
 import { ConfirmDelete } from './ConfirmDelete';
 import { constrainRetime } from './constraints';
-import { MARKER_SIZE_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
+import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
 import { GUTTER_WIDTH, TIME_READOUT_PX } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
@@ -240,13 +240,21 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 top: '50%',
                 left: percent(k.t, duration),
                 touchAction: owned ? 'none' : undefined,
-                width: MARKER_SIZE_PX,
-                height: MARKER_SIZE_PX,
+                width: MARKER_WIDTH_PX,
+                height: MARKER_HEIGHT_PX,
                 padding: 0,
+                borderRadius: 2,
                 cursor: owned ? 'grab' : 'pointer',
-                transform: 'translate(-50%, -50%) rotate(45deg)',
-                border: `2px solid var(--mantine-color-${selected ? 'blue-filled' : 'text'})`,
-                background: hollow ? 'transparent' : 'var(--mantine-color-text)',
+                transform: 'translate(-50%, -50%)',
+                // Selection is the border: blue and thicker, since a white fill leaves nothing
+                // else to carry it.
+                border: selected
+                  ? `2px solid var(--mantine-color-blue-filled)`
+                  : `1px solid var(--mantine-color-gray-5)`,
+                // White everywhere except a held ball, which keeps a tint: the filled-versus-
+                // hollow contrast used to be the only thing showing possession on screen, and
+                // dropping it would leave that to the accessible name alone.
+                background: isBall && !hollow ? 'var(--mantine-color-orange-1)' : 'var(--mantine-color-white)',
               }}
             />
           );

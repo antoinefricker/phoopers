@@ -18,11 +18,12 @@ export const GUTTER_WIDTH = '7rem';
 // scrubber stopping short by exactly this much.
 export const TIME_READOUT_PX = 40;
 
-// Room kept at each end of every axis. A keyframe marker is a square rotated 45 degrees, so it
-// reaches half its DIAGONAL past its own time; without this the last marker overflows and the
+// Room kept at each end of every axis: half the width of a keyframe marker, which is centred
+// on its time and so reaches that far past it. Without it the last marker overflows and the
 // panel grows a horizontal scrollbar. The scrubber takes the same inset or it drifts from the
-// markers at the far end.
-export const TRACK_INSET_PX = 10;
+// markers at the far end — which is why the number lives here, with the shared axis geometry,
+// rather than beside the marker it is derived from.
+export const TRACK_INSET_PX = 4;
 
 export function snapToStep(t: number, steps: readonly Step[], threshold: number): number {
   let best: number | undefined;

@@ -7,11 +7,11 @@ export interface TimelineRowModel {
   keyframes: Keyframe[];
 }
 
-// A keyframe marker is a square rotated 45 degrees, so what it actually occupies is its
-// diagonal: MARKER_SIZE_PX * sqrt(2). `translate(-50%)` centres the UNROTATED box, so the
-// rendered corner reaches half the diagonal past the marker's time — 9.9px for a 14px marker,
-// not the 7px its width suggests.
-export const MARKER_SIZE_PX = 14;
+// A keyframe marker is an upright rectangle, taller than it is wide, so it reads as an instant
+// rather than as a blob. It is centred on its time with `translate(-50%)`, so it reaches half
+// its WIDTH past that time — which is what the track has to keep room for at either end.
+export const MARKER_WIDTH_PX = 8;
+export const MARKER_HEIGHT_PX = 18;
 
 // The inset lives with the shared axis geometry because the transport needs it too. It must
 // stay at or above half the marker's diagonal — ceil(14 * sqrt(2) / 2) = 10 — or a marker at
