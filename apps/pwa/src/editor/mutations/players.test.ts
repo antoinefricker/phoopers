@@ -29,7 +29,9 @@ describe('addPlayer', () => {
 
   it('numbers offense and defense independently', () => {
     expect(nextLabel(fixturePlay.players, 'offense')).toBe('3');
-    expect(nextLabel(fixturePlay.players, 'defense')).toBe('X1');
+    // Defenders were "X1".."X5" when the symbol was an X. The symbol is now an outlined
+    // circle, so the number stands alone and the teams are told apart by the circle's fill.
+    expect(nextLabel(fixturePlay.players, 'defense')).toBe('1');
   });
 });
 

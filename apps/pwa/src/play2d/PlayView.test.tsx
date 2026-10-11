@@ -8,7 +8,8 @@ import { stubViewportWidth } from '../testUtils/viewport';
 import i18n from '../i18n/i18n';
 import { EditorContextProvider } from '../editor/EditorContextProvider';
 import { PlayView } from './PlayView';
-import { fullCourtViewBox } from './geometry/court';
+import { HELD_BALL_OFFSET } from './PlayerSymbol';
+import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
 
 function renderView(widthPx = 1440) {
   stubViewportWidth(widthPx);
@@ -44,7 +45,12 @@ function drawnPositions(container: HTMLElement): Record<string, Vec2> {
 /** Where the engine says every entity is at `t`. */
 function sampledPositions(timeline: ResolvedTimeline, t: number): Record<string, Vec2> {
   const state = stateAt(timeline, t);
-  const positions: Record<string, Vec2> = { ball: state.ball.position };
+  // A held ball is drawn down-right of its carrier, so the token does not swallow it. A loose
+  // ball stays exactly where the sampler puts it, or a pass and a shot would miss.
+  const held = state.ball.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+  const positions: Record<string, Vec2> = {
+    ball: { x: state.ball.position.x + held, y: state.ball.position.y + held },
+  };
   for (const player of timeline.players) {
     const position = state.players[player.id]?.position;
     if (position !== undefined) positions[player.id] = position;
@@ -184,7 +190,7 @@ describe('PlayView', () => {
       renderView();
 
       await user.click(screen.getByRole('radio', { name: 'Half court' }));
-      expect(screen.getByRole('img')).toHaveAttribute('viewBox', '14 0 14 15');
+      expect(screen.getByRole('img')).toHaveAttribute('viewBox', halfCourtViewBox('fiba', 'right'));
 
       await user.click(screen.getByRole('radio', { name: 'Full court' }));
       expect(screen.getByRole('img')).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));

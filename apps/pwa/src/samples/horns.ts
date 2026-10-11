@@ -45,11 +45,11 @@ export const hornsPlay: Play = {
     { id: O3, team: 'offense', label: '3' },
     { id: O4, team: 'offense', label: '4' },
     { id: O5, team: 'offense', label: '5' },
-    { id: X1, team: 'defense', label: 'X1' },
-    { id: X2, team: 'defense', label: 'X2' },
-    { id: X3, team: 'defense', label: 'X3' },
-    { id: X4, team: 'defense', label: 'X4' },
-    { id: X5, team: 'defense', label: 'X5' },
+    { id: X1, team: 'defense', label: '1' },
+    { id: X2, team: 'defense', label: '2' },
+    { id: X3, team: 'defense', label: '3' },
+    { id: X4, team: 'defense', label: '4' },
+    { id: X5, team: 'defense', label: '5' },
   ],
   branches: [
     {

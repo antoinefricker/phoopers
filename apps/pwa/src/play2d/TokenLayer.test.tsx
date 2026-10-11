@@ -8,6 +8,7 @@ import { hornsPlay, HORNS_SWITCH } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { usePlaybackContext, type PlaybackContextValue } from './usePlaybackContext';
 import { TokenLayer } from './TokenLayer';
+import { HELD_BALL_OFFSET } from './PlayerSymbol';
 
 vi.mock('../engine', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../engine')>();
@@ -66,8 +67,11 @@ function expectTokensAt(container: HTMLElement, timeline: typeof rootTimeline, t
     expect(actual.y).toBeCloseTo(expected.y, 5);
   }
   const ball = positionOf(container.querySelector('[data-testid="ball-token"]'));
-  expect(ball.x).toBeCloseTo(state.ball.position.x, 5);
-  expect(ball.y).toBeCloseTo(state.ball.position.y, 5);
+  // A held ball is drawn down-right of its carrier so the token does not swallow it; a loose
+  // one stays exactly where the sampler puts it, or a pass and a shot would miss their target.
+  const held = state.ball.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+  expect(ball.x).toBeCloseTo(state.ball.position.x + held, 5);
+  expect(ball.y).toBeCloseTo(state.ball.position.y + held, 5);
 }
 
 afterEach(() => {
@@ -84,11 +88,13 @@ describe('TokenLayer', () => {
     expect(container.querySelectorAll('[data-testid="token"]')).toHaveLength(hornsPlay.players.length);
   });
 
-  it('labels offense with their number and defense with an X label', () => {
+  it('labels both teams with a bare number, one per player', () => {
     renderTokens();
 
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('X1')).toBeInTheDocument();
+    // Both teams now carry just their number; the circle's fill is what separates them, which
+    // the "separates the teams by fill" case below pins.
+    expect(screen.getAllByText('1')).toHaveLength(2);
+    expect(screen.queryByText('X1')).not.toBeInTheDocument();
   });
 
   it('positions every token exactly where the sampler puts it at t = 0, not at the origin', () => {
@@ -104,7 +110,10 @@ describe('TokenLayer', () => {
     const { container } = renderTokens();
     const ball = positionOf(container.querySelector('[data-testid="ball-token"]'));
 
-    expect(ball).toEqual(stateAt(rootTimeline, 0).ball.position);
+    const sampled = stateAt(rootTimeline, 0).ball;
+    const held = sampled.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+    expect(ball.x).toBeCloseTo(sampled.position.x + held, 5);
+    expect(ball.y).toBeCloseTo(sampled.position.y + held, 5);
     expect(ball.x !== 0 || ball.y !== 0).toBe(true);
   });
 
@@ -251,5 +260,39 @@ describe('TokenLayer', () => {
       expect(screen.queryByText('B')).not.toBeInTheDocument();
       expect(container.querySelectorAll('[data-testid="token"]')).toHaveLength(hornsPlay.players.length);
     });
+  });
+});
+
+describe('team symbols', () => {
+  it('gives the two teams different shapes of equal visual weight', () => {
+    // Shape is now the ONLY thing separating the teams: blue-6 and red-6 sit 1.08:1 apart in
+    // luminance, so a greyscale handout renders them the same grey and the disc and the square
+    // are what survive it. If both teams ever drew the same element, the two would merge in
+    // print and for anyone who cannot tell the hues apart.
+    // A rotated square occupies its DIAGONAL, not its side — the same arithmetic that put a
+    // scrollbar under the timeline. Matching WIDTHS would leave the square covering 64% of the
+    // disc and reading as a smaller player, so the areas are matched instead.
+    const { container } = renderTokens();
+    const [offense] = hornsPlay.players.filter((p) => p.team === 'offense');
+    const [defense] = hornsPlay.players.filter((p) => p.team === 'defense');
+    if (offense === undefined || defense === undefined) throw new Error('sample needs both teams');
+
+    expect(tokenFor(container, offense.id)?.querySelector('circle')?.getAttribute('r')).toBe('0.45');
+
+    const diamond = tokenFor(container, defense.id)?.querySelector('rect');
+    expect(diamond).toBeInTheDocument();
+    expect(tokenFor(container, defense.id)?.querySelector('circle')).toBeNull();
+    const side = Number(diamond?.getAttribute('width'));
+    expect(side * side).toBeCloseTo(Math.PI * 0.45 * 0.45, 3);
+    expect(diamond?.getAttribute('transform')).toContain('rotate(45)');
+  });
+
+  it('centres the label inside the circle for both teams', () => {
+    const { container } = renderTokens();
+    const [defense] = hornsPlay.players.filter((p) => p.team === 'defense');
+    if (defense === undefined) throw new Error('sample needs a defender');
+
+    // The X sat under the label, so the label was pushed up by dy. A circle holds it.
+    expect(tokenFor(container, defense.id)?.querySelector('text')?.getAttribute('dy')).toBe('0');
   });
 });

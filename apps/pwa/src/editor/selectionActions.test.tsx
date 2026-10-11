@@ -174,3 +174,20 @@ describe('removing a player', () => {
     expect(readProbe().selection).toBeNull();
   });
 });
+
+describe('leaving edit mode', () => {
+  it('disarms a screen placement, so returning does not consume the next court click', async () => {
+    await renderView();
+    await selectOnCourt(P2);
+    await userEvent.click(screen.getByRole('button', { name: 'Place a screen' }));
+    expect(screen.getByRole('button', { name: 'Cancel screen' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Play' }));
+    await enterEditMode();
+
+    // Deliberately NOT re-selecting the player first: `select()` already disarms placement, so
+    // a test that clicks a token again would pass whether or not the mode switch disarms it.
+    // The selection survives the round trip, so the button is on screen either way.
+    expect(screen.getByRole('button', { name: 'Place a screen' })).toBeInTheDocument();
+  });
+});

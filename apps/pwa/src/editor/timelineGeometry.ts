@@ -7,6 +7,17 @@ export interface TimelineRowModel {
   keyframes: Keyframe[];
 }
 
+// A keyframe marker is an upright rectangle, taller than it is wide, so it reads as an instant
+// rather than as a blob. It is centred on its time with `translate(-50%)`, so it reaches half
+// its WIDTH past that time — which is what the track has to keep room for at either end.
+export const MARKER_WIDTH_PX = 8;
+export const MARKER_HEIGHT_PX = 18;
+
+// The inset lives with the shared axis geometry because the transport needs it too. It must
+// stay at or above half the marker's diagonal — ceil(14 * sqrt(2) / 2) = 10 — or a marker at
+// t = 0 or t = duration overflows its track again.
+export { TRACK_INSET_PX } from '../play2d/transportMath';
+
 export function fractionOf(t: number, duration: number): number {
   if (!(duration > 0) || !Number.isFinite(t)) return 0;
 

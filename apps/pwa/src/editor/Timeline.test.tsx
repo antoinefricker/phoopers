@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
+import { TRACK_INSET_PX } from './timelineGeometry';
+import { TIME_READOUT_PX } from '../play2d/transportMath';
 import { Timeline } from './Timeline';
 import { dragElement, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
 
@@ -469,5 +471,62 @@ describe('screen bars', () => {
     // No layout: the drop maps to t=0, before the screen starts. It floors, rather than being
     // refused (which would leave 1), so the drag demonstrably acted.
     expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.1, 6);
+  });
+});
+
+describe('track alignment', () => {
+  it('insets the row track, the ruler track and the overlay by the same amount', () => {
+    // jsdom has no layout, so it cannot see the overflow this inset exists to prevent. What it
+    // CAN pin is that the three containers sharing one time axis agree: if a later change insets
+    // the rows but not the overlay, the playhead drifts from the markers by that amount.
+    renderEditor(fixturePlay, <Timeline />);
+
+    const rowTrack = rowFor(P1).lastElementChild as HTMLElement;
+    const rulerTrack = screen.getByTestId('step-ruler').lastElementChild as HTMLElement;
+    const overlay = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
+
+    // The right side also reserves the transport's time readout, so the scrubber and the
+    // tracks end at the same x instead of the scrubber stopping short by that width.
+    const right = `${TRACK_INSET_PX + TIME_READOUT_PX}px`;
+    expect(rowTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
+    expect(rowTrack.style.marginRight).toBe(right);
+    expect(rulerTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
+    expect(rulerTrack.style.marginRight).toBe(right);
+    expect(overlay.style.right).toBe(right);
+    expect(overlay.style.left).toContain(`${TRACK_INSET_PX}px`);
+  });
+});
+
+describe('text selection', () => {
+  it('makes the timeline unselectable, so a marker drag does not select row labels', () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const surface = screen.getByTestId('step-ruler').parentElement as HTMLElement;
+
+    expect(surface.style.userSelect).toBe('none');
+  });
+});
+
+describe('the ball row for a screen reader', () => {
+  it('names a held keyframe differently from a loose one', () => {
+    // The row shows possession as a tinted segment versus a hollow marker. Shape and colour
+    // carry nothing to assistive technology, and `data-kind` is not exposed, so the accessible
+    // name is the only place the distinction can live.
+    // The engine fixture's ball is attached at every keyframe, so a loose one is added here —
+    // without it the test passes even if every marker is named "held".
+    const withShot: Play = {
+      ...fixturePlay,
+      branches: fixturePlay.branches.map((b) =>
+        b.id === ROOT
+          ? { ...b, tracks: { ...b.tracks, ball: [...(b.tracks.ball ?? []), { t: 6, position: { x: 25, y: 7 } }] } }
+          : b,
+      ),
+    };
+    renderEditor(withShot, <Timeline />);
+    const ballRow = rowFor('ball');
+
+    expect(within(ballRow).getByRole('button', { name: 'Ball loose at 6s' })).toBeInTheDocument();
+    expect(within(ballRow).getByRole('button', { name: 'Ball held at 0s' })).toBeInTheDocument();
+    expect(within(ballRow).queryAllByRole('button', { name: /loose/i })).toHaveLength(1);
+    expect(within(ballRow).queryAllByRole('button', { name: /^Keyframe at/ })).toHaveLength(0);
   });
 });

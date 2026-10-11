@@ -1,17 +1,21 @@
-import { Box, CloseButton, Text } from '@mantine/core';
+import { Box, CloseButton } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, ScreenEvent, ScreenId } from '../engine';
 import { ConfirmDelete } from './ConfirmDelete';
 import { constrainRetime } from './constraints';
-import { fractionOf } from './timelineGeometry';
+import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
+import { GUTTER_WIDTH, TIME_READOUT_PX } from '../play2d/transportMath';
+import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
 import { useEditorContext } from './useEditorContext';
 import type { Selection } from './useEditorContext';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 
-export const LABEL_WIDTH = '4.5rem';
+// Re-exported so the editor's own files keep one import site; the value is shared with the
+// transport, whose buttons fill the same gutter.
+export { GUTTER_WIDTH as LABEL_WIDTH } from '../play2d/transportMath';
 
 interface Props {
   row: TimelineRowModel;
@@ -28,6 +32,9 @@ const percent = (t: number, duration: number) => `${fractionOf(t, duration) * 10
 export const MIN_SCREEN_DURATION = 0.1;
 // A drop within this fraction of the play's length of a step snaps to it.
 const SNAP_FRACTION = 0.02;
+
+// The row is 2rem tall; the badge leaves a little air above and below.
+const ROW_SYMBOL_PX = 24;
 
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
   const { t } = useTranslation();
@@ -49,14 +56,43 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   const labelOf = (id: string) => timeline.players.find((p) => p.id === id)?.label ?? id;
   const removingScreen = screens.find((s) => s.id === removing.target);
   const isBall = row.team === 'ball';
-  const label = isBall ? t('play.editor.ballRow', 'Ball') : row.label;
+  // The gutter draws the same token the court does rather than restating it as text, so a row
+  // is recognised by the symbol the coach already reads on the floor. The badge carries the
+  // name a screen reader needs, which the bare number never did — both teams used to read "2".
+  const rowName = isBall
+    ? t('play.editor.ballRow', 'Ball')
+    : row.team === 'offense'
+      ? t('play.editor.offenseRow', 'Offense {{label}}', { label: row.label })
+      : t('play.editor.defenseRow', 'Defense {{label}}', { label: row.label });
 
   return (
     <Box data-testid={`timeline-row-${row.entityId}`} style={{ display: 'flex', alignItems: 'center', height: '2rem' }}>
-      <Text size="sm" w={LABEL_WIDTH} style={{ flexShrink: 0 }}>
-        {label}
-      </Text>
-      <Box ref={trackRef} style={{ position: 'relative', flex: 1, height: '100%' }}>
+      <Box w={GUTTER_WIDTH} style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+        {isBall ? (
+          <BallSymbolBadge sizePx={ROW_SYMBOL_PX} name={rowName} />
+        ) : (
+          <PlayerSymbolBadge
+            team={row.team === 'defense' ? 'defense' : 'offense'}
+            label={row.label}
+            sizePx={ROW_SYMBOL_PX}
+            name={rowName}
+          />
+        )}
+      </Box>
+      {/* Inset so a marker sitting at t=0 or t=duration fits inside the track: it is a rotated
+          square, so it reaches half its DIAGONAL past its time. Without this the last marker
+          overflows and the panel grows a horizontal scrollbar. StepRuler and Timeline's
+          overlay carry the same inset, or the playhead drifts from the markers. */}
+      <Box
+        ref={trackRef}
+        style={{
+          position: 'relative',
+          flex: 1,
+          height: '100%',
+          marginLeft: TRACK_INSET_PX,
+          marginRight: TRACK_INSET_PX + TIME_READOUT_PX,
+        }}
+      >
         <Box
           style={{
             position: 'absolute',
@@ -162,7 +198,15 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               type="button"
               data-kind={hollow ? 'position' : 'attached'}
               aria-pressed={selected}
-              aria-label={t('play.editor.keyframeAt', 'Keyframe at {{t}}s', { t: k.t })}
+              // Shape and colour carry the ball's possession on screen; neither reaches
+              // assistive technology, and `data-kind` is not exposed, so the name says it.
+              aria-label={
+                isBall
+                  ? hollow
+                    ? t('play.editor.ballLooseAt', 'Ball loose at {{t}}s', { t: k.t })
+                    : t('play.editor.ballHeldAt', 'Ball held at {{t}}s', { t: k.t })
+                  : t('play.editor.keyframeAt', 'Keyframe at {{t}}s', { t: k.t })
+              }
               onClick={() => {
                 if (!consumeDrag()) onSelectKeyframe(row.entityId, k.t);
               }}
@@ -196,13 +240,21 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 top: '50%',
                 left: percent(k.t, duration),
                 touchAction: owned ? 'none' : undefined,
-                width: 14,
-                height: 14,
+                width: MARKER_WIDTH_PX,
+                height: MARKER_HEIGHT_PX,
                 padding: 0,
+                borderRadius: 2,
                 cursor: owned ? 'grab' : 'pointer',
-                transform: 'translate(-50%, -50%) rotate(45deg)',
-                border: `2px solid var(--mantine-color-${selected ? 'blue-filled' : 'text'})`,
-                background: hollow ? 'transparent' : 'var(--mantine-color-text)',
+                transform: 'translate(-50%, -50%)',
+                // Selection is the border: blue and thicker, since a white fill leaves nothing
+                // else to carry it.
+                border: selected
+                  ? `2px solid var(--mantine-color-blue-filled)`
+                  : `1px solid var(--mantine-color-gray-5)`,
+                // White everywhere except a held ball, which keeps a tint: the filled-versus-
+                // hollow contrast used to be the only thing showing possession on screen, and
+                // dropping it would leave that to the accessible name alone.
+                background: isBall && !hollow ? 'var(--mantine-color-orange-1)' : 'var(--mantine-color-white)',
               }}
             />
           );

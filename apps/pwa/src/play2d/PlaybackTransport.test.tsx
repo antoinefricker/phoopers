@@ -154,17 +154,15 @@ describe('PlaybackTransport', () => {
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
   });
 
-  it('renders a labelled tick per step', () => {
-    renderTransport();
+  it('marks each step on the scrubber without naming it', () => {
+    // The names moved to the step ruler, which sits directly below on the same axis and shows
+    // them in full. Keeping them here too printed each one twice, centred and ellipsised
+    // against the ruler's left-aligned text. The dots stay: they show where a drag snaps.
+    const { container } = renderTransport();
 
-    expect(screen.getByText('Entry pass')).toBeInTheDocument();
-    expect(screen.getByText('Double high screen')).toBeInTheDocument();
-  });
-
-  it('carries the full step name as a title, so a clipped label can still be read', () => {
-    renderTransport();
-
-    expect(screen.getByText('Double high screen')).toHaveAttribute('title', 'Double high screen');
+    expect(container.querySelectorAll('.mantine-Slider-mark')).toHaveLength(steps.length);
+    expect(screen.queryByText('Entry pass')).not.toBeInTheDocument();
+    expect(screen.queryByText('Double high screen')).not.toBeInTheDocument();
   });
 
   it('jumps to the next step, then the one after, then stops at the last', () => {
@@ -319,5 +317,20 @@ describe('PlaybackTransport', () => {
     expect(Number(slider.getAttribute('aria-valuemax'))).toBeGreaterThan(0);
     expect(slider.getAttribute('aria-valuenow')).not.toBe('NaN');
     expect(screen.getByTestId('current-time')).toHaveTextContent('0.0');
+  });
+});
+
+describe('transport icons', () => {
+  it('draws each control as an icon, not a text glyph', async () => {
+    // The buttons used to read "<", "||" / ">" and ">" — prev and play looked alike. The
+    // existing cases find these buttons by their accessible name, so they pass either way;
+    // this one is what notices a silent fall back to glyphs.
+    renderTransport();
+
+    for (const name of ['Previous step', 'Play', 'Next step']) {
+      const button = screen.getByRole('button', { name });
+      expect(button.querySelector('svg')).toBeInTheDocument();
+      expect(button.textContent).toBe('');
+    }
   });
 });

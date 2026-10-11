@@ -229,3 +229,17 @@ describe('StepRuler', () => {
     expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(2);
   });
 });
+
+describe('the rename field opts back into selection', () => {
+  it('keeps its text selectable although the timeline disables selection', async () => {
+    // The timeline sets user-select: none to stop a drag highlighting labels. A field whose
+    // own text could not be selected would be unusable, so it must opt back in explicitly
+    // rather than relying on the browser's form-control defaults.
+    renderEditor(fixturePlay, <StepRuler />);
+    await userEvent.click(screen.getByText('Entry pass'));
+
+    const input = await screen.findByRole('textbox', { name: 'Step name' });
+
+    expect(input.style.userSelect).toBe('text');
+  });
+});

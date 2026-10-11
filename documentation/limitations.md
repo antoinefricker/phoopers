@@ -153,6 +153,26 @@ rather than `NaN`.
 
 ## Editor
 
+### The court's colours trade legibility for looks, unresolved
+
+The floor is a wood tone and the markings are white, so one ratio governs both the lines and the
+white rim that separates each token from the floor. Measured against the colour in the tree at
+the time of writing, `#d5c49a`: the lines and rims sit at **1.72:1**, under the 3:1 floor WCAG
+1.4.11 sets for a graphic that carries meaning. The paths are worse and have no rim at all —
+**2.07:1** for an offense run, **1.91:1** for a defense run, **1.49:1** for a pass.
+
+Darkening the floor fixes the lines and rims and nothing else: for this hue and saturation the
+3:1 threshold sits at 46% lightness, and the value has been through #b5651d, #cbc2a6, #dcd6c5,
+#e8dab6, #b39038 and #d5c49a while the balance is settled. The token and path FILLS cannot be
+fixed this way at all — a mid-luminance blue, red or orange never clears 3:1 against any wood,
+because the floor passes through their value on the way darker.
+
+It is left open deliberately: the colour is a design decision in progress, not a defect.
+
+**Fix:** settle the floor's lightness at or below the 3:1 threshold for the white, and give the
+paths the same treatment the tokens got — a white casing drawn under each stroke, which means
+`PathLayer` rendering every segment twice.
+
 ### A drag cannot lengthen the play
 
 A timeline drag maps the pointer to a time with `timeFromClientX`, which clamps to the row, so
@@ -237,6 +257,44 @@ the mutation owns (`current.length <= 1`), and two copies of a rule drift.
 **Fix:** have `removeKeyframe` in the context return whether it removed anything (the same
 identity check `forkBranch` already uses), and have `Timeline` keep the selection and show a
 notice when it did not.
+
+### The court diagram exposes nothing of its contents to assistive technology
+
+`PlayCanvas` gives the court SVG `role="img"` with the name "Court diagram: {{name}}". `img` is
+a children-presentational role, so every descendant is removed from the accessibility tree:
+players, their numbers, the paths, the screens and the ball are all unreachable. A screen-reader
+user learns the play's name and nothing else about it.
+
+Measured: adding `role="img"` and an `aria-label` to each of the ten player tokens changed
+nothing for assistive technology — the names sit inside a presentational subtree — and broke the
+five `PlayCanvas` cases that find the court with `getByRole('img')`, because the role was then
+ambiguous. The experiment was reverted.
+
+It was left because the fix is a design decision rather than an attribute: the court would stop
+being one labelled image and become a container whose children are each named, which changes
+what a screen reader hears from one sentence into a structure, and spec 002 specifies neither.
+Note this predates the editor — the tokens were never announced, including when defenders were
+labelled "X1".."X5".
+
+**Fix:** give the SVG `role="group"` (or `role="application"` once the court is interactive),
+name each token group, and give the paths text alternatives — then decide what a sensible
+reading order over a play actually is.
+
+### Steps and screens cannot be retimed from the keyboard
+
+Keyframe markers, step ticks and screen handles are all retimed by pointer drag only. Measured
+in a browser: a step tick is a `<button>` with `tabIndex` 0, so it takes focus, but pressing
+ArrowRight, ArrowLeft, ArrowUp and ArrowDown on it leaves its `style.left` unchanged. The screen
+duration handle is worse — a `<div>` with `tabIndex` -1, so it cannot take focus at all, and its
+`aria-label="Screen duration"` sits on an element with no role, where assistive technology
+ignores it.
+
+It was left because keyboard editing is not in spec 003, which describes pointer gestures
+throughout.
+
+**Fix:** handle arrow keys on the focusable controls, moving the object by one snap step and
+committing through the same `constrainRetime` the drag uses; and make the screen handle a
+`<button>` so its name is exposed and it can be reached.
 
 ## Test coverage gaps
 

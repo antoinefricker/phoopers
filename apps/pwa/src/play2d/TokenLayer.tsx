@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { stateAt } from '../engine';
 import type { PlayerId } from '../engine';
 import { usePlaybackContext } from './usePlaybackContext';
+import { BallSymbol, HELD_BALL_OFFSET, PlayerSymbol } from './PlayerSymbol';
 
 const translate = (x: number, y: number): string => `translate(${x} ${y})`;
 
@@ -39,7 +40,13 @@ export function TokenLayer() {
       }
 
       if (ballRef.current !== null) {
-        ballRef.current.setAttribute('transform', translate(state.ball.position.x, state.ball.position.y));
+        // Only while held: a loose ball is at its own position and must stay there, or a pass
+        // and a shot would land off their target.
+        const held = state.ball.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+        ballRef.current.setAttribute(
+          'transform',
+          translate(state.ball.position.x + held, state.ball.position.y + held),
+        );
       }
     };
 
@@ -62,28 +69,12 @@ export function TokenLayer() {
             }
           }}
         >
-          {player.team === 'offense' ? (
-            <circle r={0.45} fill="var(--mantine-color-blue-6)" />
-          ) : (
-            <g stroke="var(--mantine-color-red-6)" strokeWidth={0.12} strokeLinecap="round">
-              <line x1={-0.35} y1={-0.35} x2={0.35} y2={0.35} />
-              <line x1={-0.35} y1={0.35} x2={0.35} y2={-0.35} />
-            </g>
-          )}
-          <text
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={0.5}
-            fill={player.team === 'offense' ? 'var(--mantine-color-white)' : 'var(--mantine-color-red-6)'}
-            dy={player.team === 'offense' ? 0 : -0.7}
-          >
-            {player.label}
-          </text>
+          <PlayerSymbol team={player.team} label={player.label} />
         </g>
       ))}
       {hasBall && (
         <g data-testid="ball-token" ref={ballRef}>
-          <circle r={0.18} fill="var(--mantine-color-orange-6)" />
+          <BallSymbol />
         </g>
       )}
     </g>

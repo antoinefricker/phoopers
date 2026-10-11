@@ -6,7 +6,8 @@ import type { Step, StepId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { constrainStepRetime } from './constraints';
 import { LABEL_WIDTH } from './TimelineRow';
-import { fractionOf } from './timelineGeometry';
+import { TRACK_INSET_PX, fractionOf } from './timelineGeometry';
+import { TIME_READOUT_PX } from '../play2d/transportMath';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 
@@ -18,7 +19,11 @@ const tickStyle = (t: number, duration: number): CSSProperties => ({
   position: 'absolute',
   top: '50%',
   left: percent(t, duration),
-  transform: 'translate(-50%, -50%)',
+  // Vertical centring only. The tick's visible marker is its LEFT BORDER, so translating it
+  // horizontally by half its own width put the line half a label-width before the step's real
+  // time — 60px out for "Double high screen", 35px for "Entry pass". The name now hangs to the
+  // right of a line that sits exactly on the instant, matching the scrubber and the markers.
+  transform: 'translateY(-50%)',
   padding: '0 4px',
   whiteSpace: 'nowrap',
   border: 0,
@@ -40,11 +45,14 @@ function StepEditor({ step, onDone }: EditorProps) {
 
   return (
     <Group gap="xs" wrap="nowrap" align="flex-end">
+      {/* The timeline sets user-select: none so a drag cannot highlight labels. This field is
+          the one place inside it holding text the user edits, so it opts back in. */}
       <TextInput
         size="xs"
         label={t('play.editor.stepName', 'Step name')}
         value={name}
         onChange={(event) => setName(event.currentTarget.value)}
+        styles={{ input: { userSelect: 'text' } }}
       />
       <Button
         size="xs"
@@ -103,7 +111,17 @@ export function StepRuler() {
           {t('play.editor.addStep', 'Add step')}
         </Button>
       </Box>
-      <Box ref={trackRef} style={{ position: 'relative', flex: 1, height: '100%' }}>
+      {/* Same inset as TimelineRow's track, so the ruler's time axis lines up with the rows. */}
+      <Box
+        ref={trackRef}
+        style={{
+          position: 'relative',
+          flex: 1,
+          height: '100%',
+          marginLeft: TRACK_INSET_PX,
+          marginRight: TRACK_INSET_PX + TIME_READOUT_PX,
+        }}
+      >
         {steps.map((step) => {
           const others = steps.filter((s) => s.id !== step.id);
 

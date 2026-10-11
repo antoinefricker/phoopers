@@ -5,7 +5,8 @@ import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { StepRuler } from './StepRuler';
 import { forkTimeOf } from './mutations';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
-import { fractionOf, rowsOf } from './timelineGeometry';
+import { TIME_READOUT_PX } from '../play2d/transportMath';
+import { TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 
 export function Timeline() {
@@ -40,7 +41,9 @@ export function Timeline() {
   return (
     <ScrollArea>
       {/* Keys arrive from the focused marker button and bubble up to here. */}
-      <Box style={{ position: 'relative' }} onKeyDown={onKeyDown}>
+      {/* Same reason as the court: dragging a marker must not highlight the row labels or a
+          step name. Inputs below re-enable selection for the text they actually edit. */}
+      <Box style={{ position: 'relative', userSelect: 'none' }} onKeyDown={onKeyDown}>
         <StepRuler />
         {rowsOf(timeline).map((row) => (
           <TimelineRow
@@ -61,7 +64,18 @@ export function Timeline() {
             }}
           />
         ))}
-        <Box style={{ position: 'absolute', top: 0, bottom: 0, left: LABEL_WIDTH, right: 0, pointerEvents: 'none' }}>
+        {/* Matches the tracks' inset on both sides, so the playhead and the mask stay aligned
+            with the markers rather than drifting by the inset at the far end. */}
+        <Box
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: `calc(${LABEL_WIDTH} + ${TRACK_INSET_PX}px)`,
+            right: TRACK_INSET_PX + TIME_READOUT_PX,
+            pointerEvents: 'none',
+          }}
+        >
           {/* Dims what the branch inherits and cannot change. Presentation only: the court layer
               and the mutations refuse the same writes on their own. */}
           {forkTime > 0 && (

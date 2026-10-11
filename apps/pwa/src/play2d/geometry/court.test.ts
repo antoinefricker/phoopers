@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COURT_SPEC, courtMarkings, fullCourtViewBox, halfCourtViewBox } from './court';
+import { APRON, COURT_SPEC, courtMarkings, fullCourtViewBox, halfCourtViewBox } from './court';
 import type { CourtType, Marking } from './court';
 
 const COURTS: CourtType[] = ['fiba', 'nba'];
@@ -186,13 +186,14 @@ describe('courtMarkings', () => {
 });
 
 describe('viewBoxes', () => {
-  it('full court spans the whole floor', () => {
-    expect(fullCourtViewBox('fiba')).toBe('0 0 28 15');
+  it('full court spans the floor and the apron around it', () => {
+    expect(fullCourtViewBox('fiba')).toBe(`${-APRON} ${-APRON} ${28 + APRON * 2} ${15 + APRON * 2}`);
   });
 
-  it('half court spans exactly one half of the floor, chosen by side', () => {
-    expect(halfCourtViewBox('fiba', 'left')).toBe('0 0 14 15');
-    expect(halfCourtViewBox('fiba', 'right')).toBe('14 0 14 15');
-    expect(halfCourtViewBox('nba', 'right')).toBe(`${28.65 / 2} 0 ${28.65 / 2} 15.24`);
+  it('half court carries the apron on its outer sides only', () => {
+    // The halfway cut runs through the floor: there is no edge there, so no apron.
+    expect(halfCourtViewBox('fiba', 'left')).toBe(`${-APRON} ${-APRON} ${14 + APRON} ${15 + APRON * 2}`);
+    expect(halfCourtViewBox('fiba', 'right')).toBe(`14 ${-APRON} ${14 + APRON} ${15 + APRON * 2}`);
+    expect(halfCourtViewBox('nba', 'right')).toBe(`${28.65 / 2} ${-APRON} ${28.65 / 2 + APRON} ${15.24 + APRON * 2}`);
   });
 });

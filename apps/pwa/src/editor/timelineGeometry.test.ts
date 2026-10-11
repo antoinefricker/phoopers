@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveBranch } from '../engine';
 import { fixturePlay, P1, ROOT } from '../engine/__fixtures__/play';
-import { fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
+import { MARKER_WIDTH_PX, TRACK_INSET_PX, fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
 
 describe('fractionOf', () => {
   it('maps a time to its fraction of the duration', () => {
@@ -88,5 +88,20 @@ describe('timeFromClientX', () => {
   it('clamps beyond either end', () => {
     expect(timeFromClientX(0, rect(100, 200), 8)).toBe(0);
     expect(timeFromClientX(999, rect(100, 200), 8)).toBe(8);
+  });
+});
+
+describe('track inset', () => {
+  it('reserves half the marker width, which is what a marker overhangs', () => {
+    // The marker is centred on its time, so it reaches half its width past it. It used to be a
+    // square rotated 45 degrees, where the overhang was half the DIAGONAL and the inset had to
+    // be larger than the width suggested; upright, the width is the whole story.
+    expect(TRACK_INSET_PX).toBeGreaterThanOrEqual(MARKER_WIDTH_PX / 2);
+  });
+
+  it('is no larger than a marker needs, so the track keeps the room', () => {
+    // Every pixel of inset is a pixel the time axis does not span, on all three surfaces that
+    // share it. An inset well past the overhang is waste, not safety.
+    expect(TRACK_INSET_PX).toBeLessThanOrEqual(MARKER_WIDTH_PX);
   });
 });

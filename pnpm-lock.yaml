@@ -59,12 +59,18 @@ importers:
 
   apps/pwa:
     dependencies:
+      '@fontsource/roboto-condensed':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@mantine/core':
         specifier: ^9.7.1
         version: 9.7.1(@mantine/hooks@9.7.1(react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@mantine/hooks':
         specifier: ^9.7.1
         version: 9.7.1(react@19.3.0)
+      '@tabler/icons-react':
+        specifier: ^3.49.0
+        version: 3.49.0(react@19.3.0)
       i18next:
         specifier: ^26.4.2
         version: 26.4.2(typescript@5.9.3)
@@ -631,6 +637,9 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
+  '@fontsource/roboto-condensed@5.3.0':
+    resolution: {integrity: sha512-Vbh5pesre/M/Jspd10btdKRqLSTe3yn4l6B2tXHGElCeASfA7Pgdpu1mb8wTG8E72J4Xk6FUfqnSe46UN2QAog==}
+
   '@gulpjs/to-absolute-glob@4.0.0':
     resolution: {integrity: sha512-kjotm7XJrJ6v+7knhPaRgaT6q8F8K2jiafwYdNHLzmV0uGLuZY43FK6smNSHUPrhq5kX2slCUy+RGG/xGqmIKA==}
     engines: {node: '>=10.13.0'}
@@ -924,6 +933,14 @@ packages:
     resolution: {integrity: sha512-qTv4bG+eKJKifzxNJevMUh8L6CjJrz9/Kn1IbP2F5bo0tBzNIR7HMg4vni6XmDzcKUl00lHHY+J5ZgjbGiujOQ==}
     cpu: [x64]
     os: [win32]
+
+  '@tabler/icons-react@3.49.0':
+    resolution: {integrity: sha512-Um59pm5RVNUaQjFUtG0r4oYJbZuBS3tGugAA2tgBg0WufMk34Eio3nsO30RUkLuL2giYPQUNdY9HvqltLLYyNA==}
+    peerDependencies:
+      react: '>= 16'
+
+  '@tabler/icons@3.49.0':
+    resolution: {integrity: sha512-l+GnSkFETx0U26icxv1VUFnxxiTqXfCcVRiRAnyMwibupM2S2L/hSaZ9gmSgz01rkrsH/93NvLsxykqdanc6lw==}
 
   '@testing-library/dom@10.4.2':
     resolution: {integrity: sha512-yzr2S9HyAIdhz2/6qHgbs665Q7PKVcDF05vsOlHPxG1mo36gKVesdYVeDLnXgfjJ03CrKRk08knc6+E/9m8v2Q==}
@@ -3680,6 +3697,8 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
+  '@fontsource/roboto-condensed@5.3.0': {}
+
   '@gulpjs/to-absolute-glob@4.0.0':
     dependencies:
       is-negated-glob: 1.0.0
@@ -3881,6 +3900,13 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.64.3':
     optional: true
+
+  '@tabler/icons-react@3.49.0(react@19.3.0)':
+    dependencies:
+      '@tabler/icons': 3.49.0
+      react: 19.3.0
+
+  '@tabler/icons@3.49.0': {}
 
   '@testing-library/dom@10.4.2':
     dependencies:
