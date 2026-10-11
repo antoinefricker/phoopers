@@ -9,7 +9,7 @@ import i18n from '../i18n/i18n';
 import { EditorContextProvider } from '../editor/EditorContextProvider';
 import { PlayView } from './PlayView';
 import { HELD_BALL_OFFSET } from './PlayerSymbol';
-import { fullCourtViewBox } from './geometry/court';
+import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
 
 function renderView(widthPx = 1440) {
   stubViewportWidth(widthPx);
@@ -190,7 +190,7 @@ describe('PlayView', () => {
       renderView();
 
       await user.click(screen.getByRole('radio', { name: 'Half court' }));
-      expect(screen.getByRole('img')).toHaveAttribute('viewBox', '14 0 14 15');
+      expect(screen.getByRole('img')).toHaveAttribute('viewBox', halfCourtViewBox('fiba', 'right'));
 
       await user.click(screen.getByRole('radio', { name: 'Full court' }));
       expect(screen.getByRole('img')).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));

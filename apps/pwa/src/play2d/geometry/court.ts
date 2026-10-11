@@ -128,9 +128,17 @@ export function courtMarkings(court: CourtType): Marking[] {
   ];
 }
 
+export const LINE_WIDTH = 0.1;
+
+// The floor runs half a metre past the playing surface, as a hall does: the boundary line is
+// centred on the court's edge, so without it half the line falls outside the frame and the
+// sideline draws at half thickness. The apron subsumes that — ten times the half-width the line
+// needs — and gives the markings somewhere to sit rather than ending flush at the frame.
+export const APRON = 0.5;
+
 export const fullCourtViewBox = (court: CourtType): string => {
   const spec = COURT_SPEC[court];
-  return `0 0 ${spec.length} ${spec.width}`;
+  return `${-APRON} ${-APRON} ${spec.length + APRON * 2} ${spec.width + APRON * 2}`;
 };
 
 export type CourtSide = 'left' | 'right';
@@ -139,5 +147,8 @@ export type CourtSide = 'left' | 'right';
 export const halfCourtViewBox = (court: CourtType, side: CourtSide): string => {
   const spec = COURT_SPEC[court];
   const half = spec.length / 2;
-  return `${side === 'left' ? 0 : half} 0 ${half} ${spec.width}`;
+  // The apron is on the outer three sides only: the halfway cut cuts through the floor, where
+  // there is no edge and nothing to leave room for.
+  const x = side === 'left' ? -APRON : half;
+  return `${x} ${-APRON} ${half + APRON} ${spec.width + APRON * 2}`;
 };

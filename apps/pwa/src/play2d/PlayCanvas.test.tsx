@@ -5,7 +5,7 @@ import { pointOnCubic, resolveBranch, stateAt, type Vec2 } from '../engine';
 import { HORNS_SWITCH, hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlayCanvas } from './PlayCanvas';
-import { COURT_SPEC, courtMarkings, fullCourtViewBox } from './geometry/court';
+import { APRON, COURT_SPEC, courtMarkings, fullCourtViewBox, halfCourtViewBox } from './geometry/court';
 import { playerPathSegments } from './geometry/paths';
 import { DRIBBLE_AMPLITUDE } from './pathSymbols';
 
@@ -62,7 +62,7 @@ describe('PlayCanvas', () => {
 
     expect(fullPaths.length).toBeGreaterThan(10);
     // The sample attacks the right basket, so the right half.
-    expect(halfViewBox).toBe('14 0 14 15');
+    expect(halfViewBox).toBe(halfCourtViewBox('fiba', 'right'));
     expect(halfViewBox).not.toBe(fullViewBox);
     // Every path's geometry and symbol attributes are identical, as is all the markup inside the svg.
     expect(snapshotPaths(half.container)).toEqual(fullPaths);
@@ -111,12 +111,16 @@ describe('PlayCanvas', () => {
     expect(container.querySelectorAll('[data-testid="court"] > *')).toHaveLength(courtMarkings('fiba').length);
   });
 
-  it('fits the court inside its own viewBox', () => {
+  it('frames the floor and the apron around it', () => {
+    // The apron gives the boundary line somewhere to sit: centred on the court's edge, half of
+    // it would fall outside a frame cut exactly to the floor and draw at half thickness.
     renderCanvas();
-    const [, , width, height] = (screen.getByRole('img').getAttribute('viewBox') ?? '').split(' ').map(Number);
+    const [x, y, width, height] = (screen.getByRole('img').getAttribute('viewBox') ?? '').split(' ').map(Number);
 
-    expect(width).toBe(COURT_SPEC.fiba.length);
-    expect(height).toBe(COURT_SPEC.fiba.width);
+    expect(width).toBe(COURT_SPEC.fiba.length + APRON * 2);
+    expect(height).toBe(COURT_SPEC.fiba.width + APRON * 2);
+    expect(x).toBe(-APRON);
+    expect(y).toBe(-APRON);
   });
 
   it('never draws an empty path', () => {
