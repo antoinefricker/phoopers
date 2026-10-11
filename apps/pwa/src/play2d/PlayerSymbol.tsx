@@ -15,6 +15,11 @@ export const DIAMOND_SIDE = (TOKEN_SIZE / 2) * Math.sqrt(Math.PI);
 // the disc's radius. A wrapper sizes its viewBox from this so nothing is clipped.
 export const TOKEN_REACH = (DIAMOND_SIDE * Math.SQRT2) / 2;
 
+// What every gutter badge frames. The square's half-diagonal is the widest any token reaches,
+// so framing on it lets the square touch the badge's corners and leaves the disc at 80% — the
+// ratio that makes their areas equal, as on the court.
+const BADGE_REACH = TOKEN_REACH;
+
 // Larger than a real ball against these tokens — a true 0.12 m radius would be a speck beside
 // a 0.9 m player — and sized so the basketball's seams have room to read rather than to scale.
 export const BALL_RADIUS = 0.22;
@@ -79,19 +84,17 @@ export function PlayerSymbol({ team, label }: Props) {
 // A standalone badge for anywhere outside the court's own SVG — the timeline's gutter draws the
 // same token the court does, at row height, rather than restating it as text.
 export function PlayerSymbolBadge({ team, label, sizePx, name }: Props & { sizePx: number; name: string }) {
-  // Each badge frames its own symbol edge to edge, so every symbol in the gutter is drawn at
-  // the same size whatever it measures on the court. The gutter identifies a row; it is not a
-  // scale drawing, and the court keeps the true proportions. A defender's square is framed on
-  // its diagonal, so it fills the box corner to corner and reads a little lighter than the
-  // disc that fills it edge to edge.
-  const reach = team === 'defense' ? TOKEN_REACH : TOKEN_SIZE / 2;
-  const box = reach * 2;
+  // Every badge is framed on the same reach — the square's half-diagonal — so the two symbols
+  // keep the court's equal-AREA relationship instead of an equal box. A square and a disc
+  // cannot both fill a 24px badge and cover the same surface: the square's diagonal is the
+  // binding dimension, so it reaches the badge's corners while the disc spans 80% of it.
+  const box = BADGE_REACH * 2;
 
   return (
     <svg
       width={sizePx}
       height={sizePx}
-      viewBox={`${-reach} ${-reach} ${box} ${box}`}
+      viewBox={`${-BADGE_REACH} ${-BADGE_REACH} ${box} ${box}`}
       role="img"
       aria-label={name}
       style={{ flexShrink: 0 }}
@@ -136,25 +139,24 @@ export function BallSymbol() {
 
 // The ball has no number, so it is its own badge rather than a case inside PlayerSymbol.
 export function BallSymbolBadge({ sizePx, name }: { sizePx: number; name: string }) {
-  // Framed on the ball itself rather than on a player's reach: in the gutter a badge identifies
-  // a row, it does not draw entities to scale. Sharing the player viewBox left the ball at 9px
-  // inside a 24px badge, a speck beside the tokens it sits under. On the court the proportion
-  // between ball and player stays true, which is where it means something.
-  // Framed edge to edge like the player badges, so the ball is drawn at the same size as the
-  // tokens it sits under rather than as the speck it is on the court.
-  const reach = BALL_RADIUS;
-  const box = reach * 2;
+  // The ball is a disc too, so it is drawn at the offense disc's size rather than its own: a
+  // ball larger than a player would read as the bigger object. Its court proportion — a speck
+  // beside a token — stays true where it means something, on the floor.
+  const scale = TOKEN_SIZE / 2 / BALL_RADIUS;
+  const box = BADGE_REACH * 2;
 
   return (
     <svg
       width={sizePx}
       height={sizePx}
-      viewBox={`${-reach} ${-reach} ${box} ${box}`}
+      viewBox={`${-BADGE_REACH} ${-BADGE_REACH} ${box} ${box}`}
       role="img"
       aria-label={name}
       style={{ flexShrink: 0 }}
     >
-      <BallSymbol />
+      <g transform={`scale(${scale})`}>
+        <BallSymbol />
+      </g>
     </svg>
   );
 }
