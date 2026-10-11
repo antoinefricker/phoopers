@@ -10,6 +10,7 @@ import { Timeline } from '../editor/Timeline';
 import { useEditorContext } from '../editor/useEditorContext';
 import { BranchTree } from './BranchTree';
 import { PlayCanvas } from './PlayCanvas';
+import { FLOOR } from './Court';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
 
@@ -66,7 +67,13 @@ export function PlayView() {
             hugs its own height (align flex-start), so spare vertical space falls to the page
             instead of becoming blank bands inside the bordered panel. */}
         <Flex direction={{ base: 'column', sm: 'row' }} align="flex-start" gap="md">
-          <Paper flex={1} w="100%" withBorder p="xs" style={{ minWidth: 0 }}>
+          {/* No padding: the floor runs to the panel's border rather than sitting in a white
+              margin. The sidebar panel below keeps its own. */}
+          {/* No padding, and the floor's colour behind the drawing: the court keeps its own
+              aspect ratio, so a panel wider or taller than it leaves a band the svg does not
+              cover — white there read as a gap in the floor. The sidebar panel keeps its own
+              padding and background. */}
+          <Paper flex={1} w="100%" withBorder p={0} bg={FLOOR} style={{ minWidth: 0 }}>
             <PlayCanvas halfCourt={halfCourt} playName={play.name} />
           </Paper>
           {sidebarOpen && (

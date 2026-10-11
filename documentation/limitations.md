@@ -153,6 +153,26 @@ rather than `NaN`.
 
 ## Editor
 
+### The court's colours trade legibility for looks, unresolved
+
+The floor is a wood tone and the markings are white, so one ratio governs both the lines and the
+white rim that separates each token from the floor. Measured against the colour in the tree at
+the time of writing, `#d5c49a`: the lines and rims sit at **1.72:1**, under the 3:1 floor WCAG
+1.4.11 sets for a graphic that carries meaning. The paths are worse and have no rim at all —
+**2.07:1** for an offense run, **1.91:1** for a defense run, **1.49:1** for a pass.
+
+Darkening the floor fixes the lines and rims and nothing else: for this hue and saturation the
+3:1 threshold sits at 46% lightness, and the value has been through #b5651d, #cbc2a6, #dcd6c5,
+#e8dab6, #b39038 and #d5c49a while the balance is settled. The token and path FILLS cannot be
+fixed this way at all — a mid-luminance blue, red or orange never clears 3:1 against any wood,
+because the floor passes through their value on the way darker.
+
+It is left open deliberately: the colour is a design decision in progress, not a defect.
+
+**Fix:** settle the floor's lightness at or below the 3:1 threshold for the white, and give the
+paths the same treatment the tokens got — a white casing drawn under each stroke, which means
+`PathLayer` rendering every segment twice.
+
 ### A drag cannot lengthen the play
 
 A timeline drag maps the pointer to a time with `timeFromClientX`, which clamps to the row, so

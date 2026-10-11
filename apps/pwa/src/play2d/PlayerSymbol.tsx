@@ -19,6 +19,12 @@ export const TOKEN_REACH = (DIAMOND_SIDE * Math.SQRT2) / 2;
 // a 0.9 m player — and sized so the basketball's seams have room to read rather than to scale.
 export const BALL_RADIUS = 0.22;
 
+// A white rim around every token. On the wood floor the fills lose most of their contrast —
+// measured 1.2:1 for the blue disc, 1.3:1 for the red square and 1.7:1 for the ball, against
+// 3.3-3.6:1 on the white court they replaced. The rim separates each token from the floor by
+// shape rather than by hue, the way a printed basketball diagram does.
+const TOKEN_RIM = 0.06;
+
 // A held ball is drawn down and to the right of its carrier instead of dead centre, where the
 // token's own symbol would swallow it and hide the player's number. The offset puts the ball's
 // centre on the offense disc's rim — half overlapping, which reads as held rather than parked
@@ -44,7 +50,12 @@ export function PlayerSymbol({ team, label }: Props) {
           graphic, while its number falls from 4.51:1 to 3.28:1 — the same footing as the
           offense's white on blue at 3.56:1, and under the 4.5:1 AA floor for both. */}
       {team === 'offense' ? (
-        <circle r={TOKEN_SIZE / 2} fill="var(--mantine-color-blue-6)" />
+        <circle
+          r={TOKEN_SIZE / 2}
+          fill="var(--mantine-color-blue-6)"
+          stroke="var(--mantine-color-white)"
+          strokeWidth={TOKEN_RIM}
+        />
       ) : (
         <rect
           width={DIAMOND_SIDE}
@@ -52,6 +63,8 @@ export function PlayerSymbol({ team, label }: Props) {
           x={-DIAMOND_SIDE / 2}
           y={-DIAMOND_SIDE / 2}
           fill="var(--mantine-color-red-6)"
+          stroke="var(--mantine-color-white)"
+          strokeWidth={TOKEN_RIM}
           transform="rotate(45)"
         />
       )}
@@ -102,7 +115,12 @@ const BALL_STROKE = 1;
 export function BallSymbol() {
   return (
     <>
-      <circle r={BALL_RADIUS} fill="var(--mantine-color-orange-6)" />
+      <circle
+        r={BALL_RADIUS}
+        fill="var(--mantine-color-orange-6)"
+        stroke="var(--mantine-color-white)"
+        strokeWidth={TOKEN_RIM}
+      />
       <style>{BALL_SEAM_RULE}</style>
       <IconBallBasketball
         className={BALL_SEAM_CLASS}
