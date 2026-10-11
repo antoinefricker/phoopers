@@ -14,6 +14,10 @@ import {
 import { usePlaybackContext } from './usePlaybackContext';
 import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 
+// Big enough to see and to grab. It may overhang the track: the margin on the Box absorbs part
+// of it, and the gutter beside it the rest.
+const THUMB_SIZE_PX = 16;
+
 const SNAP_THRESHOLD = 0.25;
 
 export function PlaybackTransport() {
@@ -77,11 +81,13 @@ export function PlaybackTransport() {
       >
         {/* Mantine pads the slider root by a fixed 8px so the thumb's centre can reach either
             end without overflowing. That inset is its own, not ours, and it left the scrubber's
-            axis 8px inside the tracks' at both ends. Dropping it and sizing the thumb at twice
-            our inset puts the overhang in the margin this Box already reserves — the same
-            arrangement the keyframe markers use, driven by the same constant. */}
+            axis 8px inside the tracks' at both ends, so it is dropped.
+            The thumb's size is deliberately NOT tied to the track inset: what has to line up
+            across the three surfaces is the TRACK, and the thumb only overhangs it. Tying them
+            once meant the thumb shrank to 8px — invisible against an 8px bar — the moment the
+            inset followed the markers down to 4. */}
         <Slider
-          thumbSize={TRACK_INSET_PX * 2}
+          thumbSize={THUMB_SIZE_PX}
           min={0}
           max={max}
           step={0.01}
