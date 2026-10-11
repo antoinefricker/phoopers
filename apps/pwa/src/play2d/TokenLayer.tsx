@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { stateAt } from '../engine';
 import type { PlayerId } from '../engine';
 import { usePlaybackContext } from './usePlaybackContext';
-import { BALL_RADIUS, HELD_BALL_OFFSET, PlayerSymbol } from './PlayerSymbol';
+import { BallSymbol, HELD_BALL_OFFSET, PlayerSymbol } from './PlayerSymbol';
 
 const translate = (x: number, y: number): string => `translate(${x} ${y})`;
 
@@ -74,7 +74,7 @@ export function TokenLayer() {
       ))}
       {hasBall && (
         <g data-testid="ball-token" ref={ballRef}>
-          <circle r={BALL_RADIUS} fill="var(--mantine-color-orange-6)" />
+          <BallSymbol />
         </g>
       )}
     </g>

@@ -1,3 +1,4 @@
+import { IconBallBasketball } from '@tabler/icons-react';
 import type { Player } from '../engine';
 
 // The token geometry, in court metres, shared by the court and by the timeline's gutter so one
@@ -14,7 +15,9 @@ export const DIAMOND_SIDE = (TOKEN_SIZE / 2) * Math.sqrt(Math.PI);
 // the disc's radius. A wrapper sizes its viewBox from this so nothing is clipped.
 export const TOKEN_REACH = (DIAMOND_SIDE * Math.SQRT2) / 2;
 
-export const BALL_RADIUS = 0.18;
+// Larger than a real ball against these tokens — a true 0.12 m radius would be a speck beside
+// a 0.9 m player — and sized so the basketball's seams have room to read rather than to scale.
+export const BALL_RADIUS = 0.22;
 
 // A held ball is drawn down and to the right of its carrier instead of dead centre, where the
 // token's own symbol would swallow it and hide the player's number. The offset puts the ball's
@@ -83,6 +86,34 @@ export function PlayerSymbolBadge({ team, label, sizePx, name }: Props & { sizeP
   );
 }
 
+// The seams are drawn at a constant one device pixel rather than in court metres, so they stay
+// a hairline whatever the court's scale. `vector-effect` is NOT inherited — measured: set on
+// the parent svg, a child path still computes `none` — and Tabler renders paths this component
+// cannot reach through props, so the rule is carried by a <style> element inside the symbol.
+const BALL_SEAM_CLASS = 'ball-seams';
+const BALL_SEAM_RULE = `.${BALL_SEAM_CLASS} path { vector-effect: non-scaling-stroke; }`;
+const BALL_STROKE = 1;
+
+// Centred on the origin, in court metres, like PlayerSymbol. The filled disc carries the shape
+// at any size — on the court the ball is about 7px across, where the icon's seams fall below a
+// pixel — and the white icon over it adds the detail wherever there is room for it.
+export function BallSymbol() {
+  return (
+    <>
+      <circle r={BALL_RADIUS} fill="var(--mantine-color-orange-6)" />
+      <style>{BALL_SEAM_RULE}</style>
+      <IconBallBasketball
+        className={BALL_SEAM_CLASS}
+        size={BALL_RADIUS * 2}
+        stroke={BALL_STROKE}
+        color="var(--mantine-color-white)"
+        x={-BALL_RADIUS}
+        y={-BALL_RADIUS}
+      />
+    </>
+  );
+}
+
 // The ball has no number, so it is its own badge rather than a case inside PlayerSymbol.
 export function BallSymbolBadge({ sizePx, name }: { sizePx: number; name: string }) {
   const box = TOKEN_REACH * 2;
@@ -96,7 +127,7 @@ export function BallSymbolBadge({ sizePx, name }: { sizePx: number; name: string
       aria-label={name}
       style={{ flexShrink: 0 }}
     >
-      <circle r={BALL_RADIUS} fill="var(--mantine-color-orange-6)" />
+      <BallSymbol />
     </svg>
   );
 }
