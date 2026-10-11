@@ -103,19 +103,26 @@ Scrubbing writes the ref and pauses playback. Playback stops at `duration(timeli
 
 | Element        | Rendering                                     | Source                                       |
 | -------------- | --------------------------------------------- | -------------------------------------------- |
-| Offense player | Numbered circle, dark fill                    | `Player.label`, `team: 'offense'`            |
-| Defense player | Numbered circle, light fill                   | `Player.label`, `team: 'defense'`            |
+| Offense player | Numbered disc, dark fill                      | `Player.label`, `team: 'offense'`            |
+| Defense player | Numbered rotated square, light fill           | `Player.label`, `team: 'defense'`            |
 | Movement       | Solid stroke, arrowhead                       | `spanKindAt` → `'move'`                      |
 | Dribble        | Wavy stroke, arrowhead                        | `spanKindAt` → `'dribble'`                   |
 | Pass           | Dashed stroke, arrowhead                      | ball span where `ballStateAt` → `'inFlight'` |
 | Screen         | Perpendicular tick across the screener's path | `PlayState.activeScreens`                    |
 
-Both teams use the same circle at the same size, distinguished by how dark the fill is rather
-than by hue alone: a greyscale handout — the printable export the stack was chosen for — keeps
-two hues apart only if their luminance differs. Measured in a browser, the offense fill sits at
-0.25 luminance against the defense fill's 0.82, so the teams stay apart with no colour at all.
-The defender's number is a full red on that light fill, which measures 4.51:1 — just over the
-4.5:1 WCAG AA floor for normal text.
+**The invariant:** the two teams are told apart by shape _and_ by luminance, never by hue
+alone, and their tokens carry the same visual weight so neither team reads as the smaller one.
+A greyscale handout — the printable export the stack was chosen for — keeps two hues apart only
+if their luminance differs, and shape carries the teams even where luminance is close.
+
+As drawn today: the offense is a disc filled at 0.25 luminance, the defense a square rotated 45°
+filled at 0.82. Equal weight means equal **area**, not equal width: a rotated square occupies
+its diagonal, so matching widths would leave it covering 64% of the disc and reading as a
+smaller player. The square's side is therefore derived from the disc's area, which costs 25%
+more width — 1.13 m against 0.9 m. The
+defender's number is a full red on the light fill, measuring 4.51:1 — just over the 4.5:1 WCAG
+AA floor for normal text — while the defender's silhouette sits at 1.21:1 against the white
+court, so a defender is read by its number more than by its outline.
 
 A span's kind is read at its midpoint. Each token is one SVG group so the whole symbol moves
 with a single `transform`.

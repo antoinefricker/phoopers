@@ -257,16 +257,27 @@ describe('TokenLayer', () => {
 });
 
 describe('team symbols', () => {
-  const circleIn = (container: HTMLElement, playerId: string) => tokenFor(container, playerId)?.querySelector('circle');
+  // Offense is a circle, defense a rotated square, so the shape element differs by team.
+  const shapeIn = (container: HTMLElement, playerId: string) =>
+    tokenFor(container, playerId)?.querySelector('circle, rect');
 
-  it('draws both teams as a circle of the same size', () => {
+  it('gives the two teams different shapes of equal visual weight', () => {
+    // A rotated square occupies its DIAGONAL, not its side — the same arithmetic that put a
+    // scrollbar under the timeline. Matching WIDTHS would leave the square covering 64% of the
+    // disc and reading as a smaller player, so the areas are matched instead.
     const { container } = renderTokens();
     const [offense] = hornsPlay.players.filter((p) => p.team === 'offense');
     const [defense] = hornsPlay.players.filter((p) => p.team === 'defense');
     if (offense === undefined || defense === undefined) throw new Error('sample needs both teams');
 
-    expect(circleIn(container, offense.id)?.getAttribute('r')).toBe('0.45');
-    expect(circleIn(container, defense.id)?.getAttribute('r')).toBe('0.45');
+    expect(tokenFor(container, offense.id)?.querySelector('circle')?.getAttribute('r')).toBe('0.45');
+
+    const diamond = tokenFor(container, defense.id)?.querySelector('rect');
+    expect(diamond).toBeInTheDocument();
+    expect(tokenFor(container, defense.id)?.querySelector('circle')).toBeNull();
+    const side = Number(diamond?.getAttribute('width'));
+    expect(side * side).toBeCloseTo(Math.PI * 0.45 * 0.45, 3);
+    expect(diamond?.getAttribute('transform')).toContain('rotate(45)');
   });
 
   it('separates the teams by how dark the fill is, not by hue alone', () => {
@@ -281,8 +292,8 @@ describe('team symbols', () => {
     if (offense === undefined || defense === undefined) throw new Error('sample needs both teams');
 
     const shadeOf = (fill: string | null | undefined) => Number(fill?.match(/-(\d)\)$/)?.[1]);
-    const theirs = circleIn(container, offense.id)?.getAttribute('fill');
-    const ours = circleIn(container, defense.id)?.getAttribute('fill');
+    const theirs = shapeIn(container, offense.id)?.getAttribute('fill');
+    const ours = shapeIn(container, defense.id)?.getAttribute('fill');
 
     expect(theirs).not.toBe('none');
     expect(ours).not.toBe('none');
