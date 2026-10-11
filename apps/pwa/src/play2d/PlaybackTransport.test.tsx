@@ -154,17 +154,15 @@ describe('PlaybackTransport', () => {
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
   });
 
-  it('renders a labelled tick per step', () => {
-    renderTransport();
+  it('marks each step on the scrubber without naming it', () => {
+    // The names moved to the step ruler, which sits directly below on the same axis and shows
+    // them in full. Keeping them here too printed each one twice, centred and ellipsised
+    // against the ruler's left-aligned text. The dots stay: they show where a drag snaps.
+    const { container } = renderTransport();
 
-    expect(screen.getByText('Entry pass')).toBeInTheDocument();
-    expect(screen.getByText('Double high screen')).toBeInTheDocument();
-  });
-
-  it('carries the full step name as a title, so a clipped label can still be read', () => {
-    renderTransport();
-
-    expect(screen.getByText('Double high screen')).toHaveAttribute('title', 'Double high screen');
+    expect(container.querySelectorAll('.mantine-Slider-mark')).toHaveLength(steps.length);
+    expect(screen.queryByText('Entry pass')).not.toBeInTheDocument();
+    expect(screen.queryByText('Double high screen')).not.toBeInTheDocument();
   });
 
   it('jumps to the next step, then the one after, then stops at the last', () => {

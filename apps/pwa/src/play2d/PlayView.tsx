@@ -74,8 +74,10 @@ export function PlayView() {
           )}
         </Flex>
         {mode === 'edit' && <SelectionActions />}
-        {mode === 'edit' && <Timeline />}
+        {/* The scrubber sits above the ruler and the tracks: they share one time axis and one
+            playhead crosses all of them, so the control belongs beside what it drives. */}
         <PlaybackTransport />
+        {mode === 'edit' && <Timeline />}
         {mode === 'edit' && <IssuePanel />}
       </Stack>
     </PlaybackContextProvider>

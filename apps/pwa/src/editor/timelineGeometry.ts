@@ -13,10 +13,10 @@ export interface TimelineRowModel {
 // not the 7px its width suggests.
 export const MARKER_SIZE_PX = 14;
 
-// The room the track must keep at each end so a marker at t = 0 or t = duration fits inside it
-// instead of overflowing. Rounded up, because a fractional inset leaves a sub-pixel of overflow
-// that still raises a scrollbar.
-export const TRACK_INSET_PX = Math.ceil((MARKER_SIZE_PX * Math.SQRT2) / 2);
+// The inset lives with the shared axis geometry because the transport needs it too. It must
+// stay at or above half the marker's diagonal — ceil(14 * sqrt(2) / 2) = 10 — or a marker at
+// t = 0 or t = duration overflows its track again.
+export { TRACK_INSET_PX } from '../play2d/transportMath';
 
 export function fractionOf(t: number, duration: number): number {
   if (!(duration > 0) || !Number.isFinite(t)) return 0;

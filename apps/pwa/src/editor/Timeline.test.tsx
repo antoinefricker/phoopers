@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { TRACK_INSET_PX } from './timelineGeometry';
+import { TIME_READOUT_PX } from '../play2d/transportMath';
 import { Timeline } from './Timeline';
 import { dragElement, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
 
@@ -484,9 +485,14 @@ describe('track alignment', () => {
     const rulerTrack = screen.getByTestId('step-ruler').lastElementChild as HTMLElement;
     const overlay = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
 
-    expect(rowTrack.style.marginInline).toBe(`${TRACK_INSET_PX}px`);
-    expect(rulerTrack.style.marginInline).toBe(`${TRACK_INSET_PX}px`);
-    expect(overlay.style.right).toBe(`${TRACK_INSET_PX}px`);
+    // The right side also reserves the transport's time readout, so the scrubber and the
+    // tracks end at the same x instead of the scrubber stopping short by that width.
+    const right = `${TRACK_INSET_PX + TIME_READOUT_PX}px`;
+    expect(rowTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
+    expect(rowTrack.style.marginRight).toBe(right);
+    expect(rulerTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
+    expect(rulerTrack.style.marginRight).toBe(right);
+    expect(overlay.style.right).toBe(right);
     expect(overlay.style.left).toContain(`${TRACK_INSET_PX}px`);
   });
 });

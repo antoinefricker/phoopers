@@ -5,6 +5,7 @@ import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { StepRuler } from './StepRuler';
 import { forkTimeOf } from './mutations';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
+import { TIME_READOUT_PX } from '../play2d/transportMath';
 import { TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 
@@ -71,7 +72,7 @@ export function Timeline() {
             top: 0,
             bottom: 0,
             left: `calc(${LABEL_WIDTH} + ${TRACK_INSET_PX}px)`,
-            right: TRACK_INSET_PX,
+            right: TRACK_INSET_PX + TIME_READOUT_PX,
             pointerEvents: 'none',
           }}
         >

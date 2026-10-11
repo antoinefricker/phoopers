@@ -2,7 +2,15 @@ import { ActionIcon, Box, Group, Slider, Text } from '@mantine/core';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconPlayerPause, IconPlayerPlay, IconPlayerSkipBack, IconPlayerSkipForward } from '@tabler/icons-react';
-import { adjacentStep, sliderMax, snapToStep, stepMarks } from './transportMath';
+import {
+  GUTTER_WIDTH,
+  TIME_READOUT_PX,
+  TRACK_INSET_PX,
+  adjacentStep,
+  sliderMax,
+  snapToStep,
+  stepMarks,
+} from './transportMath';
 import { usePlaybackContext } from './usePlaybackContext';
 import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 
@@ -35,37 +43,45 @@ export function PlaybackTransport() {
   };
 
   return (
-    <Group gap="sm" align="center">
-      {/* The aria-labels are the only accessible name these buttons have now that the glyphs
+    <Group gap={0} align="center" wrap="nowrap">
+      {/* The buttons fill the same gutter the timeline gives its row labels, so the scrubber
+          and the tracks begin at the same x and one playhead reads true across all three. */}
+      <Group gap="xs" w={GUTTER_WIDTH} wrap="nowrap" style={{ flexShrink: 0 }}>
+        {/* The aria-labels are the only accessible name these buttons have now that the glyphs
           are icons, so they carry the meaning rather than decorating it. */}
-      <ActionIcon
-        onClick={() => jump(-1)}
-        aria-label={t('play.transport.previousStep', 'Previous step')}
-        variant="default"
-      >
-        <IconPlayerSkipBack size={18} stroke={1.5} />
-      </ActionIcon>
-      <ActionIcon
-        onClick={isPlaying ? pause : play}
-        aria-label={isPlaying ? t('play.transport.pause', 'Pause') : t('play.transport.play', 'Play')}
-        variant="filled"
-      >
-        {isPlaying ? <IconPlayerPause size={18} stroke={1.5} /> : <IconPlayerPlay size={18} stroke={1.5} />}
-      </ActionIcon>
-      <ActionIcon onClick={() => jump(1)} aria-label={t('play.transport.nextStep', 'Next step')} variant="default">
-        <IconPlayerSkipForward size={18} stroke={1.5} />
-      </ActionIcon>
-      <Text size="sm" data-testid="current-time" w={48}>
-        {displayTime.toFixed(1)}
-      </Text>
+        <ActionIcon
+          onClick={() => jump(-1)}
+          aria-label={t('play.transport.previousStep', 'Previous step')}
+          variant="default"
+        >
+          <IconPlayerSkipBack size={18} stroke={1.5} />
+        </ActionIcon>
+        <ActionIcon
+          onClick={isPlaying ? pause : play}
+          aria-label={isPlaying ? t('play.transport.pause', 'Pause') : t('play.transport.play', 'Play')}
+          variant="filled"
+        >
+          {isPlaying ? <IconPlayerPause size={18} stroke={1.5} /> : <IconPlayerPlay size={18} stroke={1.5} />}
+        </ActionIcon>
+        <ActionIcon onClick={() => jump(1)} aria-label={t('play.transport.nextStep', 'Next step')} variant="default">
+          <IconPlayerSkipForward size={18} stroke={1.5} />
+        </ActionIcon>
+      </Group>
       <Box
         flex="1 1 14rem"
         miw={0}
+        style={{ marginInline: TRACK_INSET_PX }}
         onKeyDownCapture={(event) => {
           keyboardMoveRef.current = event.key.startsWith('Arrow');
         }}
       >
+        {/* Mantine pads the slider root by a fixed 8px so the thumb's centre can reach either
+            end without overflowing. That inset is its own, not ours, and it left the scrubber's
+            axis 8px inside the tracks' at both ends. Dropping it and sizing the thumb at twice
+            our inset puts the overhang in the margin this Box already reserves — the same
+            arrangement the keyframe markers use, driven by the same constant. */}
         <Slider
+          thumbSize={TRACK_INSET_PX * 2}
           min={0}
           max={max}
           step={0.01}
@@ -75,25 +91,19 @@ export function PlaybackTransport() {
             keyboardMoveRef.current = false;
             scrubTo(snap ? snapToStep(value, timeline.steps, SNAP_THRESHOLD) : value);
           }}
-          marks={stepMarks(timeline.steps).map((mark) => ({
-            ...mark,
-            // The cap below can clip a long name; the title keeps it readable.
-            label: <span title={mark.label}>{mark.label}</span>,
-          }))}
-          // Neighbouring step names would otherwise overprint on a narrow track; clip each with an
-          // ellipsis instead. The cap grows with the viewport, so a wide screen has room to read.
-          styles={{
-            markLabel: {
-              maxWidth: 'clamp(5.5rem, 12vw, 10rem)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            },
-          }}
+          // Dots without names: they show where a drag will snap, while the step ruler sits
+          // directly below on the same axis and names each step in full. Labelling them here
+          // too printed every name twice, centred and ellipsised against the ruler's
+          // left-aligned full text.
+          marks={stepMarks(timeline.steps).map(({ value }) => ({ value }))}
+          styles={{ root: { paddingInline: 0 } }}
           label={(value) => value.toFixed(1)}
           aria-label={t('play.transport.scrubber', 'Playback position')}
         />
       </Box>
+      <Text size="sm" data-testid="current-time" w={TIME_READOUT_PX} ta="right" style={{ flexShrink: 0 }}>
+        {displayTime.toFixed(1)}
+      </Text>
     </Group>
   );
 }

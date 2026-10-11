@@ -5,13 +5,16 @@ import type { EntityId, ScreenEvent, ScreenId } from '../engine';
 import { ConfirmDelete } from './ConfirmDelete';
 import { constrainRetime } from './constraints';
 import { MARKER_SIZE_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
+import { GUTTER_WIDTH, TIME_READOUT_PX } from '../play2d/transportMath';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
 import { useEditorContext } from './useEditorContext';
 import type { Selection } from './useEditorContext';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 
-export const LABEL_WIDTH = '4.5rem';
+// Re-exported so the editor's own files keep one import site; the value is shared with the
+// transport, whose buttons fill the same gutter.
+export { GUTTER_WIDTH as LABEL_WIDTH } from '../play2d/transportMath';
 
 interface Props {
   row: TimelineRowModel;
@@ -53,14 +56,23 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
 
   return (
     <Box data-testid={`timeline-row-${row.entityId}`} style={{ display: 'flex', alignItems: 'center', height: '2rem' }}>
-      <Text size="sm" w={LABEL_WIDTH} style={{ flexShrink: 0 }}>
+      <Text size="sm" w={GUTTER_WIDTH} style={{ flexShrink: 0 }}>
         {label}
       </Text>
       {/* Inset so a marker sitting at t=0 or t=duration fits inside the track: it is a rotated
           square, so it reaches half its DIAGONAL past its time. Without this the last marker
           overflows and the panel grows a horizontal scrollbar. StepRuler and Timeline's
           overlay carry the same inset, or the playhead drifts from the markers. */}
-      <Box ref={trackRef} style={{ position: 'relative', flex: 1, height: '100%', marginInline: TRACK_INSET_PX }}>
+      <Box
+        ref={trackRef}
+        style={{
+          position: 'relative',
+          flex: 1,
+          height: '100%',
+          marginLeft: TRACK_INSET_PX,
+          marginRight: TRACK_INSET_PX + TIME_READOUT_PX,
+        }}
+      >
         <Box
           style={{
             position: 'absolute',

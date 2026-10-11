@@ -7,6 +7,7 @@ import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { constrainStepRetime } from './constraints';
 import { LABEL_WIDTH } from './TimelineRow';
 import { TRACK_INSET_PX, fractionOf } from './timelineGeometry';
+import { TIME_READOUT_PX } from '../play2d/transportMath';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 
@@ -18,7 +19,11 @@ const tickStyle = (t: number, duration: number): CSSProperties => ({
   position: 'absolute',
   top: '50%',
   left: percent(t, duration),
-  transform: 'translate(-50%, -50%)',
+  // Vertical centring only. The tick's visible marker is its LEFT BORDER, so translating it
+  // horizontally by half its own width put the line half a label-width before the step's real
+  // time — 60px out for "Double high screen", 35px for "Entry pass". The name now hangs to the
+  // right of a line that sits exactly on the instant, matching the scrubber and the markers.
+  transform: 'translateY(-50%)',
   padding: '0 4px',
   whiteSpace: 'nowrap',
   border: 0,
@@ -107,7 +112,16 @@ export function StepRuler() {
         </Button>
       </Box>
       {/* Same inset as TimelineRow's track, so the ruler's time axis lines up with the rows. */}
-      <Box ref={trackRef} style={{ position: 'relative', flex: 1, height: '100%', marginInline: TRACK_INSET_PX }}>
+      <Box
+        ref={trackRef}
+        style={{
+          position: 'relative',
+          flex: 1,
+          height: '100%',
+          marginLeft: TRACK_INSET_PX,
+          marginRight: TRACK_INSET_PX + TIME_READOUT_PX,
+        }}
+      >
         {steps.map((step) => {
           const others = steps.filter((s) => s.id !== step.id);
 

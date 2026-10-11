@@ -8,6 +8,22 @@ const STEP_EPSILON = 1e-6;
 // Snaps t to the nearest step time within the threshold. When two steps are equidistant the
 // earlier one wins, so the result never depends on the order the steps are stored in. Steps
 // sharing a time (legal at a fork) resolve to that same time.
+// The three surfaces that share one time axis — the transport's scrubber, the step ruler and
+// the keyframe tracks — lay out against these. The gutter holds the row labels on the timeline
+// and the playback buttons on the transport, so both axes start at the same x.
+export const GUTTER_WIDTH = '7rem';
+
+// The current-time readout sits past the end of the scrubber. The timeline reserves the same
+// width on the right of its tracks, so all three axes end at the same x rather than the
+// scrubber stopping short by exactly this much.
+export const TIME_READOUT_PX = 40;
+
+// Room kept at each end of every axis. A keyframe marker is a square rotated 45 degrees, so it
+// reaches half its DIAGONAL past its own time; without this the last marker overflows and the
+// panel grows a horizontal scrollbar. The scrubber takes the same inset or it drifts from the
+// markers at the far end.
+export const TRACK_INSET_PX = 10;
+
 export function snapToStep(t: number, steps: readonly Step[], threshold: number): number {
   let best: number | undefined;
   let bestDistance = Infinity;
