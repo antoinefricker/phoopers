@@ -260,19 +260,6 @@ labelled "X1".."X5".
 name each token group, and give the paths text alternatives — then decide what a sensible
 reading order over a play actually is.
 
-### The timeline gutter shows a label without its token
-
-Spec 003 says the gutter "carries each token and its label". Measured in a browser: a row's
-gutter is a single `<p>` whose text is `1`, with no child elements and no SVG — the token is
-not drawn. A coach therefore reads team and number from the text alone, with none of the
-filled/outlined circle the court uses for the same player.
-
-It was left because drawing the token means extracting the court's symbol into something both
-surfaces can render, which is a refactor rather than a tweak.
-
-**Fix:** extract the player symbol from `TokenLayer` into a component the gutter can also
-render at row height.
-
 ### Steps and screens cannot be retimed from the keyboard
 
 Keyframe markers, step ticks and screen handles are all retimed by pointer drag only. Measured

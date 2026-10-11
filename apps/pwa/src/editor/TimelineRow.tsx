@@ -1,4 +1,4 @@
-import { Box, CloseButton, Text } from '@mantine/core';
+import { Box, CloseButton } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, ScreenEvent, ScreenId } from '../engine';
@@ -6,6 +6,7 @@ import { ConfirmDelete } from './ConfirmDelete';
 import { constrainRetime } from './constraints';
 import { MARKER_SIZE_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
 import { GUTTER_WIDTH, TIME_READOUT_PX } from '../play2d/transportMath';
+import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
 import { useEditorContext } from './useEditorContext';
@@ -32,6 +33,9 @@ export const MIN_SCREEN_DURATION = 0.1;
 // A drop within this fraction of the play's length of a step snaps to it.
 const SNAP_FRACTION = 0.02;
 
+// The row is 2rem tall; the badge leaves a little air above and below.
+const ROW_SYMBOL_PX = 24;
+
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
   const { t } = useTranslation();
   const { play, moveKeyframe, setScreenDuration, removeScreen } = useEditorContext();
@@ -52,13 +56,29 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   const labelOf = (id: string) => timeline.players.find((p) => p.id === id)?.label ?? id;
   const removingScreen = screens.find((s) => s.id === removing.target);
   const isBall = row.team === 'ball';
-  const label = isBall ? t('play.editor.ballRow', 'Ball') : row.label;
+  // The gutter draws the same token the court does rather than restating it as text, so a row
+  // is recognised by the symbol the coach already reads on the floor. The badge carries the
+  // name a screen reader needs, which the bare number never did — both teams used to read "2".
+  const rowName = isBall
+    ? t('play.editor.ballRow', 'Ball')
+    : row.team === 'offense'
+      ? t('play.editor.offenseRow', 'Offense {{label}}', { label: row.label })
+      : t('play.editor.defenseRow', 'Defense {{label}}', { label: row.label });
 
   return (
     <Box data-testid={`timeline-row-${row.entityId}`} style={{ display: 'flex', alignItems: 'center', height: '2rem' }}>
-      <Text size="sm" w={GUTTER_WIDTH} style={{ flexShrink: 0 }}>
-        {label}
-      </Text>
+      <Box w={GUTTER_WIDTH} style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+        {isBall ? (
+          <BallSymbolBadge sizePx={ROW_SYMBOL_PX} name={rowName} />
+        ) : (
+          <PlayerSymbolBadge
+            team={row.team === 'defense' ? 'defense' : 'offense'}
+            label={row.label}
+            sizePx={ROW_SYMBOL_PX}
+            name={rowName}
+          />
+        )}
+      </Box>
       {/* Inset so a marker sitting at t=0 or t=duration fits inside the track: it is a rotated
           square, so it reaches half its DIAGONAL past its time. Without this the last marker
           overflows and the panel grows a horizontal scrollbar. StepRuler and Timeline's
