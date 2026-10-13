@@ -9,6 +9,7 @@ import { Timeline } from '../editor/Timeline';
 import { useEditorContext } from '../editor/useEditorContext';
 import { BranchTree } from './BranchTree';
 import { PlayCanvas } from './PlayCanvas';
+import { StepCaption } from './StepCaption';
 import { FLOOR } from './Court';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
@@ -91,8 +92,14 @@ export function PlayView() {
         {/* No padding, and the floor's colour behind the drawing: the court keeps its own
             aspect ratio, so a panel wider or taller than it leaves a band the svg does not
             cover — white there read as a gap in the floor. */}
-        <Paper withBorder p={0} bg={FLOOR} style={{ minWidth: 0 }}>
+        {/* Relative so the step caption can pin itself to the court's own top-left corner. */}
+        <Paper withBorder p={0} bg={FLOOR} style={{ minWidth: 0, position: 'relative' }}>
           <PlayCanvas halfCourt={halfCourt} playName={play.name} />
+          {/* Outside the svg on purpose: the court carries `role="img"`, whose descendants are
+              presentational, so a caption drawn inside it would be invisible to assistive
+              technology. Out here it is read, and it keeps its size when the half-court toggle
+              rescales the viewBox. */}
+          <StepCaption />
         </Paper>
         {mode === 'edit' && <SelectionActions />}
         {mode === 'edit' && <IssuePanel />}

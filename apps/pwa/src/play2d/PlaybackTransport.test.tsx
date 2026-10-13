@@ -5,7 +5,7 @@ import type { Keyframe, Play, PlayerId, Step, StepId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
-import { adjacentStep, sliderMax, snapToStep, stepMarks } from './transportMath';
+import { adjacentStep, sliderMax, snapToStep, stepAt, stepMarks } from './transportMath';
 import { playheadTime } from '../testUtils/transport';
 
 const steps: Step[] = [
@@ -90,6 +90,41 @@ describe('adjacentStep', () => {
 
     expect(adjacentStep(2, duplicates, 1)).toBe(5);
     expect(adjacentStep(5, duplicates, -1)).toBe(2);
+  });
+});
+
+describe('stepAt', () => {
+  it('names the step the playhead has reached', () => {
+    expect(stepAt(2, steps)?.name).toBe('Screen');
+    expect(stepAt(3, steps)?.name).toBe('Screen');
+    expect(stepAt(4, steps)?.name).toBe('Entry');
+    expect(stepAt(99, steps)?.name).toBe('Entry');
+  });
+
+  it('has no step before the first one', () => {
+    // A play can open on movement that belongs to no step yet, so there is nothing to name.
+    expect(stepAt(0, steps)).toBeUndefined();
+    expect(stepAt(1.999, steps)).toBeUndefined();
+  });
+
+  it('takes the later of two steps sharing a time', () => {
+    // The ruler joins their names; the caption has room for one, and the last one authored at
+    // that instant is the one the play has most recently reached.
+    const tied: Step[] = [...steps, { id: 's3' as StepId, t: 2, name: 'Also here' }];
+
+    expect(stepAt(2, tied)?.name).toBe('Also here');
+  });
+
+  it('is independent of the order steps are stored in', () => {
+    expect(stepAt(3, [...steps].reverse())?.name).toBe('Screen');
+  });
+
+  it('has no step at all when there are none', () => {
+    expect(stepAt(3, [])).toBeUndefined();
+  });
+
+  it('survives a non-finite time rather than naming a wrong step', () => {
+    expect(stepAt(Number.NaN, steps)).toBeUndefined();
   });
 });
 

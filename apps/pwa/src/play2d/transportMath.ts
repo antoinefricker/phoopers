@@ -48,6 +48,25 @@ export function adjacentStep(t: number, steps: readonly Step[], direction: 1 | -
   return times[0];
 }
 
+/**
+ * The step the playhead has reached: the last one at or before `t`. Undefined before the first
+ * step, since a play can open on movement that belongs to no step yet, and for a time that is
+ * not a number — naming a step there would be worse than naming none.
+ *
+ * Where two steps share a time the later one in the list wins. The ruler joins their names
+ * side by side, but a caption has room for one.
+ */
+export function stepAt(t: number, steps: readonly Step[]): Step | undefined {
+  if (!Number.isFinite(t)) return undefined;
+
+  let reached: Step | undefined;
+  for (const step of steps) {
+    if (step.t <= t && (reached === undefined || step.t >= reached.t)) reached = step;
+  }
+
+  return reached;
+}
+
 // One mark per distinct time: steps sharing a time would otherwise stack identical ticks and
 // duplicate React keys. Their names are joined so none is hidden.
 export function stepMarks(steps: readonly Step[]): { value: number; label: string }[] {
