@@ -83,6 +83,11 @@ export function PlayView() {
             />
           </Group>
         </Group>
+        {/* The time controls sit above the court, between it and the header. The scrubber stays
+            directly above the ruler and the tracks: they share one time axis and one playhead
+            crosses all of them, so the control belongs beside what it drives. */}
+        <PlaybackTransport />
+        {mode === 'edit' && <Timeline />}
         {/* No padding, and the floor's colour behind the drawing: the court keeps its own
             aspect ratio, so a panel wider or taller than it leaves a band the svg does not
             cover — white there read as a gap in the floor. */}
@@ -90,10 +95,6 @@ export function PlayView() {
           <PlayCanvas halfCourt={halfCourt} playName={play.name} />
         </Paper>
         {mode === 'edit' && <SelectionActions />}
-        {/* The scrubber sits above the ruler and the tracks: they share one time axis and one
-            playhead crosses all of them, so the control belongs beside what it drives. */}
-        <PlaybackTransport />
-        {mode === 'edit' && <Timeline />}
         {mode === 'edit' && <IssuePanel />}
       </Stack>
     </PlaybackContextProvider>
