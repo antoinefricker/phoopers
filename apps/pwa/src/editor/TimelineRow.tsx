@@ -248,6 +248,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 : {})}
               style={{
                 position: 'absolute',
+                zIndex: 10,
                 top: '50%',
                 left: percent(k.t, duration),
                 touchAction: owned ? 'none' : undefined,
