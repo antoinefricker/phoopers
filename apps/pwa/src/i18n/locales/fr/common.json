@@ -2,8 +2,7 @@
   "play": {
     "branches": {
       "label": "Variantes du schéma",
-      "title": "Variantes",
-      "toggle": "Afficher ou masquer les variantes"
+      "title": "Variantes"
     },
     "canvas": {
       "label": "Schéma du terrain : {{name}}"

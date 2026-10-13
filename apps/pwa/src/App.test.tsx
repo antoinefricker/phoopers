@@ -9,7 +9,7 @@ import { stubViewportWidth } from './testUtils/viewport';
 function renderApp() {
   stubViewportWidth(1440);
   return render(
-    <MantineProvider>
+    <MantineProvider env="test">
       <App />
     </MantineProvider>,
   );
@@ -27,9 +27,12 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: hornsPlay.name })).toBeInTheDocument();
     expect(screen.queryByText('Design and replay basketball plays')).not.toBeInTheDocument();
     expect(container.querySelectorAll('[data-testid="token"]')).toHaveLength(10);
-    expect(within(screen.getByRole('navigation', { name: 'Play branches' })).getAllByRole('button')).toHaveLength(
-      hornsPlay.branches.length,
-    );
+    // The branch tree is behind the header's menu now, so the count is read with it open.
+    await user.click(screen.getByRole('button', { name: 'Branches' }));
+    expect(
+      within(await screen.findByRole('navigation', { name: 'Play branches' })).getAllByRole('button'),
+    ).toHaveLength(hornsPlay.branches.length);
+    await user.keyboard('{Escape}');
 
     // Wired for real: a transport press reaches the clock the court draws from.
     await user.click(screen.getByRole('button', { name: 'Next step' }));

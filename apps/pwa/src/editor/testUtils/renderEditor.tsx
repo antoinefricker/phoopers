@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components, i18next/no-literal-string -- test harness: not app code, and one file by design so later tasks import it */
 import type { ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import type { BranchId, Play } from '../../engine';
@@ -46,7 +46,7 @@ interface Options {
 
 export function renderEditor(initialPlay: Play, children: ReactNode, { wrapPlayback = true }: Options = {}) {
   return render(
-    <MantineProvider>
+    <MantineProvider env="test">
       <EditorContextProvider initialPlay={initialPlay}>
         {wrapPlayback ? (
           <PlaybackContextProvider play={initialPlay}>
@@ -74,6 +74,23 @@ export function LivePlayback({ children }: { children: ReactNode }) {
   const { play } = useEditorContext();
 
   return <PlaybackContextProvider play={play}>{children}</PlaybackContextProvider>;
+}
+
+/**
+ * The branch tree lives behind the header's menu, so a test that touches a branch opens it
+ * first. Idempotent: picking a branch closes the menu, and the next call reopens it, so a test
+ * can keep asking for the tree without tracking that. `PlayView` must be what was rendered.
+ */
+export async function branchMenu() {
+  const trigger = screen.getByRole('button', { name: 'Branches' });
+  if (trigger.getAttribute('aria-expanded') !== 'true') await userEvent.click(trigger);
+
+  return within(await screen.findByRole('navigation', { name: 'Play branches' }));
+}
+
+/** A button inside the branch tree — a branch itself, or one of its fork and delete actions. */
+export async function branchButton(name: string) {
+  return (await branchMenu()).getByRole('button', { name });
 }
 
 /** A button that selects a branch through the playback context, as the branch tree does. */

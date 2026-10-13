@@ -7,7 +7,7 @@ import { fixturePlay, P1, P2, ROOT, SWITCH } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { setKeyframe } from './mutations';
-import { dragElement, readProbe, renderEditor, trackOf } from './testUtils/renderEditor';
+import { branchButton, branchMenu, dragElement, readProbe, renderEditor, trackOf } from './testUtils/renderEditor';
 
 const STEP_LATE = 'step-late' as StepId;
 
@@ -30,15 +30,12 @@ const enterEditMode = async () => {
   await userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
 };
 
-const branchButton = (name: string) =>
-  within(screen.getByRole('navigation', { name: 'Play branches' })).getByRole('button', { name });
-
 describe('forking a branch', () => {
   it('creates a variant with empty tracks from the chosen step, and selects it', async () => {
     renderEditor(twoSteps, <PlayView />, { wrapPlayback: false });
     await enterEditMode();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Fork from Base' }));
+    await userEvent.click(await branchButton('Fork from Base'));
     await userEvent.click(screen.getByRole('combobox', { name: 'Fork from step' }));
     await userEvent.click(await screen.findByRole('option', { name: 'Late cut', hidden: true }));
     await userEvent.click(screen.getByRole('textbox', { name: 'Variant name' }));
@@ -53,15 +50,15 @@ describe('forking a branch', () => {
     expect(created?.forkStepId).toBe(STEP_LATE);
     expect(validatePlay(play)).toEqual([]);
     // The coach lands in what they just made.
-    expect(branchButton('Weak side')).toHaveAttribute('aria-current', 'true');
-    expect(branchButton('Base')).not.toHaveAttribute('aria-current');
+    expect(await branchButton('Weak side')).toHaveAttribute('aria-current', 'true');
+    expect(await branchButton('Base')).not.toHaveAttribute('aria-current');
   });
 
   it('does not create a variant without a name', async () => {
     renderEditor(twoSteps, <PlayView />, { wrapPlayback: false });
     await enterEditMode();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Fork from Base' }));
+    await userEvent.click(await branchButton('Fork from Base'));
 
     expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
   });
@@ -71,8 +68,8 @@ describe('forking a branch', () => {
     await enterEditMode();
 
     // The root offers no delete action at all, rather than one that fails on click.
-    expect(screen.queryByRole('button', { name: 'Delete Base' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Delete Defence switches' })).toBeInTheDocument();
+    expect((await branchMenu()).queryByRole('button', { name: 'Delete Base' })).not.toBeInTheDocument();
+    expect(await branchButton('Delete Defence switches')).toBeInTheDocument();
   });
 
   it("keeps each action's visible label inside its accessible name", async () => {
@@ -81,29 +78,30 @@ describe('forking a branch', () => {
 
     // WCAG 2.5.3 Label in Name: a voice-control user saying "click Fork" must hit the button.
     for (const name of ['Fork from Base', 'Fork from Defence switches', 'Delete Defence switches']) {
-      const button = screen.getByRole('button', { name });
+      const button = await branchButton(name);
       expect(button.getAttribute('aria-label') ?? '').toContain(button.textContent ?? '');
       expect(button.textContent).not.toBe('');
     }
   });
 
-  it('offers no fork or delete action outside edit mode', () => {
+  it('offers no fork or delete action outside edit mode', async () => {
     renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
 
-    expect(screen.queryByRole('button', { name: /^Fork from/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Delete / })).not.toBeInTheDocument();
+    const branches = await branchMenu();
+    expect(branches.queryByRole('button', { name: /^Fork from/ })).not.toBeInTheDocument();
+    expect(branches.queryByRole('button', { name: /^Delete / })).not.toBeInTheDocument();
   });
 
   it('falls back to the root when the selected branch is deleted', async () => {
     renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
     await enterEditMode();
-    await userEvent.click(branchButton('Defence switches'));
+    await userEvent.click(await branchButton('Defence switches'));
 
-    await userEvent.click(screen.getByRole('button', { name: 'Delete Defence switches' }));
+    await userEvent.click(await branchButton('Delete Defence switches'));
     await userEvent.click(await screen.findByRole('button', { name: 'Delete' }));
 
     expect(readProbe().play.branches.some((b) => b.id === SWITCH)).toBe(false);
-    expect(branchButton('Base')).toHaveAttribute('aria-current', 'true');
+    expect(await branchButton('Base')).toHaveAttribute('aria-current', 'true');
   });
 });
 
@@ -111,7 +109,7 @@ describe('the pre-fork lock', () => {
   it('dims exactly the region before the fork on a child branch', async () => {
     renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
     await enterEditMode();
-    await userEvent.click(branchButton('Defence switches'));
+    await userEvent.click(await branchButton('Defence switches'));
 
     // Forks at t = 2 of a 4 s branch.
     expect(screen.getByTestId('pre-fork-mask').style.width).toBe('50%');
@@ -127,7 +125,7 @@ describe('the pre-fork lock', () => {
   it('leaves the markers before the fork undraggable', async () => {
     renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
     await enterEditMode();
-    await userEvent.click(branchButton('Defence switches'));
+    await userEvent.click(await branchButton('Defence switches'));
 
     // P2's marker at the fork instant is inherited: it renders, but carries no drag handle.
     const inherited = within(screen.getByTestId(`timeline-row-${P2}`)).getAllByRole('button', { name: /^Keyframe at/ });

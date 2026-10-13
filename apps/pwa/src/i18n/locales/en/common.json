@@ -2,8 +2,7 @@
   "play": {
     "branches": {
       "label": "Play branches",
-      "title": "Branches",
-      "toggle": "Toggle branches"
+      "title": "Branches"
     },
     "canvas": {
       "label": "Court diagram: {{name}}"

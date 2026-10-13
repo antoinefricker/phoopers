@@ -5,7 +5,7 @@ import type { BranchId, Play } from '../engine';
 import { fixturePlay, ROOT, STEP_ENTRY, SWITCH } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
-import { readProbe, renderEditor } from './testUtils/renderEditor';
+import { branchButton, readProbe, renderEditor } from './testUtils/renderEditor';
 
 const DEEPER = 'deeper' as BranchId;
 const SWITCH_NAME = 'Defence switches';
@@ -31,7 +31,13 @@ beforeEach(() => stubViewportWidth(1440));
 const enterEditMode = async () => {
   await userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
 };
-const askToDelete = () => userEvent.click(screen.getByRole('button', { name: `Delete ${SWITCH_NAME}` }));
+const askToDelete = async () => userEvent.click(await branchButton(`Delete ${SWITCH_NAME}`));
+/**
+ * The confirmation, by name. The branch menu that the delete action was reached through is a
+ * `role="dialog"` as well (Mantine's Popover, named after its trigger), so an unqualified
+ * dialog query matches two things.
+ */
+const confirmation = () => screen.findByRole('dialog', { name: `Delete ${SWITCH_NAME}?` });
 
 describe('ConfirmDelete on a branch', () => {
   it('does not remove anything until the confirmation is accepted', async () => {
@@ -40,7 +46,7 @@ describe('ConfirmDelete on a branch', () => {
 
     await askToDelete();
 
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(await confirmation()).toBeInTheDocument();
     expect(readProbe().play.branches).toHaveLength(fixturePlay.branches.length);
   });
 
@@ -62,7 +68,9 @@ describe('ConfirmDelete on a branch', () => {
     await askToDelete();
     await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: `Delete ${SWITCH_NAME}?` })).not.toBeInTheDocument(),
+    );
     expect(readProbe().play.branches).toHaveLength(fixturePlay.branches.length);
   });
 
@@ -72,7 +80,7 @@ describe('ConfirmDelete on a branch', () => {
 
     await askToDelete();
 
-    expect(await screen.findByRole('dialog')).toHaveTextContent('Deeper');
+    expect(await confirmation()).toHaveTextContent('Deeper');
   });
 
   it('removes the descendants too when confirmed', async () => {

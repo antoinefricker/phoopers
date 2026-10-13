@@ -32,11 +32,15 @@ animation layers timing on top of a picture that already makes sense without it.
 
 One full-height view in three regions:
 
-- **Court**, filling the centre. An SVG whose `viewBox` is court metres, so engine
+- **Court**, filling the full width. An SVG whose `viewBox` is court metres, so engine
   coordinates pass through with no conversion layer.
 - **Transport**, directly beneath: play/pause, a time readout, a scrubber carrying a labelled
   tick per step, and prev/next-step buttons.
-- **Branch tree**, a collapsible right sidebar.
+- **Branch tree**, in a menu opened from the header, ahead of the play's name. It is a menu
+  rather than a panel beside the court because the court is what the screen is for: a panel
+  took width from it at every size, and the tree is consulted to switch variants rather than
+  watched. The menu closes once a variant is picked, for the same reason. Its trigger carries
+  no branch name — only an icon — so the header's width does not move with the play's data.
 
 Half-court narrows the `viewBox` to the attacking half. It is a viewport change only and
 never touches stored data.
