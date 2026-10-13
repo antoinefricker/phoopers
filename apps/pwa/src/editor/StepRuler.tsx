@@ -158,8 +158,9 @@ export function StepRuler() {
                   }}
                   style={{ ...tickStyle(step.t, duration), cursor: 'grab', touchAction: 'none' }}
                   {...bind({
-                    resolve: (rawT) =>
-                      constrainStepRetime(play, step.id, step.t, rawT, others, SNAP_FRACTION * duration),
+                    current: step.t,
+                    resolve: (rawT, snap) =>
+                      constrainStepRetime(play, step.id, step.t, rawT, others, snap ? SNAP_FRACTION * duration : 0),
                     place: (element, value) => {
                       element.style.left = percent(value, duration);
                     },

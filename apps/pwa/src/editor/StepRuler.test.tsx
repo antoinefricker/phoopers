@@ -4,18 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StepId } from '../engine';
 import { fixturePlay, ROOT, STEP_ENTRY, SWITCH } from '../engine/__fixtures__/play';
 import { StepRuler } from './StepRuler';
-import type { ReactNode } from 'react';
-import { PlaybackContextProvider } from '../play2d/PlaybackContextProvider';
-import { dragElement, readProbe, renderEditor, SelectBranch } from './testUtils/renderEditor';
-import { useEditorContext } from './useEditorContext';
-
-// The shared harness hands the playback provider the INITIAL play, so a step added in a test would
-// never reach the ruler. This feeds it the editor's live play, as the app does.
-function LivePlayback({ children }: { children: ReactNode }) {
-  const { play } = useEditorContext();
-
-  return <PlaybackContextProvider play={play}>{children}</PlaybackContextProvider>;
-}
+import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch } from './testUtils/renderEditor';
 
 const renderLive = () =>
   renderEditor(
@@ -227,6 +216,21 @@ describe('StepRuler', () => {
     // SWITCH forks from this step and its first keyframe is at 2: moving the step later would
     // put that keyframe before its own fork.
     expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(2);
+  });
+
+  it('nudges a focused step with the arrow keys, finely with shift', async () => {
+    // No layout: a nudge counts from the step's own time, so the ruler needs no width.
+    renderLive();
+    const user = userEvent.setup();
+    const tick = screen.getByRole('button', { name: 'Entry pass' });
+    tick.focus();
+
+    // The step sits at 2 and SWITCH forks from it, so later is barred: it can only go earlier.
+    await user.keyboard('{ArrowLeft}');
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(1.5);
+
+    await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(1.6, 6);
   });
 });
 

@@ -280,22 +280,6 @@ labelled "X1".."X5".
 name each token group, and give the paths text alternatives — then decide what a sensible
 reading order over a play actually is.
 
-### Steps and screens cannot be retimed from the keyboard
-
-Keyframe markers, step ticks and screen handles are all retimed by pointer drag only. Measured
-in a browser: a step tick is a `<button>` with `tabIndex` 0, so it takes focus, but pressing
-ArrowRight, ArrowLeft, ArrowUp and ArrowDown on it leaves its `style.left` unchanged. The screen
-duration handle is worse — a `<div>` with `tabIndex` -1, so it cannot take focus at all, and its
-`aria-label="Screen duration"` sits on an element with no role, where assistive technology
-ignores it.
-
-It was left because keyboard editing is not in spec 003, which describes pointer gestures
-throughout.
-
-**Fix:** handle arrow keys on the focusable controls, moving the object by one snap step and
-committing through the same `constrainRetime` the drag uses; and make the screen handle a
-`<button>` so its name is exposed and it can be reached.
-
 ## Test coverage gaps
 
 ### The animation loop is not unit-testable

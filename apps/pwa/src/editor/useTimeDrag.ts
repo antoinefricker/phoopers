@@ -1,19 +1,33 @@
 import { useRef } from 'react';
-import type { PointerEvent, RefObject } from 'react';
+import type { KeyboardEvent, PointerEvent, RefObject } from 'react';
 import { timeFromClientX } from './timelineGeometry';
 
 // A press that moves less than this is a click with a twitch, not a drag. Without it a 1px wobble
 // while clicking a 14px marker would retime it and swallow the selection click.
 export const DRAG_SLOP_PX = 3;
 
+// How far one arrow key moves an object along the time axis, and how far with Shift held. Both
+// are absolute seconds rather than a fraction of the duration, so a press means the same thing
+// whatever the play's length — and both are coarser than any snap threshold would be, which is
+// why a keyboard nudge asks for its value unsnapped: a 0.1 s step inside a 0.2 s snap radius
+// would be swallowed and the key would look dead.
+export const COARSE_NUDGE_S = 0.5;
+export const FINE_NUDGE_S = 0.1;
+
 export interface TimeGesture {
-  /** Turns the pointer's raw time into the value the gesture may actually take (the constraint). */
-  resolve: (rawT: number) => number;
+  /** Where the model has this object now: the point a keyboard nudge counts from. */
+  current: number;
+  /**
+   * Turns a raw time into the value the gesture may actually take (the constraint). `snap` is
+   * true for the pointer, which benefits from landing on a step, and false for the keyboard,
+   * whose nudge is a deliberate amount the snap must not eat.
+   */
+  resolve: (rawT: number, snap: boolean) => number;
   /** Shows the value on the dragged element by writing its style: no state, no render. */
   place: (element: HTMLElement, value: number) => void;
   /** Puts the element back where the model has it, so a refused commit does not leave it adrift. */
   restore: (element: HTMLElement) => void;
-  /** Called once, on release, and only if the pointer actually moved. */
+  /** Called once on release — and only if the pointer actually moved — or once per arrow key. */
   commit: (value: number) => void;
 }
 
@@ -53,7 +67,7 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       if (!drag.moved && Math.abs(event.clientX - drag.startX) < DRAG_SLOP_PX) return;
 
       drag.moved = true;
-      drag.value = drag.gesture.resolve(timeFromClientX(event.clientX - drag.grab, rect, duration));
+      drag.value = drag.gesture.resolve(timeFromClientX(event.clientX - drag.grab, rect, duration), true);
       drag.gesture.place(event.currentTarget, drag.value);
     },
     onPointerUp: (event: PointerEvent<HTMLElement>) => {
@@ -70,6 +84,21 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       const drag = active.current;
       active.current = null;
       if (drag?.moved) drag.gesture.restore(event.currentTarget);
+    },
+    // The keyboard route to the same constraint. It writes the model on every press rather than
+    // on a release, so there is nothing to place or restore: the element re-renders at its new
+    // time. The arrows are the axis, Shift is the fine amount; everything else falls through, so
+    // the Delete that removes a keyframe and the Enter that opens a step's editor still reach it.
+    onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+      const direction = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+      if (direction === 0) return;
+
+      event.preventDefault();
+      const delta = direction * (event.shiftKey ? FINE_NUDGE_S : COARSE_NUDGE_S);
+      const value = gesture.resolve(gesture.current + delta, false);
+      // A nudge into a bound resolves back to where it already is. Committing that would be a
+      // no-op write that still rebuilds the play, so it is skipped.
+      if (value !== gesture.current) gesture.commit(value);
     },
   });
 

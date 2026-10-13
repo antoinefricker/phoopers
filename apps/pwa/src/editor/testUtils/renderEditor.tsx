@@ -64,6 +64,18 @@ export function renderEditor(initialPlay: Play, children: ReactNode, { wrapPlayb
   );
 }
 
+/**
+ * Feeds the playback provider the editor's LIVE play rather than the one it started with, as the
+ * app does. Without it the view is frozen at `initialPlay`: a commit reaches the model but the
+ * component still renders the old times, so a second gesture counts from a stale starting point.
+ * Use it with `wrapPlayback: false`, which leaves this the only provider.
+ */
+export function LivePlayback({ children }: { children: ReactNode }) {
+  const { play } = useEditorContext();
+
+  return <PlaybackContextProvider play={play}>{children}</PlaybackContextProvider>;
+}
+
 /** A button that selects a branch through the playback context, as the branch tree does. */
 export function SelectBranch({ branchId }: { branchId: BranchId }) {
   const { selectBranch } = usePlaybackContext();
