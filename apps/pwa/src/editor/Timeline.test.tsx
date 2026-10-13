@@ -540,8 +540,10 @@ describe('track alignment', () => {
     // the rows but not the overlay, the playhead drifts from the markers by that amount.
     renderEditor(fixturePlay, <Timeline />);
 
-    const rowTrack = rowFor(P1).lastElementChild as HTMLElement;
-    const rulerTrack = screen.getByTestId('step-ruler').lastElementChild as HTMLElement;
+    // By test id, not by child order: the row also holds the always-mounted dialog that
+    // confirms removing a screen, which is a sibling of the track.
+    const rowTrack = screen.getByTestId(`timeline-track-${P1}`);
+    const rulerTrack = screen.getByTestId('step-ruler-track');
     const overlay = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
 
     // The right side also reserves the transport's time readout, so the scrubber and the

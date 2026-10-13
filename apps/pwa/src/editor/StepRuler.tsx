@@ -114,6 +114,7 @@ export function StepRuler() {
       {/* Same inset as TimelineRow's track, so the ruler's time axis lines up with the rows. */}
       <Box
         ref={trackRef}
+        data-testid="step-ruler-track"
         style={{
           position: 'relative',
           flex: 1,

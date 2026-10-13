@@ -85,6 +85,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           overlay carry the same inset, or the playhead drifts from the markers. */}
       <Box
         ref={trackRef}
+        data-testid={`timeline-track-${row.entityId}`}
         style={{
           position: 'relative',
           flex: 1,
