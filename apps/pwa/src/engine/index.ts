@@ -26,5 +26,5 @@ export type {
 export { COURT_DIMENSIONS } from './types';
 export { pointOnCubic } from './curve';
 export { resolveBranch } from './resolve';
-export { ballStateAt, duration, spanKindAt, stateAt, stepsOf } from './sample';
+export { ballCarryAt, ballStateAt, duration, spanKindAt, stateAt, stepsOf } from './sample';
 export { validatePlay } from './validate';

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import { stateAt } from '../engine';
+import { ballCarryAt, stateAt } from '../engine';
 import type { PlayerId } from '../engine';
 import { usePlaybackContext } from './usePlaybackContext';
 import { BallSymbol, HELD_BALL_OFFSET, PlayerSymbol } from './PlayerSymbol';
@@ -40,9 +40,11 @@ export function TokenLayer() {
       }
 
       if (ballRef.current !== null) {
-        // Only while held: a loose ball is at its own position and must stay there, or a pass
-        // and a shot would land off their target.
-        const held = state.ball.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+        // Scaled by how far the ball is in a carrier's hands, not switched on `attachedTo`: the
+        // boolean stepped the whole offset in at a catch and out at a release, teleporting the
+        // ball by 0.45m on a frame where it had barely moved. The carry is spent to zero by the
+        // end of a shot, so the ball still lands on its target rather than beside it.
+        const held = HELD_BALL_OFFSET * ballCarryAt(timeline, t);
         ballRef.current.setAttribute(
           'transform',
           translate(state.ball.position.x + held, state.ball.position.y + held),

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import type { UserEvent } from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolveBranch, stateAt, type ResolvedTimeline, type Vec2 } from '../engine';
+import { ballCarryAt, resolveBranch, stateAt, type ResolvedTimeline, type Vec2 } from '../engine';
 import { HORNS_SWITCH, hornsPlay } from '../samples/horns';
 import { stubViewportWidth } from '../testUtils/viewport';
 import i18n from '../i18n/i18n';
@@ -46,9 +46,10 @@ function drawnPositions(container: HTMLElement): Record<string, Vec2> {
 /** Where the engine says every entity is at `t`. */
 function sampledPositions(timeline: ResolvedTimeline, t: number): Record<string, Vec2> {
   const state = stateAt(timeline, t);
-  // A held ball is drawn down-right of its carrier, so the token does not swallow it. A loose
-  // ball stays exactly where the sampler puts it, or a pass and a shot would miss.
-  const held = state.ball.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+  // A held ball is drawn down-right of its carrier, so the token does not swallow it. The
+  // offset is scaled by the carry, which crosses a release and a catch without stepping and is
+  // spent by the time a shot reaches its target.
+  const held = HELD_BALL_OFFSET * ballCarryAt(timeline, t);
   const positions: Record<string, Vec2> = {
     ball: { x: state.ball.position.x + held, y: state.ball.position.y + held },
   };

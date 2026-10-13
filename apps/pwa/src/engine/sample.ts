@@ -141,6 +141,39 @@ export function stateAt(timeline: ResolvedTimeline, rawT: number): PlayState {
   };
 }
 
+/**
+ * How far the ball is in a carrier's hands, from 1 (held) to 0 (loose), continuously.
+ *
+ * A view draws a held ball offset from its carrier's centre, so that it reads as being carried
+ * rather than stood on. `attachedTo` alone cannot scale that offset: it steps from a player to
+ * null the instant a pass or a shot leaves, and the ball would teleport by the whole offset on
+ * every release and every catch, while its sampled position stayed continuous.
+ *
+ * Across a flight the fraction is interpolated between its value at each end, with the SAME
+ * easing the position uses, so the offset tracks the ball rather than sliding against it. A
+ * pass between two carriers therefore holds at 1 — the ball is beside a token the whole way —
+ * and a shot, whose far end is a point on the court, is spent to 0 by the time it arrives, so
+ * the ball lands on its target rather than beside it.
+ */
+export function ballCarryAt(timeline: ResolvedTimeline, rawT: number): number {
+  const anchors = timeline.anchors.ball ?? [];
+  const spans = timeline.spans.ball ?? [];
+  const t = clampTime(anchors, rawT);
+  const index = spanIndexAt(spans, t);
+  const span = spans[index];
+
+  // No span to be in: a single-keyframe track, or none at all. The last anchor says whether
+  // the ball ends up in someone's hands.
+  if (span === undefined) return anchors[anchors.length - 1]?.attachedTo === undefined ? 0 : 1;
+  if (span.attachedTo !== null) return 1;
+
+  const carried = (keyframe: Keyframe | undefined) => (keyframe?.attachedTo === undefined ? 0 : 1);
+  const from = carried(anchors[index]);
+  const to = carried(anchors[index + 1]);
+
+  return from + (to - from) * easedProgress(span, t);
+}
+
 export function ballStateAt(timeline: ResolvedTimeline, t: number): BallState {
   return attachmentAt(timeline, t) === null ? 'inFlight' : 'held';
 }
