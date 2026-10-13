@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { hornsPlay } from './samples/horns';
 import { stubViewportWidth } from './testUtils/viewport';
+import { playheadTime } from './testUtils/transport';
 
 function renderApp() {
   stubViewportWidth(1440);
@@ -36,6 +37,6 @@ describe('App', () => {
 
     // Wired for real: a transport press reaches the clock the court draws from.
     await user.click(screen.getByRole('button', { name: 'Next step' }));
-    expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+    expect(playheadTime()).toBeCloseTo(2.0, 5);
   });
 });

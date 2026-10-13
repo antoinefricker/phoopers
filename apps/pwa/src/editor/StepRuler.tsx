@@ -7,7 +7,6 @@ import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { constrainStepRetime } from './constraints';
 import { LABEL_WIDTH } from './TimelineRow';
 import { TRACK_INSET_PX, fractionOf } from './timelineGeometry';
-import { TIME_READOUT_PX } from '../play2d/transportMath';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 
@@ -120,7 +119,7 @@ export function StepRuler() {
           flex: 1,
           height: '100%',
           marginLeft: TRACK_INSET_PX,
-          marginRight: TRACK_INSET_PX + TIME_READOUT_PX,
+          marginRight: TRACK_INSET_PX,
         }}
       >
         {steps.map((step) => {

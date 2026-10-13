@@ -11,6 +11,7 @@ import { EditorContextProvider } from '../editor/EditorContextProvider';
 import { PlayView } from './PlayView';
 import { HELD_BALL_OFFSET } from './PlayerSymbol';
 import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
+import { playheadTime } from '../testUtils/transport';
 
 function renderView(widthPx = 1440) {
   stubViewportWidth(widthPx);
@@ -176,7 +177,7 @@ describe('PlayView', () => {
       await user.click(trigger());
 
       expect(await screen.findByRole('button', { name: SWITCH_NAME })).toHaveAttribute('aria-current', 'true');
-      expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+      expect(playheadTime()).toBeCloseTo(2.0, 5);
     });
 
     it('has a translated label', async () => {
@@ -229,7 +230,7 @@ describe('PlayView', () => {
         markup: svg.innerHTML,
         viewBox: svg.getAttribute('viewBox'),
         positions: drawnPositions(container),
-        time: screen.getByTestId('current-time').textContent,
+        time: playheadTime(),
         current: await currentBranchFlag(user, SWITCH_NAME),
       };
 
@@ -238,9 +239,9 @@ describe('PlayView', () => {
       expect(svg.getAttribute('viewBox')).not.toBe(before.viewBox);
       expect(svg.innerHTML).toBe(before.markup);
       expect(drawnPositions(container)).toEqual(before.positions);
-      expect(screen.getByTestId('current-time').textContent).toBe(before.time);
+      expect(playheadTime()).toBe(before.time);
       expect(await currentBranchFlag(user, SWITCH_NAME)).toBe(before.current);
-      expect(before.time).toBe('4.0');
+      expect(before.time).toBe(4);
       expect(before.current).toBe('true');
     });
   });
@@ -263,7 +264,12 @@ describe('PlayView', () => {
       for (let i = 0; i < 700; i += 1) act(() => void vi.advanceTimersByTime(16));
 
       expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
-      expect(screen.getByTestId('current-time')).toHaveTextContent('8.0');
+      // Within the throttle window, not exactly on it: the thumb follows `displayTime`, which
+      // lags the clock by up to a tenth of a second. The tokens below are the ones drawn from
+      // the live clock, and they do land exactly on the duration. This used to read as exact
+      // only because the readout it replaced printed one decimal, rounding 7.952 to "8.0".
+      expect(8 - playheadTime()).toBeLessThan(0.1);
+      expect(playheadTime()).toBeLessThanOrEqual(8);
       expectDrawnAt(container, rootTimeline, rootTimeline.duration);
     });
   });
@@ -280,7 +286,7 @@ describe('PlayView', () => {
       await user.keyboard('{End}');
 
       expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
-      expect(screen.getByTestId('current-time')).toHaveTextContent('8.0');
+      expect(playheadTime()).toBeCloseTo(8.0, 5);
       expectDrawnAt(container, rootTimeline, 8);
       // And it is not simply the opening pose: the premise would hold for any t if nothing moved.
       expect(moved(drawnPositions(container)['o1'], sampledPositions(rootTimeline, 0)['o1'])).toBeGreaterThan(1);
@@ -319,7 +325,7 @@ describe('PlayView', () => {
       await user.click(screen.getByRole('button', { name: 'Next step' }));
       await user.click((await openBranchMenu(user)).getByRole('button', { name: SWITCH_NAME }));
       expect(await currentBranchFlag(user, SWITCH_NAME)).toBe('true');
-      expect(screen.getByTestId('current-time')).toHaveTextContent('0.0');
+      expect(playheadTime()).toBeCloseTo(0.0, 5);
 
       // Shared opening: the switch branch draws exactly what the base play does.
       expectDrawnAt(container, switchTimeline, 0);

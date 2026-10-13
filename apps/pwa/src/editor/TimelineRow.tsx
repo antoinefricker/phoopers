@@ -5,7 +5,7 @@ import type { EntityId, ScreenEvent, ScreenId } from '../engine';
 import { ConfirmDelete } from './ConfirmDelete';
 import { constrainRetime } from './constraints';
 import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
-import { GUTTER_WIDTH, TIME_READOUT_PX } from '../play2d/transportMath';
+import { GUTTER_WIDTH } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
@@ -91,7 +91,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           flex: 1,
           height: '100%',
           marginLeft: TRACK_INSET_PX,
-          marginRight: TRACK_INSET_PX + TIME_READOUT_PX,
+          marginRight: TRACK_INSET_PX,
         }}
       >
         <Box

@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { TRACK_INSET_PX } from './timelineGeometry';
-import { TIME_READOUT_PX } from '../play2d/transportMath';
 import { Timeline } from './Timeline';
 import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
 
@@ -546,9 +545,9 @@ describe('track alignment', () => {
     const rulerTrack = screen.getByTestId('step-ruler-track');
     const overlay = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
 
-    // The right side also reserves the transport's time readout, so the scrubber and the
-    // tracks end at the same x instead of the scrubber stopping short by that width.
-    const right = `${TRACK_INSET_PX + TIME_READOUT_PX}px`;
+    // Both sides take the same inset now: with the time readout gone the scrubber runs the
+    // full width, so nothing extra is reserved on the right.
+    const right = `${TRACK_INSET_PX}px`;
     expect(rowTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
     expect(rowTrack.style.marginRight).toBe(right);
     expect(rulerTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);

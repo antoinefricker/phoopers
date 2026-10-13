@@ -8,6 +8,7 @@ import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { setKeyframe } from './mutations';
 import { branchButton, branchMenu, dragElement, readProbe, renderEditor, trackOf } from './testUtils/renderEditor';
+import { playheadTime } from '../testUtils/transport';
 
 const STEP_LATE = 'step-late' as StepId;
 
@@ -179,12 +180,12 @@ describe('shortening a play', () => {
 
     // Selecting a marker seeks to it: the playhead is now at the end.
     await userEvent.click(last);
-    expect(Number.parseFloat(screen.getByTestId('current-time').textContent ?? '')).toBe(4);
+    expect(playheadTime()).toBe(4);
 
     await dragElement(last);
 
     const longest = Math.max(...trackOf(readProbe().play, ROOT, P1).map((k) => k.t));
     expect(longest).toBeLessThan(4);
-    expect(Number.parseFloat(screen.getByTestId('current-time').textContent ?? '')).toBeLessThanOrEqual(longest);
+    expect(playheadTime()).toBeLessThanOrEqual(longest);
   });
 });

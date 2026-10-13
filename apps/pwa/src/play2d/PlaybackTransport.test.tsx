@@ -6,6 +6,7 @@ import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
 import { adjacentStep, sliderMax, snapToStep, stepMarks } from './transportMath';
+import { playheadTime } from '../testUtils/transport';
 
 const steps: Step[] = [
   { id: 's1' as StepId, t: 2, name: 'Screen' },
@@ -170,13 +171,13 @@ describe('PlaybackTransport', () => {
     const next = screen.getByRole('button', { name: 'Next step' });
 
     click(next);
-    expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+    expect(playheadTime()).toBeCloseTo(2.0, 5);
 
     click(next);
-    expect(screen.getByTestId('current-time')).toHaveTextContent('4.0');
+    expect(playheadTime()).toBeCloseTo(4.0, 5);
 
     click(next);
-    expect(screen.getByTestId('current-time')).toHaveTextContent('4.0');
+    expect(playheadTime()).toBeCloseTo(4.0, 5);
   });
 
   it('jumps back to the previous step', () => {
@@ -186,7 +187,7 @@ describe('PlaybackTransport', () => {
     click(screen.getByRole('button', { name: 'Next step' }));
     click(screen.getByRole('button', { name: 'Previous step' }));
 
-    expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+    expect(playheadTime()).toBeCloseTo(2.0, 5);
   });
 
   it('pauses playback when a step button is used', () => {
@@ -196,7 +197,7 @@ describe('PlaybackTransport', () => {
     click(screen.getByRole('button', { name: 'Next step' }));
 
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
-    expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+    expect(playheadTime()).toBeCloseTo(2.0, 5);
   });
 
   it('pauses playback when the scrubber is moved', () => {
@@ -208,7 +209,7 @@ describe('PlaybackTransport', () => {
     // The scrub must both move the clock and stop it: End jumps to the last second.
     fireEvent.keyDown(screen.getByRole('slider'), { key: 'End' });
 
-    expect(screen.getByTestId('current-time')).toHaveTextContent('8.0');
+    expect(playheadTime()).toBeCloseTo(8.0, 5);
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument();
   });
@@ -316,7 +317,7 @@ describe('PlaybackTransport', () => {
     const slider = screen.getByRole('slider');
     expect(Number(slider.getAttribute('aria-valuemax'))).toBeGreaterThan(0);
     expect(slider.getAttribute('aria-valuenow')).not.toBe('NaN');
-    expect(screen.getByTestId('current-time')).toHaveTextContent('0.0');
+    expect(playheadTime()).toBeCloseTo(0.0, 5);
   });
 });
 

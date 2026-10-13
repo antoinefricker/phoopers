@@ -13,11 +13,6 @@ const STEP_EPSILON = 1e-6;
 // and the playback buttons on the transport, so both axes start at the same x.
 export const GUTTER_WIDTH = '7rem';
 
-// The current-time readout sits past the end of the scrubber. The timeline reserves the same
-// width on the right of its tracks, so all three axes end at the same x rather than the
-// scrubber stopping short by exactly this much.
-export const TIME_READOUT_PX = 40;
-
 // Room kept at each end of every axis: half the width of a keyframe marker, which is centred
 // on its time and so reaches that far past it. Without it the last marker overflows and the
 // panel grows a horizontal scrollbar. The scrubber takes the same inset or it drifts from the
