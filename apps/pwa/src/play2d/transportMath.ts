@@ -67,6 +67,38 @@ export function stepAt(t: number, steps: readonly Step[]): Step | undefined {
   return reached;
 }
 
+/**
+ * The step whose name is showing at `t`, or undefined when none is.
+ *
+ * A step's window is `[t, t + duration]`, or `[t, the next step's t]` with no duration, or
+ * `[t, playDuration]` for a last step with none. Windows cannot overlap by construction — the
+ * editor's handle stops at the next step — but a retime can leave one overrunning, so the
+ * window starting latest at or before `t` wins; the answer never depends on array order.
+ *
+ * A duration that is not a positive number gives no window at all. `validatePlay` reports it,
+ * which does not remove it from the play, and showing a name for ever would be worse.
+ */
+export function stepLabelAt(t: number, steps: readonly Step[], playDuration: number): Step | undefined {
+  if (!Number.isFinite(t)) return undefined;
+
+  const ordered = [...steps].sort((a, b) => a.t - b.t);
+  let showing: Step | undefined;
+  ordered.forEach((step, index) => {
+    if (step.t > t) return;
+    const implicit = ordered[index + 1]?.t ?? playDuration;
+    const end =
+      step.duration === undefined
+        ? implicit
+        : Number.isFinite(step.duration) && step.duration > 0
+          ? step.t + step.duration
+          : step.t;
+    // Inclusive at the end so two steps sharing a time still name something.
+    if (t <= end) showing = step;
+  });
+
+  return showing;
+}
+
 // One mark per distinct time: steps sharing a time would otherwise stack identical ticks and
 // duplicate React keys. Their names are joined so none is hidden.
 export function stepMarks(steps: readonly Step[]): { value: number; label: string }[] {

@@ -5,7 +5,7 @@ import type { Keyframe, Play, PlayerId, Step, StepId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
-import { adjacentStep, sliderMax, snapToStep, stepAt, stepMarks } from './transportMath';
+import { adjacentStep, sliderMax, snapToStep, stepAt, stepLabelAt, stepMarks } from './transportMath';
 import { playheadTime } from '../testUtils/transport';
 
 const steps: Step[] = [
@@ -125,6 +125,54 @@ describe('stepAt', () => {
 
   it('survives a non-finite time rather than naming a wrong step', () => {
     expect(stepAt(Number.NaN, steps)).toBeUndefined();
+  });
+});
+
+describe('stepLabelAt', () => {
+  const screen2: Step = { id: 's1' as StepId, t: 2, name: 'Screen' };
+  const entry4: Step = { id: 's2' as StepId, t: 4, name: 'Entry' };
+
+  it('names nothing before the first step', () => {
+    expect(stepLabelAt(1, [screen2, entry4], 8)).toBeUndefined();
+  });
+
+  it('runs to the next step when the step has no duration', () => {
+    expect(stepLabelAt(3.9, [screen2, entry4], 8)?.name).toBe('Screen');
+    expect(stepLabelAt(4, [screen2, entry4], 8)?.name).toBe('Entry');
+  });
+
+  it('runs to the end of the play for a last step with no duration', () => {
+    expect(stepLabelAt(7.9, [screen2, entry4], 8)?.name).toBe('Entry');
+  });
+
+  it('stops naming a step once its duration is spent', () => {
+    const brief = { ...screen2, duration: 0.5 };
+
+    expect(stepLabelAt(2.4, [brief, entry4], 8)?.name).toBe('Screen');
+    expect(stepLabelAt(2.6, [brief, entry4], 8)).toBeUndefined();
+  });
+
+  it('names the window that starts latest when one overruns another', () => {
+    // A retime can leave this state, and the answer must not depend on the order the steps
+    // happen to sit in the array.
+    const overrunning = { ...screen2, duration: 5 };
+
+    expect(stepLabelAt(4.5, [overrunning, entry4], 8)?.name).toBe('Entry');
+    expect(stepLabelAt(4.5, [entry4, overrunning], 8)?.name).toBe('Entry');
+  });
+
+  it('names one of two steps sharing a time rather than none', () => {
+    // The window is zero-length, so a half-open test would name neither.
+    const tied: Step = { id: 's3' as StepId, t: 2, name: 'Also here' };
+
+    expect(stepLabelAt(2, [screen2, tied], 8)).toBeDefined();
+  });
+
+  it('names nothing for a duration that is not a number', () => {
+    // `validatePlay` reports it, which does not remove it from the play.
+    const broken = { ...screen2, duration: Number.NaN };
+
+    expect(stepLabelAt(3, [broken, entry4], 8)).toBeUndefined();
   });
 });
 
