@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { EntityId, ScreenEvent, ScreenId } from '../engine';
 import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
 import { ConfirmDelete } from './ConfirmDelete';
+import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
 import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
 import { GUTTER_WIDTH } from '../play2d/transportMath';
@@ -128,71 +129,50 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           }}
         />
         {screens.map((screen) => (
-          <Box
+          <TimelineBar
             key={screen.id}
-            data-testid={`screen-bar-${screen.id}`}
-            data-inherited={ownScreenIds.has(screen.id) ? undefined : 'true'}
-            style={{
-              position: 'absolute',
-              top: '20%',
-              height: '60%',
-              left: percent(screen.t, duration),
-              width: `${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`,
-              background: 'var(--mantine-color-grape-light)',
-              borderRadius: 2,
-              pointerEvents: 'none',
-            }}
+            testId={`screen-bar-${screen.id}`}
+            inherited={!ownScreenIds.has(screen.id)}
+            leftPercent={percent(screen.t, duration)}
+            widthPercent={`${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`}
+            background="var(--mantine-color-grape-light)"
+            handle={
+              ownScreenIds.has(screen.id)
+                ? {
+                    testId: `screen-handle-${screen.id}`,
+                    label: t('play.editor.screenDuration', 'Screen duration'),
+                    bind: bind({
+                      current: screen.t + screen.duration,
+                      // The edge cannot go left of the screen's own start: it floors at a minimum duration.
+                      resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
+                      place: (element, end) => {
+                        const bar = element.parentElement;
+                        if (bar !== null) {
+                          bar.style.width = `${(fractionOf(end, duration) - fractionOf(screen.t, duration)) * 100}%`;
+                        }
+                      },
+                      restore: (element) => {
+                        const bar = element.parentElement;
+                        if (bar !== null) {
+                          bar.style.width = `${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`;
+                        }
+                      },
+                      commit: (end) => setScreenDuration(screen.id, end - screen.t),
+                    }),
+                  }
+                : undefined
+            }
           >
             {ownScreenIds.has(screen.id) ? (
-              <>
-                {/* A button, not a div: the handle is reachable by keyboard, and the arrow keys
-                    retime it through the same constraint the drag uses. */}
-                <button
-                  type="button"
-                  data-testid={`screen-handle-${screen.id}`}
-                  aria-label={t('play.editor.screenDuration', 'Screen duration')}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    bottom: 0,
-                    right: -3,
-                    width: 6,
-                    padding: 0,
-                    border: 0,
-                    cursor: 'ew-resize',
-                    touchAction: 'none',
-                    pointerEvents: 'auto',
-                    background: 'var(--mantine-color-grape-filled)',
-                  }}
-                  {...bind({
-                    current: screen.t + screen.duration,
-                    // The edge cannot go left of the screen's own start: it floors at a minimum duration.
-                    resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
-                    place: (element, end) => {
-                      const bar = element.parentElement;
-                      if (bar !== null) {
-                        bar.style.width = `${(fractionOf(end, duration) - fractionOf(screen.t, duration)) * 100}%`;
-                      }
-                    },
-                    restore: (element) => {
-                      const bar = element.parentElement;
-                      if (bar !== null) {
-                        bar.style.width = `${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`;
-                      }
-                    },
-                    commit: (end) => setScreenDuration(screen.id, end - screen.t),
-                  })}
-                />
-                <CloseButton
-                  size="xs"
-                  data-testid={`screen-remove-${screen.id}`}
-                  aria-label={t('play.editor.removeScreen', 'Remove screen')}
-                  onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
-                  style={{ position: 'absolute', top: 0, bottom: 0, left: 0, height: 'auto', pointerEvents: 'auto' }}
-                />
-              </>
+              <CloseButton
+                size="xs"
+                data-testid={`screen-remove-${screen.id}`}
+                aria-label={t('play.editor.removeScreen', 'Remove screen')}
+                onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
+                style={{ position: 'absolute', top: 0, bottom: 0, left: 0, height: 'auto', pointerEvents: 'auto' }}
+              />
             ) : null}
-          </Box>
+          </TimelineBar>
         ))}
         {isBall &&
           row.keyframes.map((k, index) => {
