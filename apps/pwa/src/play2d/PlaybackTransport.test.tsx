@@ -5,7 +5,8 @@ import type { Keyframe, Play, PlayerId, Step, StepId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
-import { adjacentStep, sliderMax, snapToStep, stepMarks } from './transportMath';
+import { adjacentStep, sliderMax, snapToStep, stepAt, stepMarks } from './transportMath';
+import { playheadTime } from '../testUtils/transport';
 
 const steps: Step[] = [
   { id: 's1' as StepId, t: 2, name: 'Screen' },
@@ -92,6 +93,41 @@ describe('adjacentStep', () => {
   });
 });
 
+describe('stepAt', () => {
+  it('names the step the playhead has reached', () => {
+    expect(stepAt(2, steps)?.name).toBe('Screen');
+    expect(stepAt(3, steps)?.name).toBe('Screen');
+    expect(stepAt(4, steps)?.name).toBe('Entry');
+    expect(stepAt(99, steps)?.name).toBe('Entry');
+  });
+
+  it('has no step before the first one', () => {
+    // A play can open on movement that belongs to no step yet, so there is nothing to name.
+    expect(stepAt(0, steps)).toBeUndefined();
+    expect(stepAt(1.999, steps)).toBeUndefined();
+  });
+
+  it('takes the later of two steps sharing a time', () => {
+    // The ruler joins their names; the caption has room for one, and the last one authored at
+    // that instant is the one the play has most recently reached.
+    const tied: Step[] = [...steps, { id: 's3' as StepId, t: 2, name: 'Also here' }];
+
+    expect(stepAt(2, tied)?.name).toBe('Also here');
+  });
+
+  it('is independent of the order steps are stored in', () => {
+    expect(stepAt(3, [...steps].reverse())?.name).toBe('Screen');
+  });
+
+  it('has no step at all when there are none', () => {
+    expect(stepAt(3, [])).toBeUndefined();
+  });
+
+  it('survives a non-finite time rather than naming a wrong step', () => {
+    expect(stepAt(Number.NaN, steps)).toBeUndefined();
+  });
+});
+
 describe('stepMarks', () => {
   it('gives one mark per distinct time, naming every step at that time', () => {
     const marks = stepMarks([
@@ -170,13 +206,13 @@ describe('PlaybackTransport', () => {
     const next = screen.getByRole('button', { name: 'Next step' });
 
     click(next);
-    expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+    expect(playheadTime()).toBeCloseTo(2.0, 5);
 
     click(next);
-    expect(screen.getByTestId('current-time')).toHaveTextContent('4.0');
+    expect(playheadTime()).toBeCloseTo(4.0, 5);
 
     click(next);
-    expect(screen.getByTestId('current-time')).toHaveTextContent('4.0');
+    expect(playheadTime()).toBeCloseTo(4.0, 5);
   });
 
   it('jumps back to the previous step', () => {
@@ -186,7 +222,7 @@ describe('PlaybackTransport', () => {
     click(screen.getByRole('button', { name: 'Next step' }));
     click(screen.getByRole('button', { name: 'Previous step' }));
 
-    expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+    expect(playheadTime()).toBeCloseTo(2.0, 5);
   });
 
   it('pauses playback when a step button is used', () => {
@@ -196,7 +232,7 @@ describe('PlaybackTransport', () => {
     click(screen.getByRole('button', { name: 'Next step' }));
 
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
-    expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+    expect(playheadTime()).toBeCloseTo(2.0, 5);
   });
 
   it('pauses playback when the scrubber is moved', () => {
@@ -208,7 +244,7 @@ describe('PlaybackTransport', () => {
     // The scrub must both move the clock and stop it: End jumps to the last second.
     fireEvent.keyDown(screen.getByRole('slider'), { key: 'End' });
 
-    expect(screen.getByTestId('current-time')).toHaveTextContent('8.0');
+    expect(playheadTime()).toBeCloseTo(8.0, 5);
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument();
   });
@@ -316,7 +352,7 @@ describe('PlaybackTransport', () => {
     const slider = screen.getByRole('slider');
     expect(Number(slider.getAttribute('aria-valuemax'))).toBeGreaterThan(0);
     expect(slider.getAttribute('aria-valuenow')).not.toBe('NaN');
-    expect(screen.getByTestId('current-time')).toHaveTextContent('0.0');
+    expect(playheadTime()).toBeCloseTo(0.0, 5);
   });
 });
 

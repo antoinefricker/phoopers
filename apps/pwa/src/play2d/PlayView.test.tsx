@@ -1,8 +1,9 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { UserEvent } from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolveBranch, stateAt, type ResolvedTimeline, type Vec2 } from '../engine';
+import { ballCarryAt, resolveBranch, stateAt, type ResolvedTimeline, type Vec2 } from '../engine';
 import { HORNS_SWITCH, hornsPlay } from '../samples/horns';
 import { stubViewportWidth } from '../testUtils/viewport';
 import i18n from '../i18n/i18n';
@@ -10,11 +11,12 @@ import { EditorContextProvider } from '../editor/EditorContextProvider';
 import { PlayView } from './PlayView';
 import { HELD_BALL_OFFSET } from './PlayerSymbol';
 import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
+import { playheadTime } from '../testUtils/transport';
 
 function renderView(widthPx = 1440) {
   stubViewportWidth(widthPx);
   return render(
-    <MantineProvider>
+    <MantineProvider env="test">
       <EditorContextProvider initialPlay={hornsPlay}>
         <PlayView />
       </EditorContextProvider>
@@ -45,9 +47,10 @@ function drawnPositions(container: HTMLElement): Record<string, Vec2> {
 /** Where the engine says every entity is at `t`. */
 function sampledPositions(timeline: ResolvedTimeline, t: number): Record<string, Vec2> {
   const state = stateAt(timeline, t);
-  // A held ball is drawn down-right of its carrier, so the token does not swallow it. A loose
-  // ball stays exactly where the sampler puts it, or a pass and a shot would miss.
-  const held = state.ball.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+  // A held ball is drawn down-right of its carrier, so the token does not swallow it. The
+  // offset is scaled by the carry, which crosses a release and a catch without stepping and is
+  // spent by the time a shot reaches its target.
+  const held = HELD_BALL_OFFSET * ballCarryAt(timeline, t);
   const positions: Record<string, Vec2> = {
     ball: { x: state.ball.position.x + held, y: state.ball.position.y + held },
   };
@@ -77,8 +80,26 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
 });
 
+/**
+ * The branch tree lives in a menu in the header rather than in a panel beside the court, so a
+ * test that touches a branch opens the menu first. Returns the tree's queries.
+ */
+const openBranchMenu = async (user: UserEvent) => {
+  await user.click(screen.getByRole('button', { name: 'Branches' }));
+  return within(await screen.findByRole('navigation', { name: 'Play branches' }));
+};
+
+/** Which branch the tree marks as current, read without leaving the menu open behind. */
+const currentBranchFlag = async (user: UserEvent, name: string) => {
+  const branches = await openBranchMenu(user);
+  const flag = branches.getByRole('button', { name }).getAttribute('aria-current');
+  await user.keyboard('{Escape}');
+  return flag;
+};
+
 describe('PlayView', () => {
-  it('renders the court, the tokens, the transport and the branch tree together', () => {
+  it('renders the court, the tokens, the transport and the branch menu together', async () => {
+    const user = userEvent.setup();
     const { container } = renderView();
 
     expect(screen.getByRole('img')).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));
@@ -86,7 +107,7 @@ describe('PlayView', () => {
     expect(container.querySelector('[data-testid="ball-token"]')).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
     expect(screen.getByRole('slider')).toBeInTheDocument();
-    const branches = within(screen.getByRole('navigation', { name: 'Play branches' }));
+    const branches = await openBranchMenu(user);
     expect(branches.getByRole('button', { name: 'Base' })).toBeInTheDocument();
     expect(branches.getByRole('button', { name: SWITCH_NAME })).toBeInTheDocument();
   });
@@ -104,66 +125,67 @@ describe('PlayView', () => {
     expect(screen.getByRole('radio', { name: 'Half court' })).not.toBeChecked();
   });
 
-  describe('branch sidebar', () => {
+  describe('branch menu', () => {
     const branchNav = () => screen.queryByRole('navigation', { name: 'Play branches' });
+    const trigger = () => screen.getByRole('button', { name: 'Branches' });
 
-    it('is open by default where there is room for it beside the court', () => {
-      renderView(1440);
-
-      expect(branchNav()).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Toggle branches' })).toHaveAttribute('aria-expanded', 'true');
-    });
-
-    it('is collapsed by default on a phone-sized screen', () => {
-      renderView(375);
-
-      expect(branchNav()).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Toggle branches' })).toHaveAttribute('aria-expanded', 'false');
-    });
-
-    it('hides and shows the branch list when the toggle is activated', async () => {
+    it('keeps the branch list out of the way until the menu is opened', async () => {
       const user = userEvent.setup();
-      renderView(1440);
-      const toggle = screen.getByRole('button', { name: 'Toggle branches' });
+      renderView();
 
-      await user.click(toggle);
+      // The court is the whole point of the screen, so nothing of the tree is on it to begin
+      // with. The trigger says it is collapsed rather than leaving that to be inferred.
       expect(branchNav()).not.toBeInTheDocument();
-      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(trigger()).toHaveAttribute('aria-expanded', 'false');
 
-      await user.click(toggle);
-      expect(branchNav()).toBeInTheDocument();
-      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await user.click(trigger());
+
+      expect(await screen.findByRole('navigation', { name: 'Play branches' })).toBeInTheDocument();
+      expect(trigger()).toHaveAttribute('aria-expanded', 'true');
     });
 
-    it('opens from the keyboard on a phone-sized screen', async () => {
+    it('closes the menu once a variant is picked', async () => {
       const user = userEvent.setup();
-      renderView(375);
+      renderView();
+      await user.click(trigger());
 
-      screen.getByRole('button', { name: 'Toggle branches' }).focus();
+      await user.click(await screen.findByRole('button', { name: SWITCH_NAME }));
+
+      // A menu that stayed open over the court after the choice was made would hide the very
+      // thing the choice was about.
+      await waitFor(() => expect(branchNav()).not.toBeInTheDocument());
+      expect(trigger()).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('opens from the keyboard', async () => {
+      const user = userEvent.setup();
+      renderView();
+
+      trigger().focus();
       await user.keyboard('{Enter}');
 
-      expect(branchNav()).toBeInTheDocument();
+      expect(await screen.findByRole('navigation', { name: 'Play branches' })).toBeInTheDocument();
     });
 
-    it('keeps the selected branch and playhead while collapsed', async () => {
+    it('keeps the selected branch and playhead after the menu closes', async () => {
       const user = userEvent.setup();
-      renderView(1440);
-      await user.click(screen.getByRole('button', { name: SWITCH_NAME }));
+      renderView();
+      await user.click(trigger());
+      await user.click(await screen.findByRole('button', { name: SWITCH_NAME }));
       await user.click(screen.getByRole('button', { name: 'Next step' }));
 
-      await user.click(screen.getByRole('button', { name: 'Toggle branches' }));
-      await user.click(screen.getByRole('button', { name: 'Toggle branches' }));
+      await user.click(trigger());
 
-      expect(screen.getByRole('button', { name: SWITCH_NAME })).toHaveAttribute('aria-current', 'true');
-      expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+      expect(await screen.findByRole('button', { name: SWITCH_NAME })).toHaveAttribute('aria-current', 'true');
+      expect(playheadTime()).toBeCloseTo(2.0, 5);
     });
 
     it('has a translated label', async () => {
       await i18n.changeLanguage('fr');
-      renderView(1440);
+      renderView();
 
-      expect(screen.getByRole('button', { name: 'Afficher ou masquer les variantes' })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Toggle branches' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Variantes' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Branches' })).not.toBeInTheDocument();
     });
   });
 
@@ -200,7 +222,7 @@ describe('PlayView', () => {
       const user = userEvent.setup();
       const { container } = renderView();
       // Put the view in a non-initial state so a toggle that reset anything would show.
-      await user.click(screen.getByRole('button', { name: SWITCH_NAME }));
+      await user.click((await openBranchMenu(user)).getByRole('button', { name: SWITCH_NAME }));
       await user.click(screen.getByRole('button', { name: 'Next step' }));
       await user.click(screen.getByRole('button', { name: 'Next step' }));
       const svg = screen.getByRole('img');
@@ -208,8 +230,8 @@ describe('PlayView', () => {
         markup: svg.innerHTML,
         viewBox: svg.getAttribute('viewBox'),
         positions: drawnPositions(container),
-        time: screen.getByTestId('current-time').textContent,
-        current: screen.getByRole('button', { name: SWITCH_NAME }).getAttribute('aria-current'),
+        time: playheadTime(),
+        current: await currentBranchFlag(user, SWITCH_NAME),
       };
 
       await user.click(screen.getByRole('radio', { name: 'Half court' }));
@@ -217,9 +239,9 @@ describe('PlayView', () => {
       expect(svg.getAttribute('viewBox')).not.toBe(before.viewBox);
       expect(svg.innerHTML).toBe(before.markup);
       expect(drawnPositions(container)).toEqual(before.positions);
-      expect(screen.getByTestId('current-time').textContent).toBe(before.time);
-      expect(screen.getByRole('button', { name: SWITCH_NAME })).toHaveAttribute('aria-current', before.current ?? '');
-      expect(before.time).toBe('4.0');
+      expect(playheadTime()).toBe(before.time);
+      expect(await currentBranchFlag(user, SWITCH_NAME)).toBe(before.current);
+      expect(before.time).toBe(4);
       expect(before.current).toBe('true');
     });
   });
@@ -242,7 +264,12 @@ describe('PlayView', () => {
       for (let i = 0; i < 700; i += 1) act(() => void vi.advanceTimersByTime(16));
 
       expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
-      expect(screen.getByTestId('current-time')).toHaveTextContent('8.0');
+      // Within the throttle window, not exactly on it: the thumb follows `displayTime`, which
+      // lags the clock by up to a tenth of a second. The tokens below are the ones drawn from
+      // the live clock, and they do land exactly on the duration. This used to read as exact
+      // only because the readout it replaced printed one decimal, rounding 7.952 to "8.0".
+      expect(8 - playheadTime()).toBeLessThan(0.1);
+      expect(playheadTime()).toBeLessThanOrEqual(8);
       expectDrawnAt(container, rootTimeline, rootTimeline.duration);
     });
   });
@@ -259,7 +286,7 @@ describe('PlayView', () => {
       await user.keyboard('{End}');
 
       expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
-      expect(screen.getByTestId('current-time')).toHaveTextContent('8.0');
+      expect(playheadTime()).toBeCloseTo(8.0, 5);
       expectDrawnAt(container, rootTimeline, 8);
       // And it is not simply the opening pose: the premise would hold for any t if nothing moved.
       expect(moved(drawnPositions(container)['o1'], sampledPositions(rootTimeline, 0)['o1'])).toBeGreaterThan(1);
@@ -296,9 +323,9 @@ describe('PlayView', () => {
       // Watch the base play to its end, then switch: the playhead goes back to the start.
       await user.click(screen.getByRole('button', { name: 'Next step' }));
       await user.click(screen.getByRole('button', { name: 'Next step' }));
-      await user.click(screen.getByRole('button', { name: SWITCH_NAME }));
-      expect(screen.getByRole('button', { name: SWITCH_NAME })).toHaveAttribute('aria-current', 'true');
-      expect(screen.getByTestId('current-time')).toHaveTextContent('0.0');
+      await user.click((await openBranchMenu(user)).getByRole('button', { name: SWITCH_NAME }));
+      expect(await currentBranchFlag(user, SWITCH_NAME)).toBe('true');
+      expect(playheadTime()).toBeCloseTo(0.0, 5);
 
       // Shared opening: the switch branch draws exactly what the base play does.
       expectDrawnAt(container, switchTimeline, 0);
@@ -320,7 +347,7 @@ describe('PlayView', () => {
       expect(switchedPaths).not.toEqual(rootPathsBefore);
 
       // And going back to the base play restores it.
-      await user.click(screen.getByRole('button', { name: 'Base' }));
+      await user.click((await openBranchMenu(user)).getByRole('button', { name: 'Base' }));
       screen.getByRole('slider').focus();
       await user.keyboard('{End}');
       expectDrawnAt(container, rootTimeline, 8);

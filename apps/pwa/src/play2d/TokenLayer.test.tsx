@@ -2,7 +2,7 @@ import { Profiler, useEffect } from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolveBranch, stateAt, type Branch, type Play, type Vec2 } from '../engine';
+import { ballCarryAt, resolveBranch, stateAt, type Branch, type Play, type Vec2 } from '../engine';
 import * as engine from '../engine';
 import { hornsPlay, HORNS_SWITCH } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
@@ -67,9 +67,10 @@ function expectTokensAt(container: HTMLElement, timeline: typeof rootTimeline, t
     expect(actual.y).toBeCloseTo(expected.y, 5);
   }
   const ball = positionOf(container.querySelector('[data-testid="ball-token"]'));
-  // A held ball is drawn down-right of its carrier so the token does not swallow it; a loose
-  // one stays exactly where the sampler puts it, or a pass and a shot would miss their target.
-  const held = state.ball.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+  // A held ball is drawn down-right of its carrier so the token does not swallow it. The offset
+  // is scaled by the carry rather than switched on `attachedTo`, so it survives a release and a
+  // catch without a jump, and is spent by the time a shot reaches a point on the court.
+  const held = HELD_BALL_OFFSET * ballCarryAt(timeline, t);
   expect(ball.x).toBeCloseTo(state.ball.position.x + held, 5);
   expect(ball.y).toBeCloseTo(state.ball.position.y + held, 5);
 }
@@ -111,10 +112,37 @@ describe('TokenLayer', () => {
     const ball = positionOf(container.querySelector('[data-testid="ball-token"]'));
 
     const sampled = stateAt(rootTimeline, 0).ball;
-    const held = sampled.attachedTo !== null ? HELD_BALL_OFFSET : 0;
+    const held = HELD_BALL_OFFSET * ballCarryAt(rootTimeline, 0);
     expect(ball.x).toBeCloseTo(sampled.position.x + held, 5);
     expect(ball.y).toBeCloseTo(sampled.position.y + held, 5);
     expect(ball.x !== 0 || ball.y !== 0).toBe(true);
+  });
+
+  it('does not jolt the drawn ball when a pass leaves and when it is caught', () => {
+    // The sample play holds the ball to t=4, passes to t=5, holds to t=7, then shoots. The
+    // offset that keeps a held ball clear of its carrier's token used to be switched on
+    // `attachedTo`, so it stepped in and out at those instants and the drawn ball teleported
+    // by the offset's diagonal on a frame where the ball itself had barely moved.
+    const { container } = renderTokens();
+    const ballAt = (t: number) => {
+      act(() => controls().seek(t));
+
+      return positionOf(container.querySelector('[data-testid="ball-token"]'));
+    };
+    const frame = 1 / 60;
+
+    for (const instant of [4, 5, 7]) {
+      const before = ballAt(instant - frame);
+      const after = ballAt(instant + frame);
+      const drawn = Math.hypot(after.x - before.x, after.y - before.y);
+
+      // What the ball itself covers over the same two frames, offset aside.
+      const sampledBefore = stateAt(rootTimeline, instant - frame).ball.position;
+      const sampledAfter = stateAt(rootTimeline, instant + frame).ball.position;
+      const travelled = Math.hypot(sampledAfter.x - sampledBefore.x, sampledAfter.y - sampledBefore.y);
+
+      expect(drawn).toBeLessThanOrEqual(travelled + 0.01);
+    }
   });
 
   it('moves every token to the sampled position when the clock seeks', () => {

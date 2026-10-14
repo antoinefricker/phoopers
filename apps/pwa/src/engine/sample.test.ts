@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fixturePlay, P1, P2, ROOT, SWITCH } from './__fixtures__/play';
 import { resolveBranch } from './resolve';
-import { ballStateAt, duration, spanKindAt, stateAt, stepsOf } from './sample';
+import { ballCarryAt, ballStateAt, duration, spanKindAt, stateAt, stepsOf } from './sample';
 import type { Play, ResolvedTimeline, StepId } from './types';
 import { distance } from './vec2';
 
@@ -160,6 +160,114 @@ describe('ball flight', () => {
 
     expect(Number.isFinite(state.ball.position.x)).toBe(true);
     expect(Number.isFinite(state.players[P1]?.position.x)).toBe(true);
+  });
+});
+
+describe('ballCarryAt', () => {
+  // A play whose ball is held, passed, held again, then shot at a fixed point: the three
+  // transitions a carry fraction has to cross.
+  const shotPlay: Play = {
+    ...fixturePlay,
+    branches: fixturePlay.branches.map((b) =>
+      b.id === ROOT
+        ? {
+            ...b,
+            tracks: {
+              ...b.tracks,
+              ball: [
+                { t: 0, attachedTo: P1 },
+                { t: 1, attachedTo: P1 },
+                { t: 2, attachedTo: P2 },
+                { t: 3, attachedTo: P2 },
+                { t: 4, position: { x: 26.4, y: 7.5 } },
+              ],
+            },
+          }
+        : b,
+    ),
+  };
+  const shot = resolveBranch(shotPlay, ROOT);
+
+  it('is 1 while the ball is held', () => {
+    expect(ballCarryAt(shot, 0)).toBe(1);
+    expect(ballCarryAt(shot, 0.5)).toBe(1);
+    expect(ballCarryAt(shot, 2.5)).toBe(1);
+  });
+
+  it('stays 1 across a pass, since both ends of the flight are carried', () => {
+    // The ball leaves one pair of hands for another, so it is drawn against a token the whole
+    // way and the carry never dips.
+    expect(ballCarryAt(shot, 1)).toBe(1);
+    expect(ballCarryAt(shot, 1.5)).toBe(1);
+    expect(ballCarryAt(shot, 1.999)).toBe(1);
+  });
+
+  it('eases from 1 to 0 across a shot, reaching 0 at the target', () => {
+    // The far end is a position on the court, not a player, so the carry has to be spent by
+    // the time the ball gets there or the ball would land beside its target.
+    expect(ballCarryAt(shot, 3)).toBe(1);
+    expect(ballCarryAt(shot, 4)).toBe(0);
+    const mid = ballCarryAt(shot, 3.5);
+    expect(mid).toBeGreaterThan(0);
+    expect(mid).toBeLessThan(1);
+  });
+
+  it('decreases monotonically through the shot', () => {
+    let previous = ballCarryAt(shot, 3);
+    for (let t = 3; t <= 4; t += 0.05) {
+      const carry = ballCarryAt(shot, t);
+      expect(carry).toBeLessThanOrEqual(previous + 1e-9);
+      previous = carry;
+    }
+  });
+
+  it('is 0 once the ball is loose at both ends of a span', () => {
+    const loose: Play = {
+      ...fixturePlay,
+      branches: fixturePlay.branches.map((b) =>
+        b.id === ROOT
+          ? {
+              ...b,
+              tracks: {
+                ...b.tracks,
+                ball: [
+                  { t: 0, position: { x: 1, y: 1 } },
+                  { t: 4, position: { x: 2, y: 2 } },
+                ],
+              },
+            }
+          : b,
+      ),
+    };
+
+    expect(ballCarryAt(resolveBranch(loose, ROOT), 2)).toBe(0);
+  });
+
+  it('never jumps: the drawn ball moves no further in a frame than the ball itself', () => {
+    // The defect this exists to prevent. The view draws the ball at its sampled position plus
+    // an offset scaled by the carry, so a carry that STEPPED would teleport the ball by that
+    // offset at each release and each catch while the sampled position stayed continuous.
+    // The invariant is relative, not a fixed distance: a shot legitimately crosses the court
+    // fast, so the question is only whether the offset adds motion of its own.
+    const OFFSET = 0.3182;
+    const frame = 1 / 60;
+    const sampled = (t: number) => stateAt(shot, t).ball.position;
+    const drawn = (t: number) => {
+      const { x, y } = sampled(t);
+      const o = OFFSET * ballCarryAt(shot, t);
+      return { x: x + o, y: y + o };
+    };
+
+    let worstDrawn = 0;
+    let worstSampled = 0;
+    for (let t = frame; t <= shot.duration; t += frame) {
+      worstDrawn = Math.max(worstDrawn, distance(drawn(t - frame), drawn(t)));
+      worstSampled = Math.max(worstSampled, distance(sampled(t - frame), sampled(t)));
+    }
+
+    // A stepped carry put 0.45m — the offset's diagonal — into a single frame, at an instant
+    // where the ball itself had barely moved.
+    expect(worstDrawn).toBeLessThanOrEqual(worstSampled * 1.05);
   });
 });
 

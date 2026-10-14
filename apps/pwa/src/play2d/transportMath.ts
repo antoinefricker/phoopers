@@ -13,11 +13,6 @@ const STEP_EPSILON = 1e-6;
 // and the playback buttons on the transport, so both axes start at the same x.
 export const GUTTER_WIDTH = '7rem';
 
-// The current-time readout sits past the end of the scrubber. The timeline reserves the same
-// width on the right of its tracks, so all three axes end at the same x rather than the
-// scrubber stopping short by exactly this much.
-export const TIME_READOUT_PX = 40;
-
 // Room kept at each end of every axis: half the width of a keyframe marker, which is centred
 // on its time and so reaches that far past it. Without it the last marker overflows and the
 // panel grows a horizontal scrollbar. The scrubber takes the same inset or it drifts from the
@@ -51,6 +46,25 @@ export function adjacentStep(t: number, steps: readonly Step[], direction: 1 | -
     .sort((a, b) => (direction === 1 ? a - b : b - a));
 
   return times[0];
+}
+
+/**
+ * The step the playhead has reached: the last one at or before `t`. Undefined before the first
+ * step, since a play can open on movement that belongs to no step yet, and for a time that is
+ * not a number — naming a step there would be worse than naming none.
+ *
+ * Where two steps share a time the later one in the list wins. The ruler joins their names
+ * side by side, but a caption has room for one.
+ */
+export function stepAt(t: number, steps: readonly Step[]): Step | undefined {
+  if (!Number.isFinite(t)) return undefined;
+
+  let reached: Step | undefined;
+  for (const step of steps) {
+    if (step.t <= t && (reached === undefined || step.t >= reached.t)) reached = step;
+  }
+
+  return reached;
 }
 
 // One mark per distinct time: steps sharing a time would otherwise stack identical ticks and

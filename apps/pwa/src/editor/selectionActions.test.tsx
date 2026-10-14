@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
-import { readProbe, renderEditor } from './testUtils/renderEditor';
+import { branchButton, readProbe, renderEditor } from './testUtils/renderEditor';
 
 // These drive the real PlayView, not the mutations: what they prove is that a coach can REACH
 // screen creation, screen removal and player removal. The mutations have their own unit tests, and
@@ -84,11 +84,7 @@ describe('placing a screen', () => {
 
   it('writes nothing before the fork of a child branch, and gives no feedback', async () => {
     await renderView();
-    await userEvent.click(
-      within(screen.getByRole('navigation', { name: 'Play branches' })).getByRole('button', {
-        name: 'Defence switches',
-      }),
-    );
+    await userEvent.click(await branchButton('Defence switches'));
     const screensOfSwitch = () => readProbe().play.branches.find((b) => b.id === SWITCH)?.screens ?? [];
 
     // The playhead is at 0 and SWITCH forks at 2. Recorded in limitations.md.

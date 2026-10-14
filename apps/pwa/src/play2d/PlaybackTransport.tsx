@@ -1,16 +1,8 @@
-import { ActionIcon, Box, Group, Slider, Text } from '@mantine/core';
+import { ActionIcon, Box, Group, Slider } from '@mantine/core';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconPlayerPause, IconPlayerPlay, IconPlayerSkipBack, IconPlayerSkipForward } from '@tabler/icons-react';
-import {
-  GUTTER_WIDTH,
-  TIME_READOUT_PX,
-  TRACK_INSET_PX,
-  adjacentStep,
-  sliderMax,
-  snapToStep,
-  stepMarks,
-} from './transportMath';
+import { GUTTER_WIDTH, TRACK_INSET_PX, adjacentStep, sliderMax, snapToStep, stepMarks } from './transportMath';
 import { usePlaybackContext } from './usePlaybackContext';
 import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 
@@ -32,8 +24,8 @@ export function PlaybackTransport() {
     seek(time);
   };
 
-  // Read the live ref, not displayTime: the readout lags by up to a tenth of a second, and a
-  // step inside that window would be skipped or repeated.
+  // Read the live ref, not displayTime: the thumb's value lags by up to a tenth of a second,
+  // and a step inside that window would be skipped or repeated.
   // Mantine's Slider owns its own key handler, so the flag is set from a wrapper's capture phase.
   // Arrow keys move relative to the current value, so snapping them would pin the thumb to
   // any step it reaches (2.0 + 0.01 snaps straight back to 2.0). Only absolute moves snap.
@@ -107,9 +99,6 @@ export function PlaybackTransport() {
           aria-label={t('play.transport.scrubber', 'Playback position')}
         />
       </Box>
-      <Text size="sm" data-testid="current-time" w={TIME_READOUT_PX} ta="right" style={{ flexShrink: 0 }}>
-        {displayTime.toFixed(1)}
-      </Text>
     </Group>
   );
 }

@@ -258,6 +258,25 @@ the mutation owns (`current.length <= 1`), and two copies of a rule drift.
 identity check `forkBranch` already uses), and have `Timeline` keep the selection and show a
 notice when it did not.
 
+### Nothing on screen names the variant being watched
+
+The branch tree moved from a panel beside the court into a menu in the header, whose trigger is
+an icon with the accessible name "Branches" and no label. The tree marks the current branch with
+`aria-current`, but only while the menu is open, so with it closed there is no way to tell which
+variant the court is drawing short of opening the menu.
+
+Measured in a browser: after switching to a child branch and closing the menu, the page's text
+contains neither that branch's name nor the root's — the header carries the play's name alone.
+The panel it replaced showed the selection permanently, by highlighting the active row.
+
+It was left because the trigger was chosen icon-only deliberately: a trigger carrying the
+branch name makes the header's width move with the play's data, and the names are author-supplied
+and unbounded.
+
+**Fix:** either put the name on the trigger with a fixed maximum width and an ellipsis, or show
+it beside the play's name in the header, which costs no width when the root branch is current
+and is the only case a coach sees most of the time.
+
 ### The court diagram exposes nothing of its contents to assistive technology
 
 `PlayCanvas` gives the court SVG `role="img"` with the name "Court diagram: {{name}}". `img` is
@@ -279,22 +298,6 @@ labelled "X1".."X5".
 **Fix:** give the SVG `role="group"` (or `role="application"` once the court is interactive),
 name each token group, and give the paths text alternatives — then decide what a sensible
 reading order over a play actually is.
-
-### Steps and screens cannot be retimed from the keyboard
-
-Keyframe markers, step ticks and screen handles are all retimed by pointer drag only. Measured
-in a browser: a step tick is a `<button>` with `tabIndex` 0, so it takes focus, but pressing
-ArrowRight, ArrowLeft, ArrowUp and ArrowDown on it leaves its `style.left` unchanged. The screen
-duration handle is worse — a `<div>` with `tabIndex` -1, so it cannot take focus at all, and its
-`aria-label="Screen duration"` sits on an element with no role, where assistive technology
-ignores it.
-
-It was left because keyboard editing is not in spec 003, which describes pointer gestures
-throughout.
-
-**Fix:** handle arrow keys on the focusable controls, moving the object by one snap step and
-committing through the same `constrainRetime` the drag uses; and make the screen handle a
-`<button>` so its name is exposed and it can be reached.
 
 ## Test coverage gaps
 

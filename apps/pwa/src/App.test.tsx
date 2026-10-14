@@ -5,11 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { hornsPlay } from './samples/horns';
 import { stubViewportWidth } from './testUtils/viewport';
+import { playheadTime } from './testUtils/transport';
 
 function renderApp() {
   stubViewportWidth(1440);
   return render(
-    <MantineProvider>
+    <MantineProvider env="test">
       <App />
     </MantineProvider>,
   );
@@ -27,12 +28,15 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: hornsPlay.name })).toBeInTheDocument();
     expect(screen.queryByText('Design and replay basketball plays')).not.toBeInTheDocument();
     expect(container.querySelectorAll('[data-testid="token"]')).toHaveLength(10);
-    expect(within(screen.getByRole('navigation', { name: 'Play branches' })).getAllByRole('button')).toHaveLength(
-      hornsPlay.branches.length,
-    );
+    // The branch tree is behind the header's menu now, so the count is read with it open.
+    await user.click(screen.getByRole('button', { name: 'Branches' }));
+    expect(
+      within(await screen.findByRole('navigation', { name: 'Play branches' })).getAllByRole('button'),
+    ).toHaveLength(hornsPlay.branches.length);
+    await user.keyboard('{Escape}');
 
     // Wired for real: a transport press reaches the clock the court draws from.
     await user.click(screen.getByRole('button', { name: 'Next step' }));
-    expect(screen.getByTestId('current-time')).toHaveTextContent('2.0');
+    expect(playheadTime()).toBeCloseTo(2.0, 5);
   });
 });

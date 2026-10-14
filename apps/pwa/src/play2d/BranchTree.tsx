@@ -11,6 +11,12 @@ import { usePlaybackContext } from './usePlaybackContext';
 
 interface Props {
   play: Play;
+  /**
+   * Called once a branch switch has gone through, so a container that hides the tree — the
+   * header's menu — can close itself on the choice. Not called when the branch picked is
+   * already the current one, since nothing changed.
+   */
+  onBranchSelected?: () => void;
 }
 
 // Composed from Mantine NavLink rather than Mantine Tree. Tree's keyboard handler covers
@@ -22,7 +28,7 @@ interface Props {
 // promise roving tabindex and arrow-key navigation that this does not implement. NavLink is
 // used WITHOUT children on purpose: with children it swallows Space to toggle a collapse
 // that is not wanted here, which would stop keyboard users selecting any parent branch.
-export function BranchTree({ play }: Props) {
+export function BranchTree({ play, onBranchSelected }: Props) {
   const { t } = useTranslation();
   const { branchId, selectBranch, seek } = usePlaybackContext();
   const data = useMemo(() => branchTreeData(play), [play]);
@@ -75,6 +81,7 @@ export function BranchTree({ play }: Props) {
     // The new branch replays the shared opening, so the playhead returns to the start.
     // Playback state is left alone: a coach watching keeps watching.
     seek(0);
+    onBranchSelected?.();
   };
 
   const renderNodes = (nodes: TreeNodeData[], nested: boolean) => (

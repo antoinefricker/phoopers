@@ -30,13 +30,23 @@ animation layers timing on top of a picture that already makes sense without it.
 
 ## Layout
 
-One full-height view in three regions:
+One full-height view. A header carries the play's name; the transport and, in edit mode, the
+timeline sit under it; the court fills the width below them.
 
-- **Court**, filling the centre. An SVG whose `viewBox` is court metres, so engine
-  coordinates pass through with no conversion layer.
-- **Transport**, directly beneath: play/pause, a time readout, a scrubber carrying a labelled
-  tick per step, and prev/next-step buttons.
-- **Branch tree**, a collapsible right sidebar.
+- **Court**, filling the full width. An SVG whose `viewBox` is court metres, so engine
+  coordinates pass through with no conversion layer. A caption in its top-left corner names
+  the step the playhead has reached — the last one at or before the current time — and is
+  empty, and drawn as nothing at all, before the first step. It is HTML laid over the court
+  rather than text inside the SVG: the SVG is one `role="img"`, whose descendants are
+  presentational, and the caption keeps its size when the half-court toggle rescales the
+  `viewBox`.
+- **Transport**, between the header and the court: play/pause, a scrubber carrying a labelled
+  tick per step, and prev/next-step buttons. It prints no time of its own; the scrubber's
+  thumb is where the playhead's position is read.
+- **Branch tree**, in a menu opened from the header, ahead of the play's name. The menu
+  closes once a variant is picked. Its trigger is an icon carrying no branch name, so the
+  header's width does not move with the play's data, and nothing names the variant on screen
+  while the menu is closed.
 
 Half-court narrows the `viewBox` to the attacking half. It is a viewport change only and
 never touches stored data.
@@ -56,8 +66,10 @@ approximation of it.
 
 ### Animated layer — ref-driven
 
-Player tokens and the ball. A `requestAnimationFrame` loop calls `stateAt(timeline, t)` and
-writes `transform` onto element refs. No React state per frame and no reconciliation.
+Player tokens, the ball, and the step caption. A `requestAnimationFrame` loop calls
+`stateAt(timeline, t)` and writes `transform` onto element refs. No React state per frame and
+no reconciliation. The caption follows the same rule, writing its own text, and writes only
+when the step it names changes.
 
 ### The ball is sampled, not derived from spans
 

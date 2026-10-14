@@ -161,6 +161,7 @@ Derived queries:
 ```ts
 spanKindAt(timeline, playerId, t): 'idle' | 'move' | 'dribble';
 ballStateAt(timeline, t): 'held' | 'inFlight';
+ballCarryAt(timeline, t): number;
 duration(timeline): number;
 stepsOf(timeline): Step[];
 ```
@@ -221,6 +222,14 @@ Absent handles are derived Catmull-Rom-style:
 - **`moving`.** True when the player's position changes over the span containing `t`.
 - **`spanKindAt`.** `idle` when not moving; `dribble` when moving and the ball is held by
   that player; `move` otherwise.
+- **`ballCarryAt`.** How far the ball is in a carrier's hands, from 1 to 0, continuously. It
+  exists because a view draws a held ball offset from its carrier's centre, and `ballStateAt`
+  is a step: scaling the offset by it would teleport the ball by the whole offset at every
+  release and every catch, while the sampled position stayed continuous. Across a flight the
+  fraction is interpolated between its value at each end with the same easing the position
+  uses. A pass therefore holds at 1 — both ends are carried, so the ball is beside a token the
+  whole way — and a shot, whose far end is a point on the court, is spent to 0 on arrival, so
+  the ball lands on its target rather than beside it.
 - **`activeScreens`.** Screens whose `[t, t + duration]` contains the sampled time.
 
 ## Validation

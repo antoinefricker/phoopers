@@ -5,7 +5,7 @@ import type { EntityId, ScreenEvent, ScreenId } from '../engine';
 import { ConfirmDelete } from './ConfirmDelete';
 import { constrainRetime } from './constraints';
 import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
-import { GUTTER_WIDTH, TIME_READOUT_PX } from '../play2d/transportMath';
+import { GUTTER_WIDTH } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
@@ -85,12 +85,13 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           overlay carry the same inset, or the playhead drifts from the markers. */}
       <Box
         ref={trackRef}
+        data-testid={`timeline-track-${row.entityId}`}
         style={{
           position: 'relative',
           flex: 1,
           height: '100%',
           marginLeft: TRACK_INSET_PX,
-          marginRight: TRACK_INSET_PX + TIME_READOUT_PX,
+          marginRight: TRACK_INSET_PX,
         }}
       >
         <Box
@@ -121,7 +122,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           >
             {ownScreenIds.has(screen.id) ? (
               <>
-                <div
+                {/* A button, not a div: the handle is reachable by keyboard, and the arrow keys
+                    retime it through the same constraint the drag uses. */}
+                <button
+                  type="button"
                   data-testid={`screen-handle-${screen.id}`}
                   aria-label={t('play.editor.screenDuration', 'Screen duration')}
                   style={{
@@ -130,12 +134,15 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                     bottom: 0,
                     right: -3,
                     width: 6,
+                    padding: 0,
+                    border: 0,
                     cursor: 'ew-resize',
                     touchAction: 'none',
                     pointerEvents: 'auto',
                     background: 'var(--mantine-color-grape-filled)',
                   }}
                   {...bind({
+                    current: screen.t + screen.duration,
                     // The edge cannot go left of the screen's own start: it floors at a minimum duration.
                     resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
                     place: (element, end) => {
@@ -184,7 +191,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               />
             );
           })}
-        {row.keyframes.map((k) => {
+        {row.keyframes.map((k, index) => {
           const selected = selection?.kind === 'keyframe' && selection.entityId === row.entityId && selection.t === k.t;
           const hollow = isBall && k.attachedTo === undefined;
           // A child branch's anchors include its ancestors' keyframes and the synthesised one at
@@ -194,7 +201,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
 
           return (
             <button
-              key={k.t}
+              // Keyed by position, not by time: a retime changes `k.t`, and a key change would
+              // remount the button and drop the focus the keyboard nudge needs to keep. The
+              // constraints forbid a keyframe crossing its neighbour, so the order never moves.
+              key={index}
               type="button"
               data-kind={hollow ? 'position' : 'attached'}
               aria-pressed={selected}
@@ -213,7 +223,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               data-inherited={owned ? undefined : 'true'}
               {...(owned
                 ? bind({
-                    resolve: (rawT) =>
+                    current: k.t,
+                    resolve: (rawT, snap) =>
                       constrainRetime(
                         play,
                         branchId,
@@ -221,7 +232,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                         k.t,
                         rawT,
                         timeline.steps,
-                        SNAP_FRACTION * duration,
+                        snap ? SNAP_FRACTION * duration : 0,
                       ),
                     place: (element, value) => {
                       element.style.left = percent(value, duration);
@@ -237,6 +248,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 : {})}
               style={{
                 position: 'absolute',
+                zIndex: 10,
                 top: '50%',
                 left: percent(k.t, duration),
                 touchAction: owned ? 'none' : undefined,

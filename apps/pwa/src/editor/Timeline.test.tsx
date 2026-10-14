@@ -1,12 +1,12 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ReactNode } from 'react';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { TRACK_INSET_PX } from './timelineGeometry';
-import { TIME_READOUT_PX } from '../play2d/transportMath';
 import { Timeline } from './Timeline';
-import { dragElement, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
+import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
 
 const rowFor = (entityId: string) => screen.getByTestId(`timeline-row-${entityId}`);
 const markersIn = (entityId: string) => within(rowFor(entityId)).getAllByRole('button');
@@ -194,6 +194,18 @@ const secondMarker = (entityId: string) => {
   return marker;
 };
 
+// The keyboard commits on every press, so the view must follow the model between presses: the
+// second nudge of a keyframe counts from where the first one left it.
+const renderLive = (play: Play, extra?: ReactNode) =>
+  renderEditor(
+    play,
+    <LivePlayback>
+      {extra}
+      <Timeline />
+    </LivePlayback>,
+    { wrapPlayback: false },
+  );
+
 describe('retiming', () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -263,6 +275,52 @@ describe('retiming', () => {
     // The marker followed the pointer (so the gesture is live) yet nothing was committed.
     expect(second.style.left).not.toBe('50%');
     expect(JSON.stringify(readProbe().play)).toBe(before);
+  });
+
+  it('nudges the focused keyframe with the arrow keys, finely with shift', async () => {
+    // No layout is needed: a nudge counts from the keyframe's own time, not from the pointer.
+    renderLive(fixturePlay);
+    const user = userEvent.setup();
+    const second = secondMarker(P1);
+    second.focus();
+
+    await user.keyboard('{ArrowRight}');
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.5, 4]);
+
+    // The same element is still focused: the marker is keyed by position, so retiming it does
+    // not remount it and a second press lands on the keyframe the first one moved.
+    await user.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
+  });
+
+  it('stops a nudged keyframe at its neighbour instead of crossing it', async () => {
+    renderLive(fixturePlay);
+    const user = userEvent.setup();
+    const first = markersIn(P1)[0];
+    if (first === undefined) throw new Error('expected a first marker');
+    first.focus();
+
+    // Four coarse presses ask for 2.0s, which is exactly the neighbour: the bound holds it just
+    // below, and the fifth press has nowhere to go and writes nothing.
+    await user.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}');
+
+    const times = trackOf(readProbe().play, ROOT, P1).map((k) => k.t);
+    expect(times).toHaveLength(3);
+    expect(times[0]).toBeCloseTo(2 - 0.001, 6);
+  });
+
+  it('nudges a screen edge from its handle, which the keyboard can reach', async () => {
+    renderLive(fixturePlay);
+    const user = userEvent.setup();
+    // The handle used to be a div: focusing it did nothing and no key reached the gesture.
+    const handle = screen.getByTestId(`screen-handle-${SCREEN_1}`);
+    handle.focus();
+    expect(document.activeElement).toBe(handle);
+
+    await user.keyboard('{ArrowRight}');
+
+    const screens = readProbe().play.branches.find((b) => b.id === ROOT)?.screens ?? [];
+    expect(screens.map((s) => s.duration)).toEqual([1.5]);
   });
 
   it('does not retime on a plain click', async () => {
@@ -481,13 +539,15 @@ describe('track alignment', () => {
     // the rows but not the overlay, the playhead drifts from the markers by that amount.
     renderEditor(fixturePlay, <Timeline />);
 
-    const rowTrack = rowFor(P1).lastElementChild as HTMLElement;
-    const rulerTrack = screen.getByTestId('step-ruler').lastElementChild as HTMLElement;
+    // By test id, not by child order: the row also holds the always-mounted dialog that
+    // confirms removing a screen, which is a sibling of the track.
+    const rowTrack = screen.getByTestId(`timeline-track-${P1}`);
+    const rulerTrack = screen.getByTestId('step-ruler-track');
     const overlay = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
 
-    // The right side also reserves the transport's time readout, so the scrubber and the
-    // tracks end at the same x instead of the scrubber stopping short by that width.
-    const right = `${TRACK_INSET_PX + TIME_READOUT_PX}px`;
+    // Both sides take the same inset now: with the time readout gone the scrubber runs the
+    // full width, so nothing extra is reserved on the right.
+    const right = `${TRACK_INSET_PX}px`;
     expect(rowTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
     expect(rowTrack.style.marginRight).toBe(right);
     expect(rulerTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
