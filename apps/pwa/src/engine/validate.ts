@@ -99,6 +99,12 @@ function checkKeyframes(
 
 function collectIssues(play: Play, issues: Issue[]): void {
   const knownPlayers = new Set<string>(play.players.map((p) => p.id));
+  // How long the play is: its last keyframe. A label window may not outlast it, there being no
+  // time past it for the transport to reach.
+  const playDuration = Math.max(
+    0,
+    ...play.branches.flatMap((b) => Object.values(b.tracks).flatMap((track) => track.map((k) => k.t))),
+  );
 
   for (const id of duplicates(play.players.map((p) => p.id))) {
     issues.push(issue('duplicate-id', `duplicate player id ${id}`, id));
@@ -153,6 +159,24 @@ function collectIssues(play: Play, issues: Issue[]): void {
         }
       }
     }
+
+    // A label's window may not reach the next step's instant, nor the end of the play. The
+    // editor's handle cannot produce either, but a retime or an inserted step can, so the state
+    // is reported rather than assumed away. Judged per branch: two branches' steps are never
+    // shown together, so one's step does not bound the other's window.
+    const ordered = [...branch.steps].sort((a, b) => a.t - b.t);
+    ordered.forEach((step, index) => {
+      if (step.duration === undefined) return;
+      if (!Number.isFinite(step.duration) || step.duration <= 0) {
+        issues.push(issue('step-duration-not-positive', `step ${step.id} has a non-positive duration`, step.id));
+
+        return;
+      }
+      const limit = ordered[index + 1]?.t ?? playDuration;
+      if (step.t + step.duration > limit) {
+        issues.push(issue('step-label-window-overruns', `step ${step.id} label outlasts its window`, step.id));
+      }
+    });
 
     for (const [entity, keyframes] of Object.entries(branch.tracks)) {
       checkKeyframes(entity, keyframes, knownPlayers, branch.id, fork, issues);

@@ -31,6 +31,12 @@ export interface Step {
   id: StepId;
   t: number;
   name: string;
+  /**
+   * Seconds the step's name is shown for, from `t`. Absent means "until the next step", which
+   * is how a play written before this field reads. Display only: nothing in `resolveBranch` or
+   * the sampler reads it.
+   */
+  duration?: number;
 }
 
 export interface ScreenEvent {
@@ -114,6 +120,8 @@ export type IssueCode =
   | 'easing-out-of-range'
   | 'unknown-easing-preset'
   | 'non-finite-number'
+  | 'step-duration-not-positive'
+  | 'step-label-window-overruns'
   | 'root-branch-with-fork'
   | 'dangling-parent-branch'
   | 'unknown-root-branch'

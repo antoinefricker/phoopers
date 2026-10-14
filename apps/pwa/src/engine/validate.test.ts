@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fixturePlay, P1, P2, ROOT, STEP_ENTRY, SWITCH } from './__fixtures__/play';
 import { resolveBranch } from './resolve';
 import { validatePlay } from './validate';
-import type { Branch, BranchId, Keyframe, Play, PlayerId, StepId } from './types';
+import type { Branch, BranchId, Keyframe, Play, PlayerId, Step, StepId } from './types';
 
 const codesFor = (play: Play) => validatePlay(play).map((issue) => issue.code);
 
@@ -249,5 +249,71 @@ describe('validatePlay', () => {
     const play: Play = { ...fixturePlay, rootBranchId: 'ghost' as BranchId };
 
     expect(codesFor(play)).toContain('unknown-root-branch');
+  });
+});
+
+describe('step label durations', () => {
+  // The child branch forks at STEP_ENTRY, so a helper that replaces the root's steps would
+  // orphan that fork and every case would fail on it rather than on the duration under test.
+  // These cases are about one branch's steps, so they keep one branch.
+  const withSteps = (steps: Step[]): Play => ({
+    ...fixturePlay,
+    branches: fixturePlay.branches.filter((b) => b.id === ROOT).map((b) => ({ ...b, steps })),
+  });
+
+  it('accepts a step with no duration at all', () => {
+    // Absent means "until the next step", which is the behaviour every play written before this
+    // field had. Such a play must stay valid untouched.
+    expect(validatePlay(withSteps([{ id: 's1' as StepId, t: 1, name: 'Entry' }]))).toEqual([]);
+  });
+
+  it('accepts a duration that ends before the next step', () => {
+    const play = withSteps([
+      { id: 's1' as StepId, t: 1, name: 'Entry', duration: 0.5 },
+      { id: 's2' as StepId, t: 2, name: 'Switch' },
+    ]);
+
+    expect(validatePlay(play)).toEqual([]);
+  });
+
+  it('reports a duration that is not a positive number', () => {
+    for (const duration of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const codes = codesFor(withSteps([{ id: 's1' as StepId, t: 1, name: 'Entry', duration }]));
+
+      expect(codes).toContain('step-duration-not-positive');
+    }
+  });
+
+  it('reports a window that runs past the next step', () => {
+    const play = withSteps([
+      { id: 's1' as StepId, t: 1, name: 'Entry', duration: 2 },
+      { id: 's2' as StepId, t: 2, name: 'Switch' },
+    ]);
+    const reported = validatePlay(play).find((i) => i.code === 'step-label-window-overruns');
+
+    expect(reported?.entityId).toBe('s1');
+  });
+
+  it('reports a window that runs past the end of the play', () => {
+    // The fixture's last keyframe is at t=4, so the play is 4s long.
+    expect(codesFor(withSteps([{ id: 's1' as StepId, t: 3, name: 'Entry', duration: 2 }]))).toContain(
+      'step-label-window-overruns',
+    );
+  });
+
+  it('judges each branch on its own steps', () => {
+    // Both branches, so the fork still resolves. The root's window runs to 2.5 and the child
+    // has a step of its own at 3: pooling every branch's steps would cap the root at 3 — or,
+    // worse, report an overrun — when the two are never shown together.
+    const play: Play = {
+      ...fixturePlay,
+      branches: fixturePlay.branches.map((b) =>
+        b.id === ROOT
+          ? { ...b, steps: [{ id: STEP_ENTRY, t: 1, name: 'Entry pass', duration: 1.5 }] }
+          : { ...b, steps: [{ id: 'child-step' as StepId, t: 3, name: 'Child' }] },
+      ),
+    };
+
+    expect(validatePlay(play).filter((i) => i.code === 'step-label-window-overruns')).toEqual([]);
   });
 });

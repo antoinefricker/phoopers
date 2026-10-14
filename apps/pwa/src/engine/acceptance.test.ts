@@ -118,6 +118,15 @@ describe('acceptance', () => {
       })),
       'branch-cycle': withBranch(ROOT, (b) => ({ ...b, parentId: SWITCH, forkStepId: STEP_ENTRY })),
       'non-root-branch-without-fork': withBranch(SWITCH, (b) => ({ ...b, forkStepId: null })),
+      'step-duration-not-positive': withBranch(ROOT, (b) => ({
+        ...b,
+        steps: b.steps.map((step) => ({ ...step, duration: 0 })),
+      })),
+      'step-label-window-overruns': withBranch(ROOT, (b) => ({
+        ...b,
+        // The fixture's play is 4s long and this step sits at 2, so 9s cannot fit.
+        steps: b.steps.map((step) => ({ ...step, duration: 9 })),
+      })),
       'root-branch-with-parent': withBranch(ROOT, (b) => ({ ...b, parentId: SWITCH })),
       'easing-out-of-range': withRootTrack(P1, [
         { t: 0, position: { x: 1, y: 1 }, ease: { x1: -0.5, y1: 0, x2: 0.5, y2: 1 } },
