@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import type { BranchId, Play, PlayId, PlayerId, ScreenId, StepId } from '../engine';
-import { validatePlay } from '../engine';
+import { COURT_DIMENSIONS, validatePlay } from '../engine';
 import * as mutations from './mutations';
 import { EditorContext, type EditorContextValue, type Selection } from './useEditorContext';
 
@@ -103,16 +103,25 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
   const newPlay = useCallback<EditorContextValue['newPlay']>(
     (name) => {
       const rootBranchId = newId<BranchId>();
-      setPlay((current) => ({
-        id: newId<PlayId>(),
-        name,
-        court: current.court,
-        players: [],
-        rootBranchId,
-        branches: [
-          { id: rootBranchId, parentId: null, forkStepId: null, name, tracks: { ball: [] }, steps: [], screens: [] },
-        ],
-      }));
+      setPlay((current) => {
+        // The ball starts on the centre circle rather than on an empty floor: it is the one
+        // thing every play has, and a court with nothing on it gives a coach nothing to drag.
+        // It is loose, there being no one yet to hold it, and taken from the play's own court
+        // so it is not off-centre on an NBA floor.
+        const { length, width } = COURT_DIMENSIONS[current.court];
+        const ball = [{ t: 0, position: { x: length / 2, y: width / 2 } }];
+
+        return {
+          id: newId<PlayId>(),
+          name,
+          court: current.court,
+          players: [],
+          rootBranchId,
+          branches: [
+            { id: rootBranchId, parentId: null, forkStepId: null, name, tracks: { ball }, steps: [], screens: [] },
+          ],
+        };
+      });
       select(null);
     },
     [select],
