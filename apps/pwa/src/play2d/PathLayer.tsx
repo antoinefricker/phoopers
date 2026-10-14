@@ -80,7 +80,9 @@ export function PathLayer() {
             strokeWidth={0.16}
           />
         ))}
-      {pass.map((segment, index) => (
+      {/* The ball's flights go with the ball: hiding it left its dashed arrows on the court,
+          where the point of hiding it was to clear them. */}
+      {(hidden.has('ball') ? [] : pass).map((segment, index) => (
         <path
           key={`ball-${index}`}
           data-testid="ball-path"

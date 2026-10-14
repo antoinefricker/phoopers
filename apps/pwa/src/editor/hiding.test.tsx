@@ -113,6 +113,18 @@ describe('hiding an entity from the court', () => {
     expect(container.querySelector('[data-testid="ball-token"]')).toBeNull();
   });
 
+  it("takes the ball's path with it, not just its token", async () => {
+    // Spec 003 says the control takes off the token and the path drawn for it, the ball
+    // included. Hiding the ball to declutter while its dashed arrows stayed read as a bug.
+    const { container } = renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+    await enterEditMode();
+    expect(container.querySelector('[data-testid="ball-path"]')).not.toBeNull();
+
+    await userEvent.click(hideButton('ball'));
+
+    expect(container.querySelector('[data-testid="ball-path"]')).toBeNull();
+  });
+
   it('shows everything again in play mode, where nothing could unhide it', async () => {
     // The control lives in the timeline, which play mode does not render. A hide that survived
     // the switch could not be undone without going back to edit.

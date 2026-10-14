@@ -97,12 +97,6 @@ export function TimelineBar({
             background: handleBackground,
           }}
           {...handle.bind}
-          onPointerDown={(event) => {
-            // The bar above may carry a gesture of its own — a step's bar retimes its step —
-            // and a press on the handle must set the span's END, not move the whole span.
-            handle.bind.onPointerDown?.(event);
-            event.stopPropagation();
-          }}
         />
       )}
       {actions !== undefined && (
@@ -119,12 +113,11 @@ export function TimelineBar({
             alignItems: 'center',
             pointerEvents: 'auto',
           }}
-          onPointerDown={(event) => {
-            // The bar above may carry a gesture, and `useTimeDrag` captures the pointer on
-            // press: without this the capture retargets the click and the control never gets
-            // it. jsdom does not implement pointer capture, so only a browser shows it.
-            event.stopPropagation();
-          }}
+          // The controls carry no gesture, so nothing else stops their events reaching the bar.
+          // A press would be captured by it — `useTimeDrag` calls `setPointerCapture`, which
+          // retargets the click away from the control — and an arrow key would retime the step.
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
         >
           {actions}
         </Box>

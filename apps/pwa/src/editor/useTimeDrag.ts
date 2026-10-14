@@ -52,6 +52,9 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
   const bind = (gesture: TimeGesture) => ({
     onPointerDown: (event: PointerEvent<HTMLElement>) => {
       dragged.current = false;
+      // An ancestor may carry a gesture of its own — a step's bar holds this handle — and must
+      // not act on an event this one has taken.
+      event.stopPropagation();
       event.currentTarget.setPointerCapture?.(event.pointerId);
       // Where on the element it was grabbed. The element follows the pointer's DELTA, not its
       // absolute position, so grabbing a marker off-centre does not make it jump on the first move.
@@ -67,6 +70,7 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       };
     },
     onPointerMove: (event: PointerEvent<HTMLElement>) => {
+      event.stopPropagation();
       const drag = active.current;
       const rect = trackRef.current?.getBoundingClientRect();
       if (drag === null || rect === undefined) return;
@@ -78,6 +82,7 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       drag.gesture.place(event.currentTarget, drag.value);
     },
     onPointerUp: (event: PointerEvent<HTMLElement>) => {
+      event.stopPropagation();
       const drag = active.current;
       active.current = null;
       // A press with no movement is a click, not a retime.
@@ -88,6 +93,7 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       drag.gesture.commit(drag.value);
     },
     onPointerCancel: (event: PointerEvent<HTMLElement>) => {
+      event.stopPropagation();
       const drag = active.current;
       active.current = null;
       if (drag?.moved) drag.gesture.restore(event.currentTarget);
@@ -101,6 +107,9 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       if (direction === 0) return;
 
       event.preventDefault();
+      // Consumed here: a bar carrying its own gesture would otherwise retime its step as well
+      // as resizing what the handle inside it sets.
+      event.stopPropagation();
       const delta = direction * (event.shiftKey ? FINE_NUDGE_S : COARSE_NUDGE_S);
       const value = gesture.resolve(gesture.current + delta, false);
       // A nudge into a bound resolves back to where it already is. Committing that would be a

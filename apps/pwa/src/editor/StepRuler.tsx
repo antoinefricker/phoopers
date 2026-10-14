@@ -217,7 +217,20 @@ export function StepRuler() {
                   </>
                 }
               >
-                <Text size="xs" component="span" style={{ paddingLeft: 4 }}>
+                <Text
+                  size="xs"
+                  component="span"
+                  // Clipped rather than spilling: a name on a narrow window near the end of the
+                  // ruler would otherwise run past the track and grow a horizontal scrollbar.
+                  style={{
+                    display: 'block',
+                    paddingLeft: 4,
+                    paddingRight: 36,
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
                   {step.name}
                 </Text>
               </TimelineBar>

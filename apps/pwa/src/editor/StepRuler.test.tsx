@@ -357,6 +357,75 @@ describe('step label bars', () => {
     expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(2.4, 6);
   });
 
+  it('does not retime the step when the duration handle is nudged', async () => {
+    // The bar carries a retime gesture and the handle sits inside it, so an arrow key reached
+    // both: the label shortened AND the step moved, which is the destructive half — a step's
+    // time governs where branches fork and where the scrubber snaps.
+    renderEditor(
+      withSteps([
+        { id: STEP_ENTRY, t: 1, name: 'Entry pass', duration: 1 },
+        { id: 'later' as StepId, t: 2, name: 'Later' },
+      ]),
+      <LivePlayback>
+        <StepRuler />
+      </LivePlayback>,
+      { wrapPlayback: false },
+    );
+    const user = userEvent.setup();
+    screen.getByTestId(`step-handle-${STEP_ENTRY}`).focus();
+
+    await user.keyboard('{ArrowLeft}');
+
+    const step = stepsOfRoot().find((s) => s.id === STEP_ENTRY);
+    expect(step?.t).toBe(1);
+    expect(step?.duration).toBeLessThan(1);
+  });
+
+  it('does not retime the step when a control is nudged', async () => {
+    renderEditor(
+      withSteps([{ id: STEP_ENTRY, t: 1, name: 'Entry pass' }]),
+      <LivePlayback>
+        <StepRuler />
+      </LivePlayback>,
+      { wrapPlayback: false },
+    );
+    const user = userEvent.setup();
+    screen.getByRole('button', { name: 'Remove Entry pass' }).focus();
+
+    await user.keyboard('{ArrowLeft}');
+
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(1);
+  });
+
+  it('resizes its own bar when the handle is dragged, and nothing else', async () => {
+    // `place` resizes `element.parentElement`. A pointermove bubbling from the handle to the
+    // bar re-ran the same gesture with the bar as the target, so the RULER TRACK got the width.
+    renderEditor(
+      withSteps([
+        { id: STEP_ENTRY, t: 1, name: 'Entry pass' },
+        { id: 'later' as StepId, t: 2, name: 'Later' },
+      ]),
+      <LivePlayback>
+        <StepRuler />
+      </LivePlayback>,
+      { wrapPlayback: false },
+    );
+
+    await dragElement(screen.getByTestId(`step-handle-${STEP_ENTRY}`));
+
+    expect(screen.getByTestId('step-ruler-track').style.width).toBe('');
+  });
+
+  it('clips a long step name instead of letting it leave the bar', () => {
+    // A name past the end of the track grows the panel a horizontal scrollbar, which this
+    // branch has already fixed twice elsewhere.
+    renderEditor(withSteps([{ id: STEP_ENTRY, t: 3.5, name: 'A very long step name indeed' }]), <StepRuler />);
+    const name = screen.getByText('A very long step name indeed');
+
+    expect(name.style.overflow).toBe('hidden');
+    expect(name.style.textOverflow).toBe('ellipsis');
+  });
+
   it('stops the handle at the next step', async () => {
     stubLayout();
     renderEditor(
