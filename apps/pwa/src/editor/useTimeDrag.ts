@@ -18,6 +18,12 @@ export interface TimeGesture {
   /** Where the model has this object now: the point a keyboard nudge counts from. */
   current: number;
   /**
+   * Which part of the element sits at `current`. A marker and a tick are centred on their own
+   * time; a bar's LEFT EDGE is its time and it extends to the right. Measuring the grab from
+   * the wrong one makes the element jump by half its width on the first move.
+   */
+  anchor?: 'centre' | 'start';
+  /**
    * Turns a raw time into the value the gesture may actually take (the constraint). `snap` is
    * true for the pointer, which benefits from landing on a step, and false for the keyboard,
    * whose nudge is a deliberate amount the snap must not eat.
@@ -50,7 +56,8 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       // Where on the element it was grabbed. The element follows the pointer's DELTA, not its
       // absolute position, so grabbing a marker off-centre does not make it jump on the first move.
       const box = event.currentTarget.getBoundingClientRect();
-      const grab = event.clientX - (box.left + box.width / 2);
+      const anchorX = gesture.anchor === 'start' ? box.left : box.left + box.width / 2;
+      const grab = event.clientX - anchorX;
       active.current = {
         gesture,
         moved: false,

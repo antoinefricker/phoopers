@@ -1,11 +1,12 @@
-import { Box, Button, Group, Popover, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Box, Button, Group, Popover, Text, TextInput } from '@mantine/core';
 import { useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { IconPencil, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { Step, StepId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { constrainStepRetime } from './constraints';
-import { LABEL_WIDTH } from './TimelineRow';
+import { TimelineBar } from './TimelineBar';
+import { LABEL_WIDTH, MIN_SCREEN_DURATION } from './TimelineRow';
 import { TRACK_INSET_PX, fractionOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
@@ -13,23 +14,6 @@ import { useTimeDrag } from './useTimeDrag';
 const SNAP_FRACTION = 0.02;
 
 const percent = (t: number, duration: number) => `${fractionOf(t, duration) * 100}%`;
-
-const tickStyle = (t: number, duration: number): CSSProperties => ({
-  position: 'absolute',
-  top: '50%',
-  left: percent(t, duration),
-  // Vertical centring only. The tick's visible marker is its LEFT BORDER, so translating it
-  // horizontally by half its own width put the line half a label-width before the step's real
-  // time — 60px out for "Double high screen", 35px for "Entry pass". The name now hangs to the
-  // right of a line that sits exactly on the instant, matching the scrubber and the markers.
-  transform: 'translateY(-50%)',
-  padding: '0 4px',
-  whiteSpace: 'nowrap',
-  border: 0,
-  borderLeft: '2px solid var(--mantine-color-blue-filled)',
-  background: 'transparent',
-  color: 'var(--mantine-color-text)',
-});
 
 interface EditorProps {
   step: Step;
@@ -85,13 +69,24 @@ function StepEditor({ step, onDone }: EditorProps) {
  */
 export function StepRuler() {
   const { t } = useTranslation();
-  const { play, addStep, moveStep } = useEditorContext();
+  const { play, addStep, moveStep, removeStep, setStepDuration } = useEditorContext();
   const { timeline, branchId, currentTimeRef } = usePlaybackContext();
   const [openId, setOpenId] = useState<StepId | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const { duration, steps } = timeline;
   const ownStepIds = new Set(play.branches.find((b) => b.id === branchId)?.steps.map((s) => s.id));
-  const { bind, consumeDrag } = useTimeDrag(trackRef, duration);
+  const { bind } = useTimeDrag(trackRef, duration);
+  // Where each step's label stops being shown. Sorted, because "the next step" is a question
+  // about time, not about the order the steps were authored in.
+  const ordered = [...steps].sort((a, b) => a.t - b.t);
+  const windowEnd = (step: Step, index: number): number => {
+    const limit = ordered[index + 1]?.t ?? duration;
+    if (step.duration === undefined) return limit;
+
+    // A duration that is not a positive number has no window: `validatePlay` reports it, and a
+    // NaN here would reach the bar's width and collapse the ruler's layout.
+    return Number.isFinite(step.duration) && step.duration > 0 ? Math.min(step.t + step.duration, limit) : step.t;
+  };
 
   return (
     <Box data-testid="step-ruler" style={{ display: 'flex', alignItems: 'center', height: '2rem' }}>
@@ -122,23 +117,27 @@ export function StepRuler() {
           marginRight: TRACK_INSET_PX,
         }}
       >
-        {steps.map((step) => {
+        {ordered.map((step, index) => {
           const others = steps.filter((s) => s.id !== step.id);
+          const barWidth = `${(fractionOf(windowEnd(step, index), duration) - fractionOf(step.t, duration)) * 100}%`;
 
           // An ancestor's step is shown (it is a snap mark) but belongs to that ancestor: moving,
           // renaming or removing it from here would rewrite the base play and every sibling.
           // The same rule keyframes follow in `TimelineRow`.
           if (!ownStepIds.has(step.id)) {
             return (
-              <Text
+              <TimelineBar
                 key={step.id}
-                size="xs"
-                component="span"
-                data-inherited="true"
-                style={{ ...tickStyle(step.t, duration), cursor: 'default', opacity: 0.6 }}
+                testId={`step-bar-${step.id}`}
+                inherited
+                leftPercent={percent(step.t, duration)}
+                widthPercent={barWidth}
+                background="var(--mantine-color-blue-light)"
               >
-                {step.name}
-              </Text>
+                <Text size="xs" component="span" style={{ paddingLeft: 4, opacity: 0.6 }}>
+                  {step.name}
+                </Text>
+              </TimelineBar>
             );
           }
 
@@ -150,31 +149,78 @@ export function StepRuler() {
               position="bottom"
               withArrow
             >
-              <Popover.Target>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!consumeDrag()) setOpenId(openId === step.id ? null : step.id);
-                  }}
-                  style={{ ...tickStyle(step.t, duration), cursor: 'grab', touchAction: 'none' }}
-                  {...bind({
-                    current: step.t,
-                    resolve: (rawT, snap) =>
-                      constrainStepRetime(play, step.id, step.t, rawT, others, snap ? SNAP_FRACTION * duration : 0),
+              <TimelineBar
+                testId={`step-bar-${step.id}`}
+                leftPercent={percent(step.t, duration)}
+                widthPercent={barWidth}
+                background="var(--mantine-color-blue-light)"
+                handleBackground="var(--mantine-color-blue-filled)"
+                label={step.name}
+                // The bar itself retimes the step, as its tick did before it had a width.
+                bar={bind({
+                  current: step.t,
+                  // The bar starts at the step's time rather than straddling it.
+                  anchor: 'start',
+                  resolve: (rawT, snap) =>
+                    constrainStepRetime(play, step.id, step.t, rawT, others, snap ? SNAP_FRACTION * duration : 0),
+                  place: (element, value) => {
+                    element.style.left = percent(value, duration);
+                  },
+                  restore: (element) => {
+                    element.style.left = percent(step.t, duration);
+                  },
+                  commit: (value) => moveStep(step.id, value),
+                })}
+                handle={{
+                  testId: `step-handle-${step.id}`,
+                  label: t('play.editor.stepDuration', 'Label duration'),
+                  bind: bind({
+                    current: windowEnd(step, index),
+                    // Floored at a screen's minimum and capped at the next step, or at the end
+                    // of the play for a last step: two windows may never overlap.
+                    resolve: (rawT) =>
+                      Math.min(Math.max(rawT, step.t + MIN_SCREEN_DURATION), ordered[index + 1]?.t ?? duration),
                     place: (element, value) => {
-                      element.style.left = percent(value, duration);
+                      const bar = element.parentElement;
+                      if (bar !== null) {
+                        bar.style.width = `${(fractionOf(value, duration) - fractionOf(step.t, duration)) * 100}%`;
+                      }
                     },
                     restore: (element) => {
-                      element.style.left = percent(step.t, duration);
+                      const bar = element.parentElement;
+                      if (bar !== null) bar.style.width = barWidth;
                     },
-                    commit: (value) => moveStep(step.id, value),
-                  })}
-                >
-                  <Text size="xs" component="span">
-                    {step.name}
-                  </Text>
-                </button>
-              </Popover.Target>
+                    commit: (value) => setStepDuration(step.id, value - step.t),
+                  }),
+                }}
+                actions={
+                  <>
+                    <Popover.Target>
+                      <ActionIcon
+                        size="xs"
+                        variant="subtle"
+                        aria-label={t('play.editor.editStep', 'Edit {{name}}', { name: step.name })}
+                        onClick={() => setOpenId(openId === step.id ? null : step.id)}
+                      >
+                        <IconPencil size={12} stroke={1.5} />
+                      </ActionIcon>
+                    </Popover.Target>
+                    <ActionIcon
+                      size="xs"
+                      variant="subtle"
+                      color="red"
+                      aria-label={t('play.editor.removeStep', 'Remove {{name}}', { name: step.name })}
+                      onClick={() => removeStep(step.id)}
+                    >
+                      <IconX size={12} stroke={1.5} />
+                    </ActionIcon>
+                  </>
+                }
+              >
+                <Text size="xs" component="span" style={{ paddingLeft: 4 }}>
+                  {step.name}
+                </Text>
+              </TimelineBar>
               <Popover.Dropdown>
                 <StepEditor step={step} onDone={() => setOpenId(null)} />
               </Popover.Dropdown>

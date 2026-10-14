@@ -18,9 +18,11 @@ export interface TimelineBarProps {
    * way, as its tick did; a screen's bar has none, a screen being retimed from its row.
    */
   bar?: BarGesture;
+  /** Names the bar for a keyboard user. Required alongside `bar`, which makes it focusable. */
+  label?: string;
   /** The right edge, dragged to set where the span ends. Absent on an inherited bar. */
   handle?: { testId: string; label: string; bind: BarGesture };
-  /** Drawn just past the bar's end. */
+  /** Drawn at the bar's end, inside it. */
   actions?: ReactNode;
   /** Drawn inside the bar, positioned by the caller. */
   children?: ReactNode;
@@ -42,6 +44,7 @@ export function TimelineBar({
   testId,
   inherited,
   bar,
+  label,
   handle,
   actions,
   children,
@@ -50,6 +53,11 @@ export function TimelineBar({
     <Box
       data-testid={testId}
       data-inherited={inherited === true ? 'true' : undefined}
+      // Focusable when it carries a gesture, so the arrow keys reach it: `useTimeDrag` handles
+      // them, and that is how a step is retimed without a pointer. Not a `<button>` — it holds
+      // the handle and the controls, and a button may not nest interactive content.
+      tabIndex={bar === undefined ? undefined : 0}
+      aria-label={bar === undefined ? undefined : label}
       {...(bar ?? {})}
       style={{
         position: 'absolute',
@@ -89,6 +97,12 @@ export function TimelineBar({
             background: handleBackground,
           }}
           {...handle.bind}
+          onPointerDown={(event) => {
+            // The bar above may carry a gesture of its own — a step's bar retimes its step —
+            // and a press on the handle must set the span's END, not move the whole span.
+            handle.bind.onPointerDown?.(event);
+            event.stopPropagation();
+          }}
         />
       )}
       {actions !== undefined && (
@@ -97,10 +111,19 @@ export function TimelineBar({
             position: 'absolute',
             top: 0,
             bottom: 0,
-            left: '100%',
+            // Inside the bar, not past it: a span ending where the track does would otherwise
+            // push its controls off the panel, which grows a horizontal scrollbar. Measured at
+            // 36px past the track for the last step of the sample play.
+            right: 8,
             display: 'flex',
             alignItems: 'center',
             pointerEvents: 'auto',
+          }}
+          onPointerDown={(event) => {
+            // The bar above may carry a gesture, and `useTimeDrag` captures the pointer on
+            // press: without this the capture retargets the click and the control never gets
+            // it. jsdom does not implement pointer capture, so only a browser shows it.
+            event.stopPropagation();
           }}
         >
           {actions}
