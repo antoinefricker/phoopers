@@ -9,7 +9,12 @@ import { Timeline } from './Timeline';
 import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
 
 const rowFor = (entityId: string) => screen.getByTestId(`timeline-row-${entityId}`);
-const markersIn = (entityId: string) => within(rowFor(entityId)).getAllByRole('button');
+// Scoped to the track, not the whole row: the row's gutter carries the control that hides the
+// entity from the court, which is a button too.
+const markersIn = (entityId: string) => within(screen.getByTestId(`timeline-track-${entityId}`)).getAllByRole('button');
+/** The same, for a row that may legitimately hold none. */
+const markerCountIn = (entityId: string) =>
+  within(screen.getByTestId(`timeline-track-${entityId}`)).queryAllByRole('button').length;
 
 const withBranch = (
   play: Play,
@@ -60,7 +65,9 @@ describe('Timeline', () => {
     renderEditor(sparse, <Timeline />);
 
     expect(rowFor(P1)).toBeInTheDocument();
-    expect(within(rowFor(P1)).queryAllByRole('button')).toHaveLength(0);
+    // Empty of markers, not of controls: the gutter still carries the one that hides the
+    // player from the court, which is what makes an empty row worth keeping on screen.
+    expect(markerCountIn(P1)).toBe(0);
   });
 
   it('places a marker at its fraction of the duration', () => {
@@ -194,6 +201,19 @@ describe('Timeline', () => {
 
     expect(ball.queryAllByTestId(/^flight-/)).toHaveLength(0);
     expect(ball.getAllByTestId(/^possession-/)).toHaveLength(1);
+  });
+
+  it('offsets a flight label inside its own box, so the last one cannot leave the track', () => {
+    // The label is nudged clear of the marker that opens the flight. Done with a transform it
+    // moved the BOX, and the last flight ends at the end of the track: measured in a browser,
+    // its label sat 6px past the panel and grew a horizontal scrollbar. Padding moves the text
+    // within a box that still ends where the track does.
+    renderEditor(fixturePlay, <Timeline />);
+    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (label === undefined) throw new Error('expected a flight label');
+
+    expect(label.style.paddingLeft).not.toBe('');
+    expect(label.style.transform).not.toContain('translate(');
   });
 
   it('keeps a flight label from spilling into its neighbours', () => {

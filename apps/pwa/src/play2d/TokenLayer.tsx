@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useContext, useLayoutEffect, useRef } from 'react';
 import { ballCarryAt, stateAt } from '../engine';
 import type { PlayerId } from '../engine';
 import { usePlaybackContext } from './usePlaybackContext';
+import { HiddenEntitiesContext, NOTHING_HIDDEN } from './useHiddenEntitiesContext';
 import { BallSymbol, HELD_BALL_OFFSET, PlayerSymbol } from './PlayerSymbol';
 
 const translate = (x: number, y: number): string => `translate(${x} ${y})`;
@@ -15,16 +16,22 @@ const translate = (x: number, y: number): string => `translate(${x} ${y})`;
  */
 export function TokenLayer() {
   const { timeline, subscribe, currentTimeRef } = usePlaybackContext();
+  // Read the context directly rather than through the hook: these layers still render without
+  // a provider around them (the 1b tests do), and then nothing is hidden because nothing
+  // offers to hide it. `PlayCanvas` reads `EditorContext` the same way, for the same reason.
+  const hidden = useContext(HiddenEntitiesContext)?.hidden ?? NOTHING_HIDDEN;
   const playerRefs = useRef(new Map<PlayerId, SVGGElement>());
   const ballRef = useRef<SVGGElement | null>(null);
 
   // A player with no keyframes in this branch has no position: a missing track is absent
   // from the sampler and an empty one samples to the court origin (spec 001). Either way
   // drawing a token would put a phantom player at the corner, so none is drawn.
-  const tokenPlayers = timeline.players.filter((player) => (timeline.anchors[player.id]?.length ?? 0) > 0);
+  const tokenPlayers = timeline.players.filter(
+    (player) => (timeline.anchors[player.id]?.length ?? 0) > 0 && !hidden.has(player.id),
+  );
 
   // The ball follows the same rule: no ball keyframes means the sampler returns the origin.
-  const hasBall = (timeline.anchors['ball']?.length ?? 0) > 0;
+  const hasBall = (timeline.anchors['ball']?.length ?? 0) > 0 && !hidden.has('ball');
 
   // Layout effect so the first paint already has every token in place, not at (0, 0). The
   // guarantee is not testable in jsdom (act flushes effects before any assertion).
@@ -53,8 +60,13 @@ export function TokenLayer() {
     };
 
     paint(currentTimeRef.current);
+
     return subscribe(paint);
-  }, [timeline, subscribe, currentTimeRef]);
+    // `hidden` belongs here although `paint` never reads it: showing an entity again mounts a
+    // fresh node, which carries no transform until something paints it. Without this the node
+    // sat at the svg origin — the court's corner — until the clock next moved, which, paused,
+    // it never does.
+  }, [timeline, subscribe, currentTimeRef, hidden]);
 
   return (
     <g>

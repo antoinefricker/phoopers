@@ -37,6 +37,7 @@
       "forkStep": "Diverger à partir de l'étape",
       "forkTitle": "Créer une variante",
       "formation": "Placement de départ",
+      "hideEntity": "Masquer {{name}}",
       "keyframeAt": "Position à {{t}} s",
       "mode": {
         "edit": "Éditer",
@@ -62,6 +63,7 @@
       "save": "Enregistrer",
       "screenDuration": "Durée de l'écran",
       "selectedPlayer": "Joueur {{label}}",
+      "showEntity": "Afficher {{name}}",
       "stepDefault": "Étape {{n}}",
       "stepName": "Nom de l'étape",
       "variantName": "Nom de la variante"

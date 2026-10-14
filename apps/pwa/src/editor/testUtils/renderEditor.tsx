@@ -4,6 +4,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import type { BranchId, Play } from '../../engine';
+import { HiddenEntitiesContextProvider } from '../../play2d/HiddenEntitiesContextProvider';
 import { PlaybackContextProvider } from '../../play2d/PlaybackContextProvider';
 import { usePlaybackContext } from '../../play2d/usePlaybackContext';
 import { EditorContextProvider } from '../EditorContextProvider';
@@ -48,17 +49,19 @@ export function renderEditor(initialPlay: Play, children: ReactNode, { wrapPlayb
   return render(
     <MantineProvider env="test">
       <EditorContextProvider initialPlay={initialPlay}>
-        {wrapPlayback ? (
-          <PlaybackContextProvider play={initialPlay}>
-            {children}
-            <PlayProbe />
-          </PlaybackContextProvider>
-        ) : (
-          <>
-            {children}
-            <PlayProbe />
-          </>
-        )}
+        <HiddenEntitiesContextProvider>
+          {wrapPlayback ? (
+            <PlaybackContextProvider play={initialPlay}>
+              {children}
+              <PlayProbe />
+            </PlaybackContextProvider>
+          ) : (
+            <>
+              {children}
+              <PlayProbe />
+            </>
+          )}
+        </HiddenEntitiesContextProvider>
       </EditorContextProvider>
     </MantineProvider>,
   );

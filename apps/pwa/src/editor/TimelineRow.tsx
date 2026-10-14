@@ -1,8 +1,10 @@
-import { Box, CloseButton } from '@mantine/core';
+import { ActionIcon, Box, CloseButton } from '@mantine/core';
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { IconEye, IconEyeOff } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, ScreenEvent, ScreenId } from '../engine';
+import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
 import { ConfirmDelete } from './ConfirmDelete';
 import { constrainRetime } from './constraints';
 import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
@@ -55,6 +57,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
     count: 0,
   });
   const labelOf = (id: string) => timeline.players.find((p) => p.id === id)?.label ?? id;
+  const { hidden, toggleHidden } = useHiddenEntitiesContext();
   const removingScreen = screens.find((s) => s.id === removing.target);
   const isBall = row.team === 'ball';
   // The gutter draws the same token the court does rather than restating it as text, so a row
@@ -79,6 +82,25 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
             name={rowName}
           />
         )}
+        {/* The name goes in the label, not just "Hide": eleven rows would otherwise offer a
+            voice-control user eleven identical buttons. `aria-pressed` carries the state, which
+            the icon alone shows only to those who can see it. */}
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="sm"
+          ml="auto"
+          mr="xs"
+          aria-pressed={hidden.has(row.entityId)}
+          aria-label={
+            hidden.has(row.entityId)
+              ? t('play.editor.showEntity', 'Show {{name}}', { name: rowName })
+              : t('play.editor.hideEntity', 'Hide {{name}}', { name: rowName })
+          }
+          onClick={() => toggleHidden(row.entityId)}
+        >
+          {hidden.has(row.entityId) ? <IconEyeOff size={14} stroke={1.5} /> : <IconEye size={14} stroke={1.5} />}
+        </ActionIcon>
       </Box>
       {/* Inset so a marker sitting at t=0 or t=duration fits inside the track: it is a rotated
           square, so it reaches half its DIAGONAL past its time. Without this the last marker
@@ -208,8 +230,11 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   ...geometry,
                   // Anchored to the marker that opens the flight rather than centred on it,
                   // and lifted clear of the tinted stretches so the word reads above the row's
-                  // own line instead of level with it.
-                  transform: 'translate(10px, -7px)',
+                  // own line instead of level with it. The horizontal nudge is padding, not
+                  // part of the transform: moving the BOX pushed the last flight's label past
+                  // the end of the track, which grew the panel a horizontal scrollbar.
+                  transform: 'translateY(-7px)',
+                  paddingLeft: '10px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'flex-start',

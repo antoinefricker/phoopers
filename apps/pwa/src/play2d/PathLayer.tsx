@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useContext, useMemo } from 'react';
 import { usePlaybackContext } from './usePlaybackContext';
+import { HiddenEntitiesContext, NOTHING_HIDDEN } from './useHiddenEntitiesContext';
 import { ballPathSegments, dribblePathD, playerPathSegments } from './geometry/paths';
 import { screenMarks } from './geometry/screens';
 import { DRIBBLE_AMPLITUDE, DRIBBLE_WAVELENGTH } from './pathSymbols';
@@ -12,6 +13,10 @@ import { DRIBBLE_AMPLITUDE, DRIBBLE_WAVELENGTH } from './pathSymbols';
  */
 export function PathLayer() {
   const { timeline } = usePlaybackContext();
+  // Read the context directly rather than through the hook: these layers still render without
+  // a provider around them (the 1b tests do), and then nothing is hidden because nothing
+  // offers to hide it. `PlayCanvas` reads `EditorContext` the same way, for the same reason.
+  const hidden = useContext(HiddenEntitiesContext)?.hidden ?? NOTHING_HIDDEN;
 
   const { players, pass, screens } = useMemo(() => {
     const players = timeline.players.map((player) => {
@@ -43,29 +48,38 @@ export function PathLayer() {
 
   return (
     <g fill="none" strokeWidth={0.08} strokeLinecap="round" strokeLinejoin="round">
-      {players.map((player) => (
-        <g
-          key={player.id}
-          data-testid="player-path"
-          stroke={player.team === 'offense' ? 'var(--mantine-color-blue-6)' : 'var(--mantine-color-red-6)'}
-        >
-          {player.segments.map((segment) => (
-            <path key={segment.key} data-kind={segment.kind} d={segment.d} markerEnd="url(#arrowhead)" />
-          ))}
-        </g>
-      ))}
-      {screens.map((mark) => (
-        <line
-          key={mark.id}
-          data-testid="screen-mark"
-          x1={mark.x1}
-          y1={mark.y1}
-          x2={mark.x2}
-          y2={mark.y2}
-          stroke={mark.team === 'defense' ? 'var(--mantine-color-red-6)' : 'var(--mantine-color-blue-6)'}
-          strokeWidth={0.16}
-        />
-      ))}
+      {players
+        .filter((player) => !hidden.has(player.id))
+        .map((player) => (
+          <g
+            key={player.id}
+            data-testid="player-path"
+            data-player-id={player.id}
+            stroke={player.team === 'offense' ? 'var(--mantine-color-blue-6)' : 'var(--mantine-color-red-6)'}
+          >
+            {player.segments.map((segment) => (
+              <path key={segment.key} data-kind={segment.kind} d={segment.d} markerEnd="url(#arrowhead)" />
+            ))}
+          </g>
+        ))}
+      {/* A screen's symbol is drawn at its screener's own position, so it goes off the court
+          with them: left behind, it marked the floor with no token under it. A hidden
+          beneficiary changes nothing — the screener is still there, still setting it. */}
+      {screens
+        .filter((mark) => !hidden.has(mark.screenerId))
+        .map((mark) => (
+          <line
+            key={mark.id}
+            data-testid="screen-mark"
+            data-screener-id={mark.screenerId}
+            x1={mark.x1}
+            y1={mark.y1}
+            x2={mark.x2}
+            y2={mark.y2}
+            stroke={mark.team === 'defense' ? 'var(--mantine-color-red-6)' : 'var(--mantine-color-blue-6)'}
+            strokeWidth={0.16}
+          />
+        ))}
       {pass.map((segment, index) => (
         <path
           key={`ball-${index}`}
