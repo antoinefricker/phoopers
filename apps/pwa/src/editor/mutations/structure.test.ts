@@ -13,6 +13,7 @@ import {
   removeStep,
   renameStep,
   setScreenDuration,
+  setStepDuration,
 } from './structure';
 
 const NEW_STEP = 'step-new' as StepId;
@@ -181,5 +182,32 @@ describe('removeBranch', () => {
   it('lists descendants without the branch itself', () => {
     expect(descendantsOf(fixturePlay, ROOT)).toContain(SWITCH);
     expect(descendantsOf(fixturePlay, ROOT)).not.toContain(ROOT);
+  });
+});
+
+describe('setStepDuration', () => {
+  it('sets the duration of the step that owns it', () => {
+    const play = setStepDuration(fixturePlay, STEP_ENTRY, 1.5);
+
+    expect(steps(play).find((s) => s.id === STEP_ENTRY)?.duration).toBe(1.5);
+  });
+
+  it('refuses a duration that is not a positive number', () => {
+    // The caller is a drag, which can land on zero width at the limits of a short play.
+    for (const duration of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(setStepDuration(fixturePlay, STEP_ENTRY, duration)).toBe(fixturePlay);
+    }
+  });
+
+  it('leaves a play without that step untouched', () => {
+    expect(setStepDuration(fixturePlay, 'nope' as StepId, 1)).toBe(fixturePlay);
+  });
+
+  it('caps nothing itself: the view owns the bounds', () => {
+    // The handle already knows the next step and the play's length, and validatePlay reports a
+    // window that overruns either. Capping here too would be a second, divergent rule.
+    const play = setStepDuration(fixturePlay, STEP_ENTRY, 99);
+
+    expect(steps(play).find((s) => s.id === STEP_ENTRY)?.duration).toBe(99);
   });
 });

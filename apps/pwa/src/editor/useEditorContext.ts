@@ -33,6 +33,8 @@ export interface EditorContextValue {
   removeStep: (stepId: StepId) => void;
   addScreen: (branchId: BranchId, t: number, screenerId: PlayerId, beneficiaryId: PlayerId) => void;
   setScreenDuration: (screenId: ScreenId, duration: number) => void;
+  /** How long a step's name is shown for, in seconds from the step's own time. */
+  setStepDuration: (stepId: StepId, duration: number) => void;
   removeScreen: (screenId: ScreenId) => void;
   /** Returns the new branch's id, or `null` when the fork was refused (nothing was written). */
   forkBranch: (parentBranchId: BranchId, forkStepId: StepId, name: string) => BranchId | null;
