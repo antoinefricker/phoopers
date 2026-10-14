@@ -37,8 +37,12 @@ export function Timeline() {
     }
   };
 
+  // `auto`, not Mantine's default `hover`: the region is only as tall as the court leaves it,
+  // so whether the rows continue below the fold is something the coach has to see without
+  // first moving the pointer into the panel. The bar is offset rather than laid over the
+  // tracks, which end at the same x as the scrubber above them.
   return (
-    <ScrollArea>
+    <ScrollArea type="auto" offsetScrollbars="y">
       {/* Keys arrive from the focused marker button and bubble up to here. */}
       {/* Same reason as the court: dragging a marker must not highlight the row labels or a
           step name. Inputs below re-enable selection for the text they actually edit. */}

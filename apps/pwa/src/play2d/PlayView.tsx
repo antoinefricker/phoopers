@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActionIcon, Group, Paper, Popover, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
+import { ActionIcon, Box, Group, Paper, Popover, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
 import { IconGitBranch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { SelectionActions } from '../editor/SelectionActions';
@@ -30,9 +30,12 @@ export function PlayView() {
     <PlaybackContextProvider key={play.id} play={play}>
       {/* Above both the court and the timeline: one writes what is hidden, the other reads it. */}
       <HiddenEntitiesContextProvider>
-        {/* 100dvh as an inline override: a browser without dvh drops it and keeps the 100vh. */}
-        <Stack mih="100vh" style={{ minHeight: '100dvh' }} p="md" gap="sm">
-          <Group justify="space-between" align="center" gap="sm">
+        {/* A column of three regions filling the window: a header that neither grows nor
+            shrinks, the court at a fixed share of the height, and the time controls taking what
+            is left. `height` rather than `min-height`, or the regions have no total to divide.
+            100dvh as an inline override: a browser without dvh drops it and keeps the 100vh. */}
+        <Stack h="100vh" style={{ height: '100dvh' }} p="md" gap="sm">
+          <Group justify="space-between" align="center" gap="sm" style={{ flex: '0 0 auto' }}>
             <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
               {/* The variants live in a menu ahead of the title rather than in a panel beside the
                 court, so the court keeps the full width at every screen size. The trigger is
@@ -89,14 +92,41 @@ export function PlayView() {
           </Group>
           {/* The time controls sit above the court, between it and the header. The scrubber stays
             directly above the ruler and the tracks: they share one time axis and one playhead
-            crosses all of them, so the control belongs beside what it drives. */}
-          <PlaybackTransport />
-          {mode === 'edit' && <Timeline />}
+            crosses all of them, so the control belongs beside what it drives.
+            This region takes what the header and the court leave. `minHeight: 0` so the tracks'
+            own ScrollArea takes over rather than the region refusing to shrink, which is what a
+            flex column does by default. */}
+          <Box
+            style={{
+              flex: '1 1 auto',
+              // Enough for the transport, the ruler and two rows. Without a floor this region
+              // is squeezed to nothing on a short window and the page still does not scroll,
+              // which leaves the controls present but unusable. With it, a window too short
+              // for the court's 400px and this scrolls the page instead.
+              minHeight: 120,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--mantine-spacing-sm)',
+            }}
+          >
+            <PlaybackTransport />
+            {mode === 'edit' && <Timeline />}
+            {mode === 'edit' && <SelectionActions />}
+            {mode === 'edit' && <IssuePanel />}
+          </Box>
           {/* No padding, and the floor's colour behind the drawing: the court keeps its own
             aspect ratio, so a panel wider or taller than it leaves a band the svg does not
             cover — white there read as a gap in the floor. */}
           {/* Relative so the step caption can pin itself to the court's own top-left corner. */}
-          <Paper withBorder p={0} bg={FLOOR} style={{ minWidth: 0, position: 'relative' }}>
+          <Paper
+            withBorder
+            p={0}
+            bg={FLOOR}
+            // Three fifths of the window, and never under 400px: below that a court stops being
+            // a diagram a coach can read. Where that floor and the bars together outgrow a short
+            // window, the page scrolls rather than the court giving it up.
+            style={{ minWidth: 0, position: 'relative', flex: '0 0 60%', minHeight: 400 }}
+          >
             <PlayCanvas halfCourt={halfCourt} playName={play.name} />
             {/* Outside the svg on purpose: the court carries `role="img"`, whose descendants are
               presentational, so a caption drawn inside it would be invisible to assistive
@@ -104,8 +134,6 @@ export function PlayView() {
               rescales the viewBox. */}
             <StepCaption />
           </Paper>
-          {mode === 'edit' && <SelectionActions />}
-          {mode === 'edit' && <IssuePanel />}
         </Stack>
       </HiddenEntitiesContextProvider>
     </PlaybackContextProvider>
