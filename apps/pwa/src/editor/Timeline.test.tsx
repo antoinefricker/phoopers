@@ -296,7 +296,8 @@ describe('retiming', () => {
     await dragElement(secondMarker(P1));
 
     // clientX 120 of a 200px row across a 4s play.
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
+    // 120 / 200 * 4 = 2.4s, which the grid rounds to the nearest half second.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.5, 4]);
   });
 
   it('never lets a keyframe cross its neighbour', async () => {
@@ -345,8 +346,10 @@ describe('retiming', () => {
     expect(JSON.stringify(readProbe().play)).toBe(before);
   });
 
-  it('nudges the focused keyframe with the arrow keys, finely with shift', async () => {
+  it('nudges the focused keyframe by one grid cell per arrow press', async () => {
     // No layout is needed: a nudge counts from the keyframe's own time, not from the pointer.
+    // Shift once meant a finer step; every authored time is on the grid now, so it means the
+    // same one — a press either moves a cell or does nothing.
     renderLive(fixturePlay);
     const user = userEvent.setup();
     const second = secondMarker(P1);
@@ -358,7 +361,7 @@ describe('retiming', () => {
     // The same element is still focused: the marker is keyed by position, so retiming it does
     // not remount it and a second press lands on the keyframe the first one moved.
     await user.keyboard('{Shift>}{ArrowLeft}{/Shift}');
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2, 4]);
   });
 
   it('stops a nudged keyframe at its neighbour instead of crossing it', async () => {
@@ -423,7 +426,7 @@ describe('retiming', () => {
     // The keyframe being dragged is the selected one, so selecting must follow it to its new time.
     await dragElement(secondMarker(P1));
 
-    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2.4 });
+    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2.5 });
   });
 });
 
@@ -444,20 +447,23 @@ describe('drag feel', () => {
   }));
 
   it('moves by the pointer delta, not its absolute position, when grabbed off-centre', async () => {
-    // Marker centre at 20px; pressed at 25px (5px right of centre), released at 120px. The marker
-    // lands where its centre would be: (120 - 5) / 200 * 4 = 2.3s, not 120 / 200 * 4 = 2.4s.
+    // Marker centre at 20px; pressed at 50px (30px right of centre), released at 150px. The
+    // marker lands where its CENTRE would be: (150 - 30) / 200 * 4 = 2.4s, which the grid
+    // rounds to 2.5 — not 150 / 200 * 4 = 3s, which the grid would leave at 3.
+    // The grab has to be wider than half a grid cell, or both readings round to the same
+    // answer and the case stops telling them apart.
     withRowWidth(200, 20);
     renderEditor(fixturePlay, <Timeline />);
     const user = userEvent.setup();
 
     await user.pointer([
-      { keys: '[MouseLeft>]', target: secondMarker(P1), coords: { clientX: 25, clientY: 0 } },
-      { target: secondMarker(P1), coords: { clientX: 80, clientY: 0 } },
-      { target: secondMarker(P1), coords: { clientX: 120, clientY: 0 } },
+      { keys: '[MouseLeft>]', target: secondMarker(P1), coords: { clientX: 50, clientY: 0 } },
+      { target: secondMarker(P1), coords: { clientX: 100, clientY: 0 } },
+      { target: secondMarker(P1), coords: { clientX: 150, clientY: 0 } },
       { keys: '[/MouseLeft]', target: secondMarker(P1) },
     ]);
 
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.3, 4]);
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.5, 4]);
   });
 
   it('treats a twitch under the slop as a click, not a retime', async () => {
@@ -491,7 +497,9 @@ describe('drag feel', () => {
     ]);
 
     // 4px of 200px across 4s.
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0.08, 2, 4]);
+    // 4px past the slop is 0.08s, which the grid rounds back to zero — the drag still
+    // demonstrably acted, the marker having been placed and committed.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2, 4]);
   });
 });
 
@@ -542,7 +550,7 @@ describe('inherited markers', () => {
     await dragElement(own);
 
     // Released at 2.4s, inside the branch's bounds (floor 2).
-    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([2.4]);
+    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([2.5]);
   });
 });
 
@@ -567,8 +575,8 @@ describe('screen bars', () => {
 
     await dragElement(within(rowFor(P2)).getByTestId(`screen-handle-${SCREEN_1}`));
 
-    // clientX 120 of 200px is 2.4s; the screen starts at 2s.
-    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.4, 6);
+    // clientX 120 of 200px is 2.4s, which the grid rounds to 2.5; the screen starts at 2s.
+    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.5, 6);
   });
 
   it('shows an ancestor screen on a descendant branch without a handle or a remove control', async () => {
@@ -594,9 +602,9 @@ describe('screen bars', () => {
 
     await dragElement(within(rowFor(P2)).getByTestId(`screen-handle-${SCREEN_1}`));
 
-    // No layout: the drop maps to t=0, before the screen starts. It floors, rather than being
-    // refused (which would leave 1), so the drag demonstrably acted.
-    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.1, 6);
+    // No layout: the drop maps to t=0, before the screen starts. It floors at one grid cell,
+    // rather than being refused (which would leave 1), so the drag demonstrably acted.
+    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.5, 6);
   });
 });
 

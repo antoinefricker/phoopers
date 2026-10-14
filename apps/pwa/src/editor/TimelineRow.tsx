@@ -9,7 +9,7 @@ import { ConfirmDelete } from './ConfirmDelete';
 import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
 import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
-import { GUTTER_WIDTH } from '../play2d/transportMath';
+import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
@@ -33,7 +33,9 @@ interface Props {
 const percent = (t: number, duration: number) => `${fractionOf(t, duration) * 100}%`;
 
 // A screen shorter than this cannot be grabbed, and `setScreenDuration` refuses a non-positive one.
-export const MIN_SCREEN_DURATION = 0.1;
+// One grid cell: every authored time falls on the grid, so the shortest screen is the distance
+// between two of them.
+export const MIN_SCREEN_DURATION = TIME_GRID_S;
 // A drop within this fraction of the play's length of a step snaps to it.
 const SNAP_FRACTION = 0.02;
 

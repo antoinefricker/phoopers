@@ -221,19 +221,19 @@ describe('StepRuler', () => {
     expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(2);
   });
 
-  it('nudges a focused step with the arrow keys, finely with shift', async () => {
-    // No layout: a nudge counts from the step's own time, so the ruler needs no width.
+  it('nudges a focused step by one grid cell per arrow press', async () => {
+    // No layout: a nudge counts from the step's own time, so the ruler needs no width. Shift
+    // once meant a finer step and now means the same one, every authored time being on the grid.
     renderLive();
     const user = userEvent.setup();
     const bar = screen.getByTestId(`step-bar-${STEP_ENTRY}`);
     bar.focus();
 
-    // The step sits at 2 and SWITCH forks from it, so later is barred: it can only go earlier.
     await user.keyboard('{ArrowLeft}');
     expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(1.5);
 
     await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
-    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(1.6, 6);
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(2, 6);
   });
 });
 
@@ -354,7 +354,7 @@ describe('step label bars', () => {
       { keys: '[/MouseLeft]', target: bar, coords: { clientX: 65, clientY: 10 } },
     ]);
 
-    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(2.4, 6);
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(2.5, 6);
   });
 
   it('does not retime the step when the duration handle is nudged', async () => {

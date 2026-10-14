@@ -3,6 +3,25 @@ import type { Step } from '../engine';
 // Two times closer than this count as equidistant, so float noise cannot decide a tie.
 const TIE_EPSILON = 1e-9;
 // A step counts as "behind" or "ahead" only if it is clear of the current time by this much.
+/**
+ * The grid every authored time falls on, in seconds. A play is read by people, and a keyframe
+ * at 2.37s says nothing a keyframe at 2.5s does not.
+ */
+export const TIME_GRID_S = 0.5;
+
+/**
+ * Rounds a time to the nearest grid cell, never below zero.
+ *
+ * The multiply-then-divide keeps the result a clean multiple: adding 0.5 repeatedly, or
+ * multiplying a float by a float, drifts into values like 6.300000000000001 that print and
+ * compare badly. A time that is not a number becomes 0, there being no cell for it.
+ */
+export function snapToGrid(t: number): number {
+  if (!Number.isFinite(t)) return 0;
+
+  return Math.max(0, Math.round(t / TIME_GRID_S) * TIME_GRID_S);
+}
+
 const STEP_EPSILON = 1e-6;
 
 // Snaps t to the nearest step time within the threshold. When two steps are equidistant the

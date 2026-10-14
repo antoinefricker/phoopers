@@ -5,7 +5,7 @@ import type { Keyframe, Play, PlayerId, Step, StepId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
-import { adjacentStep, sliderMax, snapToStep, stepAt, stepLabelAt, stepMarks } from './transportMath';
+import { adjacentStep, sliderMax, snapToGrid, snapToStep, stepAt, stepLabelAt, stepMarks } from './transportMath';
 import { playheadTime } from '../testUtils/transport';
 
 const steps: Step[] = [
@@ -125,6 +125,40 @@ describe('stepAt', () => {
 
   it('survives a non-finite time rather than naming a wrong step', () => {
     expect(stepAt(Number.NaN, steps)).toBeUndefined();
+  });
+});
+
+describe('snapToGrid', () => {
+  it('rounds to the nearest half second', () => {
+    expect(snapToGrid(1.2)).toBe(1);
+    expect(snapToGrid(1.3)).toBe(1.5);
+    expect(snapToGrid(1.7)).toBe(1.5);
+    expect(snapToGrid(1.8)).toBe(2);
+  });
+
+  it('rounds a half-way value up, not to even', () => {
+    // Predictable beats statistically fair: a coach dragging right expects the next cell.
+    expect(snapToGrid(1.25)).toBe(1.5);
+    expect(snapToGrid(1.75)).toBe(2);
+  });
+
+  it('leaves a value already on the grid alone', () => {
+    for (const t of [0, 0.5, 2, 7.5]) expect(snapToGrid(t)).toBe(t);
+  });
+
+  it('gives back a clean multiple, not a float that nearly is', () => {
+    // 0.1 * 3 is 0.30000000000000004; the same trap waits for anything built by multiplying.
+    expect(snapToGrid(6.3)).toBe(6.5);
+    expect(String(snapToGrid(6.3))).toBe('6.5');
+  });
+
+  it('survives a time that is not a number', () => {
+    expect(snapToGrid(Number.NaN)).toBe(0);
+    expect(snapToGrid(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+
+  it('never returns a negative time', () => {
+    expect(snapToGrid(-0.2)).toBe(0);
   });
 });
 
@@ -312,10 +346,10 @@ describe('PlaybackTransport', () => {
     const slider = screen.getByRole('slider');
 
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    expect(slider).toHaveAttribute('aria-valuenow', '0.01');
+    expect(slider).toHaveAttribute('aria-valuenow', '0.5');
 
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    expect(slider).toHaveAttribute('aria-valuenow', '0.02');
+    expect(slider).toHaveAttribute('aria-valuenow', '1');
   });
 
   it('lets arrow keys leave a step instead of snapping back onto it', () => {
@@ -325,7 +359,7 @@ describe('PlaybackTransport', () => {
     click(screen.getByRole('button', { name: 'Next step' }));
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
 
-    expect(slider).toHaveAttribute('aria-valuenow', '2.01');
+    expect(slider).toHaveAttribute('aria-valuenow', '2.5');
   });
 
   it('snaps a pointer scrub near a step onto the exact step time', () => {

@@ -2,7 +2,16 @@ import { ActionIcon, Box, Group, Slider } from '@mantine/core';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconPlayerPause, IconPlayerPlay, IconPlayerSkipBack, IconPlayerSkipForward } from '@tabler/icons-react';
-import { GUTTER_WIDTH, TRACK_INSET_PX, adjacentStep, sliderMax, snapToStep, stepMarks } from './transportMath';
+import {
+  GUTTER_WIDTH,
+  TIME_GRID_S,
+  TRACK_INSET_PX,
+  adjacentStep,
+  sliderMax,
+  snapToGrid,
+  snapToStep,
+  stepMarks,
+} from './transportMath';
 import { usePlaybackContext } from './usePlaybackContext';
 import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 
@@ -21,7 +30,9 @@ export function PlaybackTransport() {
   // The clock's seek() does not pause; stopping playback on any manual move is the transport's job.
   const scrubTo = (time: number) => {
     pause();
-    seek(time);
+    // The playhead lands on the grid too: a step, a screen or a keyframe created here takes
+    // the time it reads, so a continuous playhead would put them between two cells.
+    seek(snapToGrid(time));
   };
 
   // Read the live ref, not displayTime: the thumb's value lags by up to a tenth of a second,
@@ -82,7 +93,7 @@ export function PlaybackTransport() {
           thumbSize={THUMB_SIZE_PX}
           min={0}
           max={max}
-          step={0.01}
+          step={TIME_GRID_S}
           value={Math.min(Math.max(displayTime, 0), max)}
           onChange={(value) => {
             const snap = !keyboardMoveRef.current;

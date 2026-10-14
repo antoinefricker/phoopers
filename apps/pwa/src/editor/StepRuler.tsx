@@ -8,6 +8,7 @@ import { constrainStepRetime } from './constraints';
 import { TimelineBar } from './TimelineBar';
 import { LABEL_WIDTH, MIN_SCREEN_DURATION } from './TimelineRow';
 import { TRACK_INSET_PX, fractionOf } from './timelineGeometry';
+import { snapToGrid } from '../play2d/transportMath';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 
@@ -97,7 +98,9 @@ export function StepRuler() {
           onClick={() =>
             addStep(
               branchId,
-              currentTimeRef.current,
+              // During playback the clock is continuous, so the time a step is born at has to
+              // be rounded here rather than trusted.
+              snapToGrid(currentTimeRef.current),
               t('play.editor.stepDefault', 'Step {{n}}', { n: steps.length + 1 }),
             )
           }
