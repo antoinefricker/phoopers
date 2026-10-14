@@ -101,6 +101,26 @@ describe('StepCaption', () => {
     expect(caption()).toBe('');
   });
 
+  it('stops naming a step once its display duration is spent', () => {
+    // Before this, the name stayed up until the next step, whatever the coach wanted.
+    const brief: Play = {
+      ...hornsPlay,
+      branches: hornsPlay.branches.map((b) =>
+        b.id === hornsPlay.rootBranchId
+          ? { ...b, steps: b.steps.map((step, index) => (index === 0 ? { ...step, duration: 0.5 } : step)) }
+          : b,
+      ),
+    };
+    if (FIRST === undefined) throw new Error('the sample play has steps');
+    renderCaption(brief);
+
+    act(() => controls().seek(FIRST.t + 0.2));
+    expect(caption()).toBe(FIRST.name);
+
+    act(() => controls().seek(FIRST.t + 0.8));
+    expect(caption()).toBe('');
+  });
+
   it('follows the clock during playback without re-rendering', () => {
     // The court does no per-frame React work: the tokens write their transforms through refs,
     // and the caption writes its text the same way. A caption that re-rendered on every frame
