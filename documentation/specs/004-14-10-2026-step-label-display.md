@@ -55,7 +55,9 @@ instant. The bar carries:
 - a **handle on its right edge**, dragged to set the duration, floored at the same minimum a
   screen's duration is floored at and capped at the next step's `t`, or at the end of the play
   for a last step;
-- an **edit** control and a **delete** control at the bar's end, after the handle.
+- an **edit** control and a **delete** control at the bar's end, inside it. Inside, because a
+  window ending where the play does would otherwise push them off the panel, which then grows a
+  horizontal scrollbar.
 
 Dragging the bar itself still retimes the step, as dragging its tick did, under the fork
 constraints that already govern a step's `t`. A step with no duration draws its implicit window

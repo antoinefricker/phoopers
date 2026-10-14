@@ -213,6 +213,24 @@ there is no pass object. Changing the drop gesture is a spec-level decision, not
 **Fix:** either `attachBall` writes a second attachment keyframe to close a hold (at the next
 keyframe time or after a default hold), or the UI asks for a hold duration on drop.
 
+### Removing a step a branch forks from does nothing, visibly nothing
+
+`removeStep` refuses a step a branch forks from, since dropping it would orphan that branch.
+The step's bar now carries its own delete control, so that refusal is one click away rather
+than two inside a popover, and it still says nothing.
+
+Measured in a browser on the sample play: pressing "Remove Entry pass" — the step `Switch to the
+weak side` forks from — leaves both step bars on the ruler, changes no name or window, and
+raises no `role="alert"` notice. Pressing "Remove Double high screen", which nothing forks from,
+removes it.
+
+It was left for the same reason as the two entries around it: having the bar decide would make
+the component re-derive a rule the mutation owns, and two copies of a rule drift.
+
+**Fix:** have `removeStep` in the context report whether it wrote anything, and have the bar
+show a notice or render no delete control for a step a branch forks from — the second being
+better, a control that cannot work is worse than none.
+
 ### "Add step" before the fork does nothing, silently
 
 On a child branch, `addStep` refuses a step earlier than the branch's fork (the same rule that
