@@ -1,5 +1,6 @@
 import { Box, CloseButton } from '@mantine/core';
 import { useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, ScreenEvent, ScreenId } from '../engine';
 import { ConfirmDelete } from './ConfirmDelete';
@@ -174,21 +175,55 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         {isBall &&
           row.keyframes.map((k, index) => {
             const next = row.keyframes[index + 1];
-            if (next === undefined || k.attachedTo === undefined || next.attachedTo === undefined) return null;
+            if (next === undefined) return null;
 
+            const geometry: CSSProperties = {
+              position: 'absolute',
+              top: '25%',
+              height: '50%',
+              left: percent(k.t, duration),
+              width: `${(fractionOf(next.t, duration) - fractionOf(k.t, duration)) * 100}%`,
+            };
+
+            // Held, and by the same player at both ends: a pass has two attached ends too, but
+            // to different players, and the ball is in the air between them with nothing to
+            // tint. Tinting it read as possession and contradicted the row's own hollow marker.
+            if (k.attachedTo !== undefined && k.attachedTo === next.attachedTo) {
+              return (
+                <Box
+                  key={`${k.t}-possession`}
+                  data-testid={`possession-${k.t}`}
+                  style={{ ...geometry, background: 'var(--mantine-color-orange-light)' }}
+                />
+              );
+            }
+
+            // Everything else on the ball's row is the ball travelling. Where it lands says
+            // which kind: a pair of hands is a pass, a point on the court is a shot.
             return (
               <Box
-                key={`${k.t}-possession`}
-                data-testid={`possession-${k.t}`}
+                key={`${k.t}-flight`}
+                data-testid={`flight-${k.t}`}
                 style={{
-                  position: 'absolute',
-                  top: '25%',
-                  height: '50%',
-                  left: percent(k.t, duration),
-                  width: `${(fractionOf(next.t, duration) - fractionOf(k.t, duration)) * 100}%`,
-                  background: 'var(--mantine-color-orange-light)',
+                  ...geometry,
+                  // Anchored to the marker that opens the flight rather than centred on it,
+                  // and lifted clear of the tinted stretches so the word reads above the row's
+                  // own line instead of level with it.
+                  transform: 'translate(10px, -7px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  fontSize: 'var(--mantine-font-size-xs)',
+                  color: 'var(--mantine-color-dimmed)',
+                  // A flight can be a fraction of a second wide, so the label gives way rather
+                  // than running over the possession on either side of it.
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
                 }}
-              />
+              >
+                {next.attachedTo === undefined ? t('play.timeline.shot', 'Shot') : t('play.timeline.pass', 'Pass')}
+              </Box>
             );
           })}
         {row.keyframes.map((k, index) => {

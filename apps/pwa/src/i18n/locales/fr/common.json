@@ -66,6 +66,10 @@
       "stepName": "Nom de l'étape",
       "variantName": "Nom de la variante"
     },
+    "timeline": {
+      "pass": "Passe",
+      "shot": "Tir"
+    },
     "transport": {
       "nextStep": "Étape suivante",
       "pause": "Pause",

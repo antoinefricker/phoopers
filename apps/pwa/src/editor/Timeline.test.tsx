@@ -153,11 +153,59 @@ describe('Timeline', () => {
     expect(trackOf(readProbe().play, ROOT, 'ball')).toHaveLength(0);
   });
 
-  it('tints possession between consecutive attachment keyframes', () => {
+  it('tints only what one player actually holds, not the pass between two of them', () => {
     renderEditor(fixturePlay, <Timeline />);
 
-    // 0-1 P1, 1-2 P1->P2 attachments, 2-4 P2: three held segments.
-    expect(within(rowFor('ball')).getAllByTestId(/^possession-/)).toHaveLength(3);
+    // 0-1 is P1's and 2-4 is P2's. The 1-2 between them is a pass: both ends are attached, but
+    // to DIFFERENT players, so the ball is in flight and nothing is held to tint.
+    expect(within(rowFor('ball')).getAllByTestId(/^possession-/)).toHaveLength(2);
+  });
+
+  it('names the flight between two carriers a pass', () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const flights = within(rowFor('ball')).getAllByTestId(/^flight-/);
+
+    expect(flights).toHaveLength(1);
+    expect(flights[0]).toHaveTextContent('Pass');
+  });
+
+  it('names a flight that ends on the court a shot', () => {
+    // The ball is let go towards a point rather than towards a pair of hands.
+    renderEditor(releasedBall, <Timeline />);
+    const flights = within(rowFor('ball')).getAllByTestId(/^flight-/);
+
+    // 1-3 is the shot; 3-4 is the ball travelling from where it landed into P2's hands.
+    expect(flights.map((f) => f.textContent)).toEqual(['Shot', 'Pass']);
+  });
+
+  it('puts no flight label on a stretch the ball is held through', () => {
+    const heldThroughout = withBranch(fixturePlay, ROOT, (b) => ({
+      ...b,
+      tracks: {
+        ...b.tracks,
+        ball: [
+          { t: 0, attachedTo: P1 },
+          { t: 4, attachedTo: P1 },
+        ],
+      },
+    }));
+    renderEditor(heldThroughout, <Timeline />);
+    const ball = within(rowFor('ball'));
+
+    expect(ball.queryAllByTestId(/^flight-/)).toHaveLength(0);
+    expect(ball.getAllByTestId(/^possession-/)).toHaveLength(1);
+  });
+
+  it('keeps a flight label from spilling into its neighbours', () => {
+    // A flight can be a fraction of a second wide. The label has to give way rather than run
+    // over the possession on either side of it.
+    renderEditor(fixturePlay, <Timeline />);
+    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (label === undefined) throw new Error('expected a flight label');
+
+    expect(label.style.overflow).toBe('hidden');
+    expect(label.style.whiteSpace).toBe('nowrap');
+    expect(label.style.textOverflow).toBe('ellipsis');
   });
 
   it('breaks possession where the ball is released, and marks that keyframe hollow', () => {

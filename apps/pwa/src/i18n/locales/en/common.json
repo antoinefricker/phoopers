@@ -66,6 +66,10 @@
       "stepName": "Step name",
       "variantName": "Variant name"
     },
+    "timeline": {
+      "pass": "Pass",
+      "shot": "Shot"
+    },
     "transport": {
       "nextStep": "Next step",
       "pause": "Pause",
