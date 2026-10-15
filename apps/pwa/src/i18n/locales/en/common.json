@@ -1,4 +1,7 @@
 {
+  "app": {
+    "language": "Language"
+  },
   "play": {
     "branches": {
       "label": "Play branches",
@@ -29,6 +32,7 @@
       "deleteBranchTitle": "Delete {{name}}?",
       "dragBall": "Move the ball",
       "dragPlayer": "Move player {{label}}",
+      "editStep": "Edit {{name}}",
       "fork": "Fork",
       "forkCancel": "Cancel",
       "forkCreate": "Create",
@@ -37,6 +41,7 @@
       "forkStep": "Fork from step",
       "forkTitle": "Create a variant",
       "formation": "Starting formation",
+      "hideEntity": "Hide {{name}}",
       "keyframeAt": "Keyframe at {{t}}s",
       "mode": {
         "edit": "Edit",
@@ -53,20 +58,35 @@
       "placeScreenHint": "Click the player being screened on the court.",
       "problems": "Problems (<count>{{count}}</count>)",
       "remove": "Remove",
-      "removePlayer": "Remove player",
+      "removePlayer": "Remove player {{label}}",
       "removePlayerBody": "Player {{label}} will be removed from every branch, together with every screen they are part of.",
       "removePlayerTitle": "Remove player {{label}}?",
       "removeScreen": "Remove screen",
       "removeScreenBody": "The screen set by {{screener}} for {{beneficiary}} will be removed.",
       "removeScreenTitle": "Remove this screen?",
+      "removeStep": "Remove {{name}}",
+      "reorderCancelled": "Left {{name}} where it was.",
+      "reorderEnd_one": "Dropped {{name}} at position {{position}} of {{count}}.",
+      "reorderEnd_other": "Dropped {{name}} at position {{position}} of {{count}}.",
+      "reorderInstructions": "Press space to pick the row up, the arrow keys to move it, space again to drop it, escape to cancel.",
+      "reorderRow": "Reorder {{label}}",
+      "reorderStart_one": "Picked up {{name}}, position {{position}} of {{count}}.",
+      "reorderStart_other": "Picked up {{name}}, position {{position}} of {{count}}.",
       "save": "Save",
       "screenDuration": "Screen duration",
       "selectedPlayer": "Player {{label}}",
+      "showEntity": "Show {{name}}",
       "stepDefault": "Step {{n}}",
+      "stepDuration": "Label duration",
       "stepName": "Step name",
       "variantName": "Variant name"
     },
+    "timeline": {
+      "pass": "Pass",
+      "shot": "Shot"
+    },
     "transport": {
+      "add": "Add",
       "nextStep": "Next step",
       "pause": "Pause",
       "play": "Play",

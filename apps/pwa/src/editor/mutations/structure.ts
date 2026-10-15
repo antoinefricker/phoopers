@@ -69,6 +69,25 @@ export function addScreen(
   }));
 }
 
+/**
+ * Writes a step label's display window, in seconds from the step's own time.
+ *
+ * It caps nothing: the handle that calls it already knows the next step and the play's length,
+ * and `validatePlay` reports a window that overruns either — a state a retime can produce and
+ * no constraint here could prevent. A second rule in this file would only diverge from the
+ * first one.
+ */
+export function setStepDuration(play: Play, stepId: StepId, duration: number): Play {
+  if (!Number.isFinite(duration) || duration <= 0) return play;
+  const owner = play.branches.find((b) => b.steps.some((s) => s.id === stepId));
+  if (owner === undefined) return play;
+
+  return mapBranch(play, owner.id, (b) => ({
+    ...b,
+    steps: b.steps.map((s) => (s.id === stepId ? { ...s, duration } : s)),
+  }));
+}
+
 export function setScreenDuration(play: Play, screenId: ScreenId, duration: number): Play {
   if (!Number.isFinite(duration) || duration <= 0) return play;
 

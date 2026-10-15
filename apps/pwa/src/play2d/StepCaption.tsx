@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import { Text } from '@mantine/core';
 import { usePlaybackContext } from './usePlaybackContext';
-import { stepAt } from './transportMath';
+import { stepLabelAt } from './transportMath';
 
 /**
  * Names the step the playhead has reached, over the court.
@@ -12,7 +12,8 @@ import { stepAt } from './transportMath';
  * unless the name actually changed, which over a play is a handful of times.
  *
  * Nothing is named before the first step — a play can open on movement that belongs to no step
- * yet — so the caption is empty there rather than carrying a placeholder.
+ * yet — nor once a step's display window has closed, so the caption is empty there rather than
+ * carrying a placeholder.
  */
 export function StepCaption() {
   const { timeline, subscribe, currentTimeRef } = usePlaybackContext();
@@ -23,7 +24,7 @@ export function StepCaption() {
     const paint = (t: number) => {
       const node = ref.current;
       if (node === null) return;
-      const name = stepAt(t, timeline.steps)?.name ?? '';
+      const name = stepLabelAt(t, timeline.steps, timeline.duration)?.name ?? '';
       if (node.textContent === name) return;
 
       node.textContent = name;

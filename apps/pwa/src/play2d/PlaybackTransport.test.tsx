@@ -5,7 +5,7 @@ import type { Keyframe, Play, PlayerId, Step, StepId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
-import { adjacentStep, sliderMax, snapToStep, stepAt, stepMarks } from './transportMath';
+import { adjacentStep, sliderMax, snapToGrid, snapToStep, stepAt, stepLabelAt, stepMarks } from './transportMath';
 import { playheadTime } from '../testUtils/transport';
 
 const steps: Step[] = [
@@ -125,6 +125,88 @@ describe('stepAt', () => {
 
   it('survives a non-finite time rather than naming a wrong step', () => {
     expect(stepAt(Number.NaN, steps)).toBeUndefined();
+  });
+});
+
+describe('snapToGrid', () => {
+  it('rounds to the nearest half second', () => {
+    expect(snapToGrid(1.2)).toBe(1);
+    expect(snapToGrid(1.3)).toBe(1.5);
+    expect(snapToGrid(1.7)).toBe(1.5);
+    expect(snapToGrid(1.8)).toBe(2);
+  });
+
+  it('rounds a half-way value up, not to even', () => {
+    // Predictable beats statistically fair: a coach dragging right expects the next cell.
+    expect(snapToGrid(1.25)).toBe(1.5);
+    expect(snapToGrid(1.75)).toBe(2);
+  });
+
+  it('leaves a value already on the grid alone', () => {
+    for (const t of [0, 0.5, 2, 7.5]) expect(snapToGrid(t)).toBe(t);
+  });
+
+  it('gives back a clean multiple, not a float that nearly is', () => {
+    // 0.1 * 3 is 0.30000000000000004; the same trap waits for anything built by multiplying.
+    expect(snapToGrid(6.3)).toBe(6.5);
+    expect(String(snapToGrid(6.3))).toBe('6.5');
+  });
+
+  it('survives a time that is not a number', () => {
+    expect(snapToGrid(Number.NaN)).toBe(0);
+    expect(snapToGrid(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+
+  it('never returns a negative time', () => {
+    expect(snapToGrid(-0.2)).toBe(0);
+  });
+});
+
+describe('stepLabelAt', () => {
+  const screen2: Step = { id: 's1' as StepId, t: 2, name: 'Screen' };
+  const entry4: Step = { id: 's2' as StepId, t: 4, name: 'Entry' };
+
+  it('names nothing before the first step', () => {
+    expect(stepLabelAt(1, [screen2, entry4], 8)).toBeUndefined();
+  });
+
+  it('runs to the next step when the step has no duration', () => {
+    expect(stepLabelAt(3.9, [screen2, entry4], 8)?.name).toBe('Screen');
+    expect(stepLabelAt(4, [screen2, entry4], 8)?.name).toBe('Entry');
+  });
+
+  it('runs to the end of the play for a last step with no duration', () => {
+    expect(stepLabelAt(7.9, [screen2, entry4], 8)?.name).toBe('Entry');
+  });
+
+  it('stops naming a step once its duration is spent', () => {
+    const brief = { ...screen2, duration: 0.5 };
+
+    expect(stepLabelAt(2.4, [brief, entry4], 8)?.name).toBe('Screen');
+    expect(stepLabelAt(2.6, [brief, entry4], 8)).toBeUndefined();
+  });
+
+  it('names the window that starts latest when one overruns another', () => {
+    // A retime can leave this state, and the answer must not depend on the order the steps
+    // happen to sit in the array.
+    const overrunning = { ...screen2, duration: 5 };
+
+    expect(stepLabelAt(4.5, [overrunning, entry4], 8)?.name).toBe('Entry');
+    expect(stepLabelAt(4.5, [entry4, overrunning], 8)?.name).toBe('Entry');
+  });
+
+  it('names one of two steps sharing a time rather than none', () => {
+    // The window is zero-length, so a half-open test would name neither.
+    const tied: Step = { id: 's3' as StepId, t: 2, name: 'Also here' };
+
+    expect(stepLabelAt(2, [screen2, tied], 8)).toBeDefined();
+  });
+
+  it('names nothing for a duration that is not a number', () => {
+    // `validatePlay` reports it, which does not remove it from the play.
+    const broken = { ...screen2, duration: Number.NaN };
+
+    expect(stepLabelAt(3, [broken, entry4], 8)).toBeUndefined();
   });
 });
 
@@ -264,10 +346,10 @@ describe('PlaybackTransport', () => {
     const slider = screen.getByRole('slider');
 
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    expect(slider).toHaveAttribute('aria-valuenow', '0.01');
+    expect(slider).toHaveAttribute('aria-valuenow', '0.5');
 
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    expect(slider).toHaveAttribute('aria-valuenow', '0.02');
+    expect(slider).toHaveAttribute('aria-valuenow', '1');
   });
 
   it('lets arrow keys leave a step instead of snapping back onto it', () => {
@@ -277,7 +359,7 @@ describe('PlaybackTransport', () => {
     click(screen.getByRole('button', { name: 'Next step' }));
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
 
-    expect(slider).toHaveAttribute('aria-valuenow', '2.01');
+    expect(slider).toHaveAttribute('aria-valuenow', '2.5');
   });
 
   it('snaps a pointer scrub near a step onto the exact step time', () => {

@@ -31,14 +31,15 @@ export function PlayCanvas({ halfCourt, playName }: Props) {
       aria-label={t('play.canvas.label', 'Court diagram: {{name}}', { name: playName })}
       viewBox={halfCourt ? halfCourtViewBox(court, attackingSide(timeline)) : fullCourtViewBox(court)}
       // block: an inline svg sits on the text baseline and leaves a descender gap below it.
-      // The max-height keeps the near-square half court from outgrowing the screen.
+      // It fills a panel whose height its container decides, and keeps its own aspect ratio
+      // inside it — a court wider or taller than the drawing shows the floor's colour either
+      // side, which the panel is painted with for exactly that reason.
       // The court is a drawing, not prose: its labels are part of the symbol, so a drag across
       // it must move tokens rather than highlight "1 2 3 4 5 X1 …".
       style={{
         display: 'block',
         width: '100%',
-        height: 'auto',
-        maxHeight: 'calc(100dvh - 12rem)',
+        height: '100%',
         userSelect: 'none',
       }}
     >

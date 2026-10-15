@@ -213,6 +213,24 @@ there is no pass object. Changing the drop gesture is a spec-level decision, not
 **Fix:** either `attachBall` writes a second attachment keyframe to close a hold (at the next
 keyframe time or after a default hold), or the UI asks for a hold duration on drop.
 
+### Removing a step a branch forks from does nothing, visibly nothing
+
+`removeStep` refuses a step a branch forks from, since dropping it would orphan that branch.
+The step's bar now carries its own delete control, so that refusal is one click away rather
+than two inside a popover, and it still says nothing.
+
+Measured in a browser on the sample play: pressing "Remove Entry pass" — the step `Switch to the
+weak side` forks from — leaves both step bars on the ruler, changes no name or window, and
+raises no `role="alert"` notice. Pressing "Remove Double high screen", which nothing forks from,
+removes it.
+
+It was left for the same reason as the two entries around it: having the bar decide would make
+the component re-derive a rule the mutation owns, and two copies of a rule drift.
+
+**Fix:** have `removeStep` in the context report whether it wrote anything, and have the bar
+show a notice or render no delete control for a step a branch forks from — the second being
+better, a control that cannot work is worse than none.
+
 ### "Add step" before the fork does nothing, silently
 
 On a child branch, `addStep` refuses a step earlier than the branch's fork (the same rule that
@@ -308,6 +326,28 @@ timers, and `stateAt` exhaustively by 1a — but no test proves the loop writes 
 transform to the right element.
 
 **Fix:** end-to-end coverage, which waits for Playwright.
+
+### No test reorders a timeline row
+
+The handle, its name, its absence on the ball's row, the ball keeping the head of the list, and
+a cancelled drag leaving the order alone are all covered. The gesture that actually moves a row
+is not.
+
+dnd-kit decides what a move passes by measuring nodes, through layout and a `ResizeObserver`
+that reports. jsdom has neither: every box is zero-high and the suite's observer is an inert
+stub, so the pointer and the keyboard both end up with no neighbour to move past. Measured:
+with per-row `getBoundingClientRect` stubs giving each row a distinct 32px band, and with
+`Element.prototype.scrollIntoView` stubbed — which dnd-kit's keyboard sensor calls and whose
+absence was throwing — the order after a full pick-up, arrow, drop sequence is unchanged.
+
+Both paths were verified by hand in a browser instead: the keyboard moved offense 1 below
+offense 2 and announced "Ligne 1 saisie, position 1 sur 10", and a 64px pointer drag over 32px
+rows moved offense 2 down several places.
+
+It was left because making it testable means simulating the library's measurement — a stub that
+reports sizes it invents — which would test the stub as much as the feature.
+
+**Fix:** Playwright, the same answer as the entry below, which this is a particular case of.
 
 ### Layout is not testable in jsdom
 

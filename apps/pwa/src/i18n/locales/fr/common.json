@@ -1,4 +1,7 @@
 {
+  "app": {
+    "language": "Langue"
+  },
   "play": {
     "branches": {
       "label": "Variantes du schéma",
@@ -29,6 +32,7 @@
       "deleteBranchTitle": "Supprimer {{name}} ?",
       "dragBall": "Déplacer le ballon",
       "dragPlayer": "Déplacer le joueur {{label}}",
+      "editStep": "Modifier {{name}}",
       "fork": "Dupliquer",
       "forkCancel": "Annuler",
       "forkCreate": "Créer",
@@ -37,6 +41,7 @@
       "forkStep": "Diverger à partir de l'étape",
       "forkTitle": "Créer une variante",
       "formation": "Placement de départ",
+      "hideEntity": "Masquer {{name}}",
       "keyframeAt": "Position à {{t}} s",
       "mode": {
         "edit": "Éditer",
@@ -53,20 +58,39 @@
       "placeScreenHint": "Cliquez sur le joueur qui bénéficie de l'écran, sur le terrain.",
       "problems": "Problèmes (<count>{{count}}</count>)",
       "remove": "Supprimer",
-      "removePlayer": "Supprimer le joueur",
+      "removePlayer": "Supprimer le joueur {{label}}",
       "removePlayerBody": "Le joueur {{label}} sera supprimé de toutes les branches, ainsi que tous les écrans dont il fait partie.",
       "removePlayerTitle": "Supprimer le joueur {{label}} ?",
       "removeScreen": "Supprimer l'écran",
       "removeScreenBody": "L'écran posé par {{screener}} pour {{beneficiary}} sera supprimé.",
       "removeScreenTitle": "Supprimer cet écran ?",
+      "removeStep": "Supprimer {{name}}",
+      "reorderCancelled": "Ligne {{name}} laissée où elle était.",
+      "reorderEnd": "Ligne {{name}} déposée en position {{position}} sur {{count}}.",
+      "reorderEnd_one": "",
+      "reorderEnd_many": "",
+      "reorderEnd_other": "",
+      "reorderInstructions": "Appuyez sur espace pour saisir la ligne, les flèches pour la déplacer, espace à nouveau pour la déposer, échap pour annuler.",
+      "reorderRow": "Réordonner {{label}}",
+      "reorderStart": "Ligne {{name}} saisie, position {{position}} sur {{count}}.",
+      "reorderStart_one": "",
+      "reorderStart_many": "",
+      "reorderStart_other": "",
       "save": "Enregistrer",
       "screenDuration": "Durée de l'écran",
       "selectedPlayer": "Joueur {{label}}",
+      "showEntity": "Afficher {{name}}",
       "stepDefault": "Étape {{n}}",
+      "stepDuration": "Durée du label",
       "stepName": "Nom de l'étape",
       "variantName": "Nom de la variante"
     },
+    "timeline": {
+      "pass": "Passe",
+      "shot": "Tir"
+    },
     "transport": {
+      "add": "Ajouter",
       "nextStep": "Étape suivante",
       "pause": "Pause",
       "play": "Lecture",

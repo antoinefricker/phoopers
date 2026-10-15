@@ -1,11 +1,16 @@
-import { Box, CloseButton } from '@mantine/core';
+import { ActionIcon, Box, CloseButton } from '@mantine/core';
 import { useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { IconEye, IconEyeOff, IconGripVertical, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import type { EntityId, ScreenEvent, ScreenId } from '../engine';
+import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
+import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
+import { useSortable } from '@dnd-kit/sortable';
 import { ConfirmDelete } from './ConfirmDelete';
+import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
 import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
-import { GUTTER_WIDTH } from '../play2d/transportMath';
+import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
@@ -29,7 +34,9 @@ interface Props {
 const percent = (t: number, duration: number) => `${fractionOf(t, duration) * 100}%`;
 
 // A screen shorter than this cannot be grabbed, and `setScreenDuration` refuses a non-positive one.
-export const MIN_SCREEN_DURATION = 0.1;
+// One grid cell: every authored time falls on the grid, so the shortest screen is the distance
+// between two of them.
+export const MIN_SCREEN_DURATION = TIME_GRID_S;
 // A drop within this fraction of the play's length of a step snaps to it.
 const SNAP_FRACTION = 0.02;
 
@@ -54,8 +61,27 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
     count: 0,
   });
   const labelOf = (id: string) => timeline.players.find((p) => p.id === id)?.label ?? id;
+  const { hidden, toggleHidden } = useHiddenEntitiesContext();
+  const { removePlayer, selection: editorSelection, select } = useEditorContext();
+  // The dialog stays mounted for Mantine's exit transition, and `count` re-keys it per open,
+  // the same shape the screen removal above uses.
+  const [removingPlayer, setRemovingPlayer] = useState<{ opened: boolean; count: number }>({
+    opened: false,
+    count: 0,
+  });
   const removingScreen = screens.find((s) => s.id === removing.target);
   const isBall = row.team === 'ball';
+  // The ball is not sortable: it leads the list and is not a player. `disabled` keeps the row
+  // in the layout and out of the reordering, the way its delete control is rendered hidden.
+  const {
+    attributes: sortableAttributes,
+    listeners: sortableListeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: row.entityId, disabled: isBall });
   // The gutter draws the same token the court does rather than restating it as text, so a row
   // is recognised by the symbol the coach already reads on the floor. The badge carries the
   // name a screen reader needs, which the bare number never did — both teams used to read "2".
@@ -66,18 +92,85 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
       : t('play.editor.defenseRow', 'Defense {{label}}', { label: row.label });
 
   return (
-    <Box data-testid={`timeline-row-${row.entityId}`} style={{ display: 'flex', alignItems: 'center', height: '2rem' }}>
+    <Box
+      data-testid={`timeline-row-${row.entityId}`}
+      ref={setNodeRef}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        height: '2rem',
+        // Written by dnd-kit while a row is in flight, undefined at rest. Only y is used: the
+        // drag is restricted to the vertical axis, so `@dnd-kit/utilities` would be a fourth
+        // package to turn one number into one string.
+        transform: transform === null ? undefined : `translate3d(0, ${transform.y}px, 0)`,
+        transition: transition ?? undefined,
+        // Lifted over its neighbours while dragged, or the rows below paint across it.
+        zIndex: isDragging ? 20 : undefined,
+        position: isDragging ? 'relative' : undefined,
+      }}
+    >
       <Box w={GUTTER_WIDTH} style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-        {isBall ? (
-          <BallSymbolBadge sizePx={ROW_SYMBOL_PX} name={rowName} />
-        ) : (
-          <PlayerSymbolBadge
-            team={row.team === 'defense' ? 'defense' : 'offense'}
-            label={row.label}
-            sizePx={ROW_SYMBOL_PX}
-            name={rowName}
-          />
+        {/* Leads the gutter, where a hand reaches to pick a row up. The listeners go on the
+            handle alone rather than the row, so a drag starts here and nowhere else — the rest
+            of the row is markers to grab and controls to press. */}
+        {!isBall && (
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            ref={setActivatorNodeRef}
+            aria-label={t('play.editor.reorderRow', 'Reorder {{label}}', { label: row.label })}
+            style={{ cursor: 'grab', touchAction: 'none' }}
+            {...sortableAttributes}
+            {...sortableListeners}
+          >
+            <IconGripVertical size={14} stroke={1.5} />
+          </ActionIcon>
         )}
+        <Box style={{ flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }}>
+          {isBall ? (
+            <BallSymbolBadge sizePx={ROW_SYMBOL_PX} name={rowName} />
+          ) : (
+            <PlayerSymbolBadge
+              team={row.team === 'defense' ? 'defense' : 'offense'}
+              label={row.label}
+              sizePx={ROW_SYMBOL_PX}
+              name={rowName}
+            />
+          )}
+        </Box>
+        {/* The name goes in the label, not just "Hide": eleven rows would otherwise offer a
+            voice-control user eleven identical buttons. `aria-pressed` carries the state, which
+            the icon alone shows only to those who can see it. */}
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="sm"
+          ml={4}
+          aria-pressed={hidden.has(row.entityId)}
+          aria-label={
+            hidden.has(row.entityId)
+              ? t('play.editor.showEntity', 'Show {{name}}', { name: rowName })
+              : t('play.editor.hideEntity', 'Hide {{name}}', { name: rowName })
+          }
+          onClick={() => toggleHidden(row.entityId)}
+        >
+          {hidden.has(row.entityId) ? <IconEyeOff size={14} stroke={1.5} /> : <IconEye size={14} stroke={1.5} />}
+        </ActionIcon>
+        {/* On a player's row only: the ball has no player to remove. Named after the player,
+            or eleven rows would offer a voice-control user eleven identical buttons. */}
+
+        <ActionIcon
+          variant="subtle"
+          color="red"
+          size="sm"
+          mr={4}
+          aria-label={t('play.editor.removePlayer', 'Remove player {{label}}', { label: row.label })}
+          onClick={() => setRemovingPlayer((r) => ({ opened: true, count: r.count + 1 }))}
+          style={{ visibility: isBall ? 'hidden' : 'visible' }}
+        >
+          <IconTrash size={14} stroke={1.5} />
+        </ActionIcon>
       </Box>
       {/* Inset so a marker sitting at t=0 or t=duration fits inside the track: it is a rotated
           square, so it reaches half its DIAGONAL past its time. Without this the last marker
@@ -105,90 +198,116 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           }}
         />
         {screens.map((screen) => (
-          <Box
+          <TimelineBar
             key={screen.id}
-            data-testid={`screen-bar-${screen.id}`}
-            data-inherited={ownScreenIds.has(screen.id) ? undefined : 'true'}
-            style={{
-              position: 'absolute',
-              top: '20%',
-              height: '60%',
-              left: percent(screen.t, duration),
-              width: `${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`,
-              background: 'var(--mantine-color-grape-light)',
-              borderRadius: 2,
-              pointerEvents: 'none',
-            }}
+            testId={`screen-bar-${screen.id}`}
+            inherited={!ownScreenIds.has(screen.id)}
+            leftPercent={percent(screen.t, duration)}
+            widthPercent={`${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`}
+            background="var(--mantine-color-grape-light)"
+            handle={
+              ownScreenIds.has(screen.id)
+                ? {
+                    testId: `screen-handle-${screen.id}`,
+                    label: t('play.editor.screenDuration', 'Screen duration'),
+                    bind: bind({
+                      current: screen.t + screen.duration,
+                      // The edge cannot go left of the screen's own start: it floors at a minimum duration.
+                      resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
+                      place: (element, end) => {
+                        const bar = element.parentElement;
+                        if (bar !== null) {
+                          bar.style.width = `${(fractionOf(end, duration) - fractionOf(screen.t, duration)) * 100}%`;
+                        }
+                      },
+                      restore: (element) => {
+                        const bar = element.parentElement;
+                        if (bar !== null) {
+                          bar.style.width = `${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`;
+                        }
+                      },
+                      commit: (end) => setScreenDuration(screen.id, end - screen.t),
+                    }),
+                  }
+                : undefined
+            }
           >
             {ownScreenIds.has(screen.id) ? (
-              <>
-                {/* A button, not a div: the handle is reachable by keyboard, and the arrow keys
-                    retime it through the same constraint the drag uses. */}
-                <button
-                  type="button"
-                  data-testid={`screen-handle-${screen.id}`}
-                  aria-label={t('play.editor.screenDuration', 'Screen duration')}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    bottom: 0,
-                    right: -3,
-                    width: 6,
-                    padding: 0,
-                    border: 0,
-                    cursor: 'ew-resize',
-                    touchAction: 'none',
-                    pointerEvents: 'auto',
-                    background: 'var(--mantine-color-grape-filled)',
-                  }}
-                  {...bind({
-                    current: screen.t + screen.duration,
-                    // The edge cannot go left of the screen's own start: it floors at a minimum duration.
-                    resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
-                    place: (element, end) => {
-                      const bar = element.parentElement;
-                      if (bar !== null) {
-                        bar.style.width = `${(fractionOf(end, duration) - fractionOf(screen.t, duration)) * 100}%`;
-                      }
-                    },
-                    restore: (element) => {
-                      const bar = element.parentElement;
-                      if (bar !== null) {
-                        bar.style.width = `${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`;
-                      }
-                    },
-                    commit: (end) => setScreenDuration(screen.id, end - screen.t),
-                  })}
-                />
-                <CloseButton
-                  size="xs"
-                  data-testid={`screen-remove-${screen.id}`}
-                  aria-label={t('play.editor.removeScreen', 'Remove screen')}
-                  onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
-                  style={{ position: 'absolute', top: 0, bottom: 0, left: 0, height: 'auto', pointerEvents: 'auto' }}
-                />
-              </>
+              <CloseButton
+                size="xs"
+                data-testid={`screen-remove-${screen.id}`}
+                aria-label={t('play.editor.removeScreen', 'Remove screen')}
+                onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
+                style={{ position: 'absolute', top: 0, bottom: 0, left: 0, height: 'auto', pointerEvents: 'auto' }}
+              />
             ) : null}
-          </Box>
+          </TimelineBar>
         ))}
         {isBall &&
           row.keyframes.map((k, index) => {
             const next = row.keyframes[index + 1];
-            if (next === undefined || k.attachedTo === undefined || next.attachedTo === undefined) return null;
+            if (next === undefined) return null;
+
+            const geometry: CSSProperties = {
+              position: 'absolute',
+              top: '25%',
+              height: '50%',
+              left: percent(k.t, duration),
+              width: `${(fractionOf(next.t, duration) - fractionOf(k.t, duration)) * 100}%`,
+            };
+
+            // Held, and by the same player at both ends: a pass has two attached ends too, but
+            // to different players, and the ball is in the air between them with nothing to
+            // tint. Tinting it read as possession and contradicted the row's own hollow marker.
+            if (k.attachedTo !== undefined && k.attachedTo === next.attachedTo) {
+              return (
+                <Box
+                  key={`${k.t}-possession`}
+                  data-testid={`possession-${k.t}`}
+                  style={{ ...geometry, background: 'var(--mantine-color-orange-light)' }}
+                />
+              );
+            }
+
+            // Everything else on the ball's row is the ball travelling. Landing in a pair of
+            // hands makes it a pass; leaving one for a point on the court makes it a shot. A
+            // stretch that is loose at BOTH ends — a bounce, a roll, two authored positions —
+            // was shot by nobody, so it carries no name rather than claiming a shot no one took.
+            const name =
+              next.attachedTo !== undefined
+                ? t('play.timeline.pass', 'Pass')
+                : k.attachedTo === undefined
+                  ? undefined
+                  : t('play.timeline.shot', 'Shot');
+            if (name === undefined) return null;
 
             return (
               <Box
-                key={`${k.t}-possession`}
-                data-testid={`possession-${k.t}`}
+                key={`${k.t}-flight`}
+                data-testid={`flight-${k.t}`}
                 style={{
-                  position: 'absolute',
-                  top: '25%',
-                  height: '50%',
-                  left: percent(k.t, duration),
-                  width: `${(fractionOf(next.t, duration) - fractionOf(k.t, duration)) * 100}%`,
-                  background: 'var(--mantine-color-orange-light)',
+                  ...geometry,
+                  // Anchored to the marker that opens the flight rather than centred on it,
+                  // and lifted clear of the tinted stretches so the word reads above the row's
+                  // own line instead of level with it. The horizontal nudge is padding, not
+                  // part of the transform: moving the BOX pushed the last flight's label past
+                  // the end of the track, which grew the panel a horizontal scrollbar.
+                  transform: 'translateY(-7px)',
+                  paddingLeft: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  fontSize: 'var(--mantine-font-size-xs)',
+                  color: 'var(--mantine-color-dimmed)',
+                  // A flight can be a fraction of a second wide, so the label gives way rather
+                  // than running over the possession on either side of it.
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
                 }}
-              />
+              >
+                {name}
+              </Box>
             );
           })}
         {row.keyframes.map((k, index) => {
@@ -272,6 +391,27 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           );
         })}
       </Box>
+      {!isBall && (
+        <ConfirmDelete
+          key={`player-${removingPlayer.count}`}
+          opened={removingPlayer.opened}
+          title={t('play.editor.removePlayerTitle', 'Remove player {{label}}?', { label: row.label })}
+          body={t(
+            'play.editor.removePlayerBody',
+            'Player {{label}} will be removed from every branch, together with every screen they are part of.',
+            { label: row.label },
+          )}
+          confirmLabel={t('play.editor.remove', 'Remove')}
+          onConfirm={() => {
+            // A selection pointing at this player would outlive it, so it goes too. One
+            // pointing at anyone else is none of this row's business.
+            if (editorSelection?.entityId === row.entityId) select(null);
+            removePlayer(row.entityId as PlayerId);
+            setRemovingPlayer((r) => ({ ...r, opened: false }));
+          }}
+          onClose={() => setRemovingPlayer((r) => ({ ...r, opened: false }))}
+        />
+      )}
       <ConfirmDelete
         key={removing.count}
         opened={removing.opened}

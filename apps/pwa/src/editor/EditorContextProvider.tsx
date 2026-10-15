@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import type { BranchId, Play, PlayId, PlayerId, ScreenId, StepId } from '../engine';
-import { validatePlay } from '../engine';
+import { COURT_DIMENSIONS, validatePlay } from '../engine';
 import * as mutations from './mutations';
 import { EditorContext, type EditorContextValue, type Selection } from './useEditorContext';
 
@@ -44,6 +44,9 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
   const removePlayer = useCallback<EditorContextValue['removePlayer']>((playerId) => {
     setPlay((current) => mutations.removePlayer(current, playerId));
   }, []);
+  const movePlayer = useCallback<EditorContextValue['movePlayer']>((playerId, toIndex) => {
+    setPlay((current) => mutations.movePlayer(current, playerId, toIndex));
+  }, []);
   const setKeyframe = useCallback<EditorContextValue['setKeyframe']>((branchId, entityId, t, position) => {
     setPlay((current) => mutations.setKeyframe(current, branchId, entityId, t, position));
   }, []);
@@ -77,6 +80,9 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
   const setScreenDuration = useCallback<EditorContextValue['setScreenDuration']>((screenId, duration) => {
     setPlay((current) => mutations.setScreenDuration(current, screenId, duration));
   }, []);
+  const setStepDuration = useCallback<EditorContextValue['setStepDuration']>((stepId, duration) => {
+    setPlay((current) => mutations.setStepDuration(current, stepId, duration));
+  }, []);
   const removeScreen = useCallback<EditorContextValue['removeScreen']>((screenId) => {
     setPlay((current) => mutations.removeScreen(current, screenId));
   }, []);
@@ -103,16 +109,25 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
   const newPlay = useCallback<EditorContextValue['newPlay']>(
     (name) => {
       const rootBranchId = newId<BranchId>();
-      setPlay((current) => ({
-        id: newId<PlayId>(),
-        name,
-        court: current.court,
-        players: [],
-        rootBranchId,
-        branches: [
-          { id: rootBranchId, parentId: null, forkStepId: null, name, tracks: { ball: [] }, steps: [], screens: [] },
-        ],
-      }));
+      setPlay((current) => {
+        // The ball starts on the centre circle rather than on an empty floor: it is the one
+        // thing every play has, and a court with nothing on it gives a coach nothing to drag.
+        // It is loose, there being no one yet to hold it, and taken from the play's own court
+        // so it is not off-centre on an NBA floor.
+        const { length, width } = COURT_DIMENSIONS[current.court];
+        const ball = [{ t: 0, position: { x: length / 2, y: width / 2 } }];
+
+        return {
+          id: newId<PlayId>(),
+          name,
+          court: current.court,
+          players: [],
+          rootBranchId,
+          branches: [
+            { id: rootBranchId, parentId: null, forkStepId: null, name, tracks: { ball }, steps: [], screens: [] },
+          ],
+        };
+      });
       select(null);
     },
     [select],
@@ -131,6 +146,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       addPlayer,
       applyFormation,
       removePlayer,
+      movePlayer,
       setKeyframe,
       attachBall,
       releaseBall,
@@ -142,6 +158,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       removeStep,
       addScreen,
       setScreenDuration,
+      setStepDuration,
       removeScreen,
       forkBranch,
       removeBranch,
@@ -158,6 +175,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       addPlayer,
       applyFormation,
       removePlayer,
+      movePlayer,
       setKeyframe,
       attachBall,
       releaseBall,
@@ -169,6 +187,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       removeStep,
       addScreen,
       setScreenDuration,
+      setStepDuration,
       removeScreen,
       forkBranch,
       removeBranch,

@@ -9,7 +9,12 @@ import { Timeline } from './Timeline';
 import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
 
 const rowFor = (entityId: string) => screen.getByTestId(`timeline-row-${entityId}`);
-const markersIn = (entityId: string) => within(rowFor(entityId)).getAllByRole('button');
+// Scoped to the track, not the whole row: the row's gutter carries the control that hides the
+// entity from the court, which is a button too.
+const markersIn = (entityId: string) => within(screen.getByTestId(`timeline-track-${entityId}`)).getAllByRole('button');
+/** The same, for a row that may legitimately hold none. */
+const markerCountIn = (entityId: string) =>
+  within(screen.getByTestId(`timeline-track-${entityId}`)).queryAllByRole('button').length;
 
 const withBranch = (
   play: Play,
@@ -60,7 +65,9 @@ describe('Timeline', () => {
     renderEditor(sparse, <Timeline />);
 
     expect(rowFor(P1)).toBeInTheDocument();
-    expect(within(rowFor(P1)).queryAllByRole('button')).toHaveLength(0);
+    // Empty of markers, not of controls: the gutter still carries the one that hides the
+    // player from the court, which is what makes an empty row worth keeping on screen.
+    expect(markerCountIn(P1)).toBe(0);
   });
 
   it('places a marker at its fraction of the duration', () => {
@@ -153,11 +160,110 @@ describe('Timeline', () => {
     expect(trackOf(readProbe().play, ROOT, 'ball')).toHaveLength(0);
   });
 
-  it('tints possession between consecutive attachment keyframes', () => {
+  it('tints only what one player actually holds, not the pass between two of them', () => {
     renderEditor(fixturePlay, <Timeline />);
 
-    // 0-1 P1, 1-2 P1->P2 attachments, 2-4 P2: three held segments.
-    expect(within(rowFor('ball')).getAllByTestId(/^possession-/)).toHaveLength(3);
+    // 0-1 is P1's and 2-4 is P2's. The 1-2 between them is a pass: both ends are attached, but
+    // to DIFFERENT players, so the ball is in flight and nothing is held to tint.
+    expect(within(rowFor('ball')).getAllByTestId(/^possession-/)).toHaveLength(2);
+  });
+
+  it('names the flight between two carriers a pass', () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const flights = within(rowFor('ball')).getAllByTestId(/^flight-/);
+
+    expect(flights).toHaveLength(1);
+    expect(flights[0]).toHaveTextContent('Pass');
+  });
+
+  it('names a flight that ends on the court a shot', () => {
+    // The ball is let go towards a point rather than towards a pair of hands.
+    renderEditor(releasedBall, <Timeline />);
+    const flights = within(rowFor('ball')).getAllByTestId(/^flight-/);
+
+    // 1-3 is the shot; 3-4 is the ball travelling from where it landed into P2's hands.
+    expect(flights.map((f) => f.textContent)).toEqual(['Shot', 'Pass']);
+  });
+
+  it('names no shot when the ball was already loose', () => {
+    // A shot is the ball leaving someone's hands. A stretch between two points on the court —
+    // a bounce, a roll, two authored positions — was sent by nobody, so naming it a shot said
+    // something untrue about who did what.
+    const looseThroughout = withBranch(fixturePlay, ROOT, (b) => ({
+      ...b,
+      tracks: {
+        ...b.tracks,
+        ball: [
+          { t: 0, position: { x: 2, y: 2 } },
+          { t: 2, position: { x: 6, y: 4 } },
+          { t: 4, position: { x: 9, y: 6 } },
+        ],
+      },
+    }));
+    renderEditor(looseThroughout, <Timeline />);
+
+    expect(within(rowFor('ball')).queryAllByTestId(/^flight-/)).toHaveLength(0);
+  });
+
+  it('still names a shot that left a pair of hands', () => {
+    const shot = withBranch(fixturePlay, ROOT, (b) => ({
+      ...b,
+      tracks: {
+        ...b.tracks,
+        ball: [
+          { t: 0, attachedTo: P1 },
+          { t: 2, attachedTo: P1 },
+          { t: 4, position: { x: 9, y: 6 } },
+        ],
+      },
+    }));
+    renderEditor(shot, <Timeline />);
+    const flights = within(rowFor('ball')).getAllByTestId(/^flight-/);
+
+    expect(flights.map((f) => f.textContent)).toEqual(['Shot']);
+  });
+
+  it('puts no flight label on a stretch the ball is held through', () => {
+    const heldThroughout = withBranch(fixturePlay, ROOT, (b) => ({
+      ...b,
+      tracks: {
+        ...b.tracks,
+        ball: [
+          { t: 0, attachedTo: P1 },
+          { t: 4, attachedTo: P1 },
+        ],
+      },
+    }));
+    renderEditor(heldThroughout, <Timeline />);
+    const ball = within(rowFor('ball'));
+
+    expect(ball.queryAllByTestId(/^flight-/)).toHaveLength(0);
+    expect(ball.getAllByTestId(/^possession-/)).toHaveLength(1);
+  });
+
+  it('offsets a flight label inside its own box, so the last one cannot leave the track', () => {
+    // The label is nudged clear of the marker that opens the flight. Done with a transform it
+    // moved the BOX, and the last flight ends at the end of the track: measured in a browser,
+    // its label sat 6px past the panel and grew a horizontal scrollbar. Padding moves the text
+    // within a box that still ends where the track does.
+    renderEditor(fixturePlay, <Timeline />);
+    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (label === undefined) throw new Error('expected a flight label');
+
+    expect(label.style.paddingLeft).not.toBe('');
+    expect(label.style.transform).not.toContain('translate(');
+  });
+
+  it('keeps a flight label from spilling into its neighbours', () => {
+    // A flight can be a fraction of a second wide. The label has to give way rather than run
+    // over the possession on either side of it.
+    renderEditor(fixturePlay, <Timeline />);
+    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (label === undefined) throw new Error('expected a flight label');
+
+    expect(label.style.overflow).toBe('hidden');
+    expect(label.style.whiteSpace).toBe('nowrap');
+    expect(label.style.textOverflow).toBe('ellipsis');
   });
 
   it('breaks possession where the ball is released, and marks that keyframe hollow', () => {
@@ -228,7 +334,8 @@ describe('retiming', () => {
     await dragElement(secondMarker(P1));
 
     // clientX 120 of a 200px row across a 4s play.
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
+    // 120 / 200 * 4 = 2.4s, which the grid rounds to the nearest half second.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.5, 4]);
   });
 
   it('never lets a keyframe cross its neighbour', async () => {
@@ -277,8 +384,10 @@ describe('retiming', () => {
     expect(JSON.stringify(readProbe().play)).toBe(before);
   });
 
-  it('nudges the focused keyframe with the arrow keys, finely with shift', async () => {
+  it('nudges the focused keyframe by one grid cell per arrow press', async () => {
     // No layout is needed: a nudge counts from the keyframe's own time, not from the pointer.
+    // Shift once meant a finer step; every authored time is on the grid now, so it means the
+    // same one — a press either moves a cell or does nothing.
     renderLive(fixturePlay);
     const user = userEvent.setup();
     const second = secondMarker(P1);
@@ -290,7 +399,7 @@ describe('retiming', () => {
     // The same element is still focused: the marker is keyed by position, so retiming it does
     // not remount it and a second press lands on the keyframe the first one moved.
     await user.keyboard('{Shift>}{ArrowLeft}{/Shift}');
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2, 4]);
   });
 
   it('stops a nudged keyframe at its neighbour instead of crossing it', async () => {
@@ -355,7 +464,7 @@ describe('retiming', () => {
     // The keyframe being dragged is the selected one, so selecting must follow it to its new time.
     await dragElement(secondMarker(P1));
 
-    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2.4 });
+    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2.5 });
   });
 });
 
@@ -376,20 +485,23 @@ describe('drag feel', () => {
   }));
 
   it('moves by the pointer delta, not its absolute position, when grabbed off-centre', async () => {
-    // Marker centre at 20px; pressed at 25px (5px right of centre), released at 120px. The marker
-    // lands where its centre would be: (120 - 5) / 200 * 4 = 2.3s, not 120 / 200 * 4 = 2.4s.
+    // Marker centre at 20px; pressed at 50px (30px right of centre), released at 150px. The
+    // marker lands where its CENTRE would be: (150 - 30) / 200 * 4 = 2.4s, which the grid
+    // rounds to 2.5 — not 150 / 200 * 4 = 3s, which the grid would leave at 3.
+    // The grab has to be wider than half a grid cell, or both readings round to the same
+    // answer and the case stops telling them apart.
     withRowWidth(200, 20);
     renderEditor(fixturePlay, <Timeline />);
     const user = userEvent.setup();
 
     await user.pointer([
-      { keys: '[MouseLeft>]', target: secondMarker(P1), coords: { clientX: 25, clientY: 0 } },
-      { target: secondMarker(P1), coords: { clientX: 80, clientY: 0 } },
-      { target: secondMarker(P1), coords: { clientX: 120, clientY: 0 } },
+      { keys: '[MouseLeft>]', target: secondMarker(P1), coords: { clientX: 50, clientY: 0 } },
+      { target: secondMarker(P1), coords: { clientX: 100, clientY: 0 } },
+      { target: secondMarker(P1), coords: { clientX: 150, clientY: 0 } },
       { keys: '[/MouseLeft]', target: secondMarker(P1) },
     ]);
 
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.3, 4]);
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.5, 4]);
   });
 
   it('treats a twitch under the slop as a click, not a retime', async () => {
@@ -423,7 +535,9 @@ describe('drag feel', () => {
     ]);
 
     // 4px of 200px across 4s.
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0.08, 2, 4]);
+    // 4px past the slop is 0.08s, which the grid rounds back to zero — the drag still
+    // demonstrably acted, the marker having been placed and committed.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2, 4]);
   });
 });
 
@@ -474,7 +588,7 @@ describe('inherited markers', () => {
     await dragElement(own);
 
     // Released at 2.4s, inside the branch's bounds (floor 2).
-    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([2.4]);
+    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([2.5]);
   });
 });
 
@@ -499,8 +613,8 @@ describe('screen bars', () => {
 
     await dragElement(within(rowFor(P2)).getByTestId(`screen-handle-${SCREEN_1}`));
 
-    // clientX 120 of 200px is 2.4s; the screen starts at 2s.
-    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.4, 6);
+    // clientX 120 of 200px is 2.4s, which the grid rounds to 2.5; the screen starts at 2s.
+    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.5, 6);
   });
 
   it('shows an ancestor screen on a descendant branch without a handle or a remove control', async () => {
@@ -526,9 +640,9 @@ describe('screen bars', () => {
 
     await dragElement(within(rowFor(P2)).getByTestId(`screen-handle-${SCREEN_1}`));
 
-    // No layout: the drop maps to t=0, before the screen starts. It floors, rather than being
-    // refused (which would leave 1), so the drag demonstrably acted.
-    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.1, 6);
+    // No layout: the drop maps to t=0, before the screen starts. It floors at one grid cell,
+    // rather than being refused (which would leave 1), so the drag demonstrably acted.
+    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.5, 6);
   });
 });
 

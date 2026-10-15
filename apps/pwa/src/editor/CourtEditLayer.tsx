@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { EntityId, PlayerId } from '../engine';
 import { stateAt } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
+import { snapToGrid } from '../play2d/transportMath';
 import { forkTimeOf } from './mutations';
 import { DRAG_SLOP_PX } from './useTimeDrag';
 import { courtPointFromEvent, dropTargetAt } from './pointer';
@@ -71,7 +72,7 @@ export function CourtEditLayer() {
     // The mutation owns the rules (no self-screen, no unknown player, nothing before the fork).
     if (placingScreen) {
       if (selection !== null && selection.entityId !== 'ball' && entityId !== 'ball') {
-        addScreen(branchId, currentTimeRef.current, selection.entityId as PlayerId, entityId as PlayerId);
+        addScreen(branchId, snapToGrid(currentTimeRef.current), selection.entityId as PlayerId, entityId as PlayerId);
       }
       setPlacingScreen(false);
       return;
@@ -109,12 +110,15 @@ export function CourtEditLayer() {
     hideGhost();
     if (drag === null || !drag.moved) return;
 
-    const time = currentTimeRef.current;
+    // The clock is continuous while a play runs, so a keyframe dropped mid-playback would sit
+    // between two cells. The drop target is still read at the TRUE time: the ball lands on the
+    // player it was actually dropped on, not on whoever is nearest half a second away.
+    const time = snapToGrid(currentTimeRef.current);
     const point = pointOf(event);
 
     if (drag.entityId === 'ball') {
       // Two outcomes: onto a player it is attached to them, onto open court it is released.
-      const target = dropTargetAt(timeline, time, point, BALL_SNAP_RADIUS);
+      const target = dropTargetAt(timeline, currentTimeRef.current, point, BALL_SNAP_RADIUS);
       if (target === null) releaseBall(branchId, time, point);
       else attachBall(branchId, time, target);
       return;

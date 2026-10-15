@@ -3,6 +3,25 @@ import type { Step } from '../engine';
 // Two times closer than this count as equidistant, so float noise cannot decide a tie.
 const TIE_EPSILON = 1e-9;
 // A step counts as "behind" or "ahead" only if it is clear of the current time by this much.
+/**
+ * The grid every authored time falls on, in seconds. A play is read by people, and a keyframe
+ * at 2.37s says nothing a keyframe at 2.5s does not.
+ */
+export const TIME_GRID_S = 0.5;
+
+/**
+ * Rounds a time to the nearest grid cell, never below zero.
+ *
+ * The multiply-then-divide keeps the result a clean multiple: adding 0.5 repeatedly, or
+ * multiplying a float by a float, drifts into values like 6.300000000000001 that print and
+ * compare badly. A time that is not a number becomes 0, there being no cell for it.
+ */
+export function snapToGrid(t: number): number {
+  if (!Number.isFinite(t)) return 0;
+
+  return Math.max(0, Math.round(t / TIME_GRID_S) * TIME_GRID_S);
+}
+
 const STEP_EPSILON = 1e-6;
 
 // Snaps t to the nearest step time within the threshold. When two steps are equidistant the
@@ -11,7 +30,7 @@ const STEP_EPSILON = 1e-6;
 // The three surfaces that share one time axis — the transport's scrubber, the step ruler and
 // the keyframe tracks — lay out against these. The gutter holds the row labels on the timeline
 // and the playback buttons on the transport, so both axes start at the same x.
-export const GUTTER_WIDTH = '7rem';
+export const GUTTER_WIDTH = '160px';
 
 // Room kept at each end of every axis: half the width of a keyframe marker, which is centred
 // on its time and so reaches that far past it. Without it the last marker overflows and the
@@ -65,6 +84,38 @@ export function stepAt(t: number, steps: readonly Step[]): Step | undefined {
   }
 
   return reached;
+}
+
+/**
+ * The step whose name is showing at `t`, or undefined when none is.
+ *
+ * A step's window is `[t, t + duration]`, or `[t, the next step's t]` with no duration, or
+ * `[t, playDuration]` for a last step with none. Windows cannot overlap by construction — the
+ * editor's handle stops at the next step — but a retime can leave one overrunning, so the
+ * window starting latest at or before `t` wins; the answer never depends on array order.
+ *
+ * A duration that is not a positive number gives no window at all. `validatePlay` reports it,
+ * which does not remove it from the play, and showing a name for ever would be worse.
+ */
+export function stepLabelAt(t: number, steps: readonly Step[], playDuration: number): Step | undefined {
+  if (!Number.isFinite(t)) return undefined;
+
+  const ordered = [...steps].sort((a, b) => a.t - b.t);
+  let showing: Step | undefined;
+  ordered.forEach((step, index) => {
+    if (step.t > t) return;
+    const implicit = ordered[index + 1]?.t ?? playDuration;
+    const end =
+      step.duration === undefined
+        ? implicit
+        : Number.isFinite(step.duration) && step.duration > 0
+          ? step.t + step.duration
+          : step.t;
+    // Inclusive at the end so two steps sharing a time still name something.
+    if (t <= end) showing = step;
+  });
+
+  return showing;
 }
 
 // One mark per distinct time: steps sharing a time would otherwise stack identical ticks and

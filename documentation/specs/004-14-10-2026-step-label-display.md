@@ -1,0 +1,94 @@
+# 004 — Step label display
+
+How long a step's name stays on screen, and the timeline control that sets it.
+
+## Why
+
+A step is an instant: a named moment a play passes through. Its name is shown twice — on the
+timeline's ruler, and in the caption over the court — and in both places it appears when the
+playhead reaches the step and stays until the next one. A coach has no say in that. A name
+worth reading for two seconds and one worth reading for eight get the same treatment, and the
+last step's name stays on the court for the rest of the play.
+
+This gives the name a display window the coach sets, and puts that window on the timeline as
+a bar, where a screen's duration already lives.
+
+## What a step is
+
+```ts
+interface Step {
+  id: StepId;
+  t: number;
+  name: string;
+  duration?: number;
+}
+```
+
+`duration` is the number of seconds the name is shown, measured from `t`. It is optional, and
+absent means the name is shown until the next step — the behaviour before this spec — so a
+play written without it reads exactly as it did.
+
+**The duration governs display and nothing else.** A step remains an instant for every other
+purpose: a branch forks at a step's `t`, prev/next-step navigation moves between `t` values,
+and the scrubber snaps to them. Nothing in `resolveBranch` or in the sampler reads `duration`.
+
+## The display window
+
+A step's window is `[t, t + duration]`, or `[t, next step's t]` when it has no duration, or
+`[t, end of play]` for a last step with neither.
+
+**Windows never overlap.** A duration may not run past the next step's `t`, and the control
+that sets it stops there. Where a step has no next step, its window may not run past the end of
+the play. The name shown at any instant is therefore unambiguous: the window containing the
+playhead, or nothing when the playhead is before the first step or past a window that ended.
+
+The caption over the court shows the name of the window containing the playhead, and is empty
+— drawn as nothing at all — outside every window. A play whose steps carry no duration behaves
+as before, every instant from the first step onward falling inside some window.
+
+## The timeline
+
+A step is drawn as a bar spanning its window on the ruler, replacing the tick that marked its
+instant. The bar carries:
+
+- the step's **name**, inside the bar;
+- a **handle on its right edge**, dragged to set the duration, floored at the same minimum a
+  screen's duration is floored at and capped at the next step's `t`, or at the end of the play
+  for a last step;
+- an **edit** control and a **delete** control at the bar's end, inside it. Inside, because a
+  window ending where the play does would otherwise push them off the panel, which then grows a
+  horizontal scrollbar.
+
+Dragging the bar itself still retimes the step, as dragging its tick did, under the fork
+constraints that already govern a step's `t`. A step with no duration draws its implicit window
+the same way; dragging its handle is what gives it an explicit one.
+
+A retime moves the window with the step and does not shorten it, and a step may be added inside
+a window that already exists. Either can therefore leave a duration running past the next
+step's `t` — a state the handle itself can never produce. It is reported rather than prevented,
+for the same reason the editor reports elsewhere: refusing the retime would make a step's time
+depend on a name's display, which is backwards.
+
+The bar is drawn by the same component as a screen's bar. A screen and a step label are
+different things in the model — one is a play's content, the other is how it is annotated — but
+they are the same object on screen: a span with a draggable end and controls at its edge.
+Sharing the component is what lets the two be changed together later.
+
+## Validation
+
+`validatePlay` reports, for each step that carries one:
+
+- a `duration` that is not a finite number, or is not greater than zero;
+- a window that runs past the next step's `t` on the same branch;
+- a window that runs past the end of the play.
+
+A step without a duration is never reported: it has no window of its own to be wrong.
+
+## What this does not do
+
+- It does not make a step a phase. The duration says how long a name is shown, not how long
+  anything lasts. A step that opens a passage of play, with a beginning and an end, is a
+  different design and is not this one.
+- It does not change how a branch forks, how the transport steps, or where the scrubber snaps.
+- It does not give a screen's bar a name, nor a step's bar a screener. The two share a
+  component, not a meaning.
