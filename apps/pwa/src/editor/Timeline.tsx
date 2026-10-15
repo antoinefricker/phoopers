@@ -4,7 +4,7 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useEffect, useRef } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { ComponentProps, KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PlayerId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
@@ -101,7 +101,9 @@ export function Timeline() {
   return (
     <ScrollArea
       type="auto"
-      viewportProps={{ 'data-testid': 'timeline-viewport' }}
+      // Cast because Mantine types this as plain div props, which reject a `data-` key on an
+      // object literal although JSX accepts them on the element itself.
+      viewportProps={{ 'data-testid': 'timeline-viewport' } as ComponentProps<'div'>}
       styles={{ viewport: { paddingRight: SCROLLBAR_GUTTER_PX } }}
     >
       {/* Keys arrive from the focused marker button and bubble up to here. */}
