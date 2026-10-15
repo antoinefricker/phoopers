@@ -1,5 +1,5 @@
 import type { Branch, Play, Player, PlayerId, Vec2 } from '../../engine';
-import { COURT_DIMENSIONS } from '../../engine';
+import { COURT_DIMENSIONS, resolveBranch, stateAt } from '../../engine';
 import { FORMATION } from '../formation';
 
 // Each side is numbered 1..5 on its own, so both teams hold a player called "2"; the court
@@ -42,9 +42,19 @@ export function addPlayer(play: Play, team: 'offense' | 'defense', id: PlayerId)
   };
 }
 
-// Screens hold player ids, so they are swept with the player. The ball track is deliberately
-// NOT swept: a keyframe attached to the removed player is reported by validatePlay as
-// unknown-player-reference so the coach can reassign possession rather than lose it.
+/**
+ * Removes a player, their tracks, the screens naming them, and their hold on the ball.
+ *
+ * A ball keyframe attached to them is turned into one at the position they occupied at that
+ * instant, resolved from the play as it stands BEFORE the removal. It used to be left alone,
+ * on the reasoning that `validatePlay` would report the dangling reference and the coach could
+ * reassign possession rather than lose it. What that cost was never measured: the sampler
+ * resolves an attached keyframe to its carrier's position, a carrier who no longer exists has
+ * none, and the ball was drawn at the court's corner for every instant it was held.
+ *
+ * Releasing it keeps the ball exactly where it was drawn and leaves a valid play, which a
+ * coach can still reassign by dropping the ball on someone.
+ */
 export function removePlayer(play: Play, playerId: PlayerId): Play {
   if (!play.players.some((p) => p.id === playerId)) return play;
 
@@ -53,8 +63,22 @@ export function removePlayer(play: Play, playerId: PlayerId): Play {
     players: play.players.filter((p) => p.id !== playerId),
     branches: play.branches.map((branch) => {
       const kept = Object.fromEntries(Object.entries(branch.tracks).filter(([key]) => key !== playerId));
+      // Resolved per branch: a child inherits the player's track from its ancestors, so where
+      // they were at a given instant is a question only the resolved branch can answer.
+      const timeline = resolveBranch(play, branch.id);
+      const ball = (branch.tracks.ball ?? []).flatMap((keyframe) => {
+        if (keyframe.attachedTo !== playerId) return [keyframe];
+        const position = stateAt(timeline, keyframe.t).players[playerId]?.position;
+        // No position to release it at — the player had no keyframe anywhere on this branch's
+        // chain. Nothing can be invented, so the hold goes with them.
+        if (position === undefined) return [];
+
+        const { attachedTo: _attachedTo, ...rest } = keyframe;
+
+        return [{ ...rest, position }];
+      });
       // Rebuilding through fromEntries loses the required 'ball' key, so it is restated.
-      const tracks = { ...kept, ball: branch.tracks.ball };
+      const tracks = { ...kept, ball };
 
       return {
         ...branch,
