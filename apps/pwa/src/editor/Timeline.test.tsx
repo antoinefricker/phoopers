@@ -185,6 +185,44 @@ describe('Timeline', () => {
     expect(flights.map((f) => f.textContent)).toEqual(['Shot', 'Pass']);
   });
 
+  it('names no shot when the ball was already loose', () => {
+    // A shot is the ball leaving someone's hands. A stretch between two points on the court —
+    // a bounce, a roll, two authored positions — was sent by nobody, so naming it a shot said
+    // something untrue about who did what.
+    const looseThroughout = withBranch(fixturePlay, ROOT, (b) => ({
+      ...b,
+      tracks: {
+        ...b.tracks,
+        ball: [
+          { t: 0, position: { x: 2, y: 2 } },
+          { t: 2, position: { x: 6, y: 4 } },
+          { t: 4, position: { x: 9, y: 6 } },
+        ],
+      },
+    }));
+    renderEditor(looseThroughout, <Timeline />);
+
+    expect(within(rowFor('ball')).queryAllByTestId(/^flight-/)).toHaveLength(0);
+  });
+
+  it('still names a shot that left a pair of hands', () => {
+    const shot = withBranch(fixturePlay, ROOT, (b) => ({
+      ...b,
+      tracks: {
+        ...b.tracks,
+        ball: [
+          { t: 0, attachedTo: P1 },
+          { t: 2, attachedTo: P1 },
+          { t: 4, position: { x: 9, y: 6 } },
+        ],
+      },
+    }));
+    renderEditor(shot, <Timeline />);
+    const flights = within(rowFor('ball')).getAllByTestId(/^flight-/);
+
+    expect(flights.map((f) => f.textContent)).toEqual(['Shot']);
+  });
+
   it('puts no flight label on a stretch the ball is held through', () => {
     const heldThroughout = withBranch(fixturePlay, ROOT, (b) => ({
       ...b,

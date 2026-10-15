@@ -224,8 +224,18 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               );
             }
 
-            // Everything else on the ball's row is the ball travelling. Where it lands says
-            // which kind: a pair of hands is a pass, a point on the court is a shot.
+            // Everything else on the ball's row is the ball travelling. Landing in a pair of
+            // hands makes it a pass; leaving one for a point on the court makes it a shot. A
+            // stretch that is loose at BOTH ends — a bounce, a roll, two authored positions —
+            // was shot by nobody, so it carries no name rather than claiming a shot no one took.
+            const name =
+              next.attachedTo !== undefined
+                ? t('play.timeline.pass', 'Pass')
+                : k.attachedTo === undefined
+                  ? undefined
+                  : t('play.timeline.shot', 'Shot');
+            if (name === undefined) return null;
+
             return (
               <Box
                 key={`${k.t}-flight`}
@@ -251,7 +261,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   textOverflow: 'ellipsis',
                 }}
               >
-                {next.attachedTo === undefined ? t('play.timeline.shot', 'Shot') : t('play.timeline.pass', 'Pass')}
+                {name}
               </Box>
             );
           })}
