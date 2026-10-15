@@ -44,12 +44,12 @@ describe('StepRuler', () => {
     Reflect.deleteProperty(document.documentElement, 'clientHeight');
   });
 
-  it('renders one bar per step, labelled with its name, plus the add button', () => {
+  it('renders one bar per step, labelled with its name', () => {
     renderEditor(fixturePlay, <StepRuler />);
     const ruler = screen.getByTestId('step-ruler');
 
-    // Add step, the duration handle, edit and remove.
-    expect(within(ruler).getAllByRole('button')).toHaveLength(4);
+    // The duration handle, edit and remove. Adding a step moved to the transport.
+    expect(within(ruler).getAllByRole('button')).toHaveLength(3);
     expect(screen.getByText('Entry pass')).toBeInTheDocument();
   });
 
@@ -58,37 +58,6 @@ describe('StepRuler', () => {
 
     // Step at t=2 of a 4s play.
     expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`).style.left).toBe('50%');
-  });
-
-  it('adds a step at the current time, with a default name', async () => {
-    renderEditor(fixturePlay, <StepRuler />);
-    const before = stepsOfRoot().length;
-
-    await userEvent.click(screen.getByRole('button', { name: 'Add step' }));
-
-    expect(stepsOfRoot()).toHaveLength(before + 1);
-    expect(stepsOfRoot().every((s) => Number.isFinite(s.t))).toBe(true);
-    expect(stepsOfRoot().map((s) => s.name)).toContain('Step 2');
-  });
-
-  it('adds no step before the fork, and says nothing', async () => {
-    renderEditor(
-      fixturePlay,
-      <>
-        <SelectBranch branchId={SWITCH} />
-        <StepRuler />
-      </>,
-    );
-    await userEvent.click(screen.getByRole('button', { name: `select ${SWITCH}` }));
-    const stepsOfSwitch = () => readProbe().play.branches.find((b) => b.id === SWITCH)?.steps ?? [];
-    const rulerBefore = screen.getByTestId('step-ruler').innerHTML;
-
-    // The playhead is at 0 and SWITCH forks at 2. Recorded in limitations.md.
-    await userEvent.click(screen.getByRole('button', { name: 'Add step' }));
-
-    expect(stepsOfSwitch()).toHaveLength(0);
-    expect(screen.getByTestId('step-ruler').innerHTML).toBe(rulerBefore);
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('renames a step', async () => {
@@ -118,13 +87,25 @@ describe('StepRuler', () => {
   });
 
   it('removes a step no branch forks from', async () => {
+    // A second step written into the play rather than added through the interface: the control
+    // that adds one lives in the transport now, which this case does not render.
+    const free = 'free-step' as StepId;
+    const twoSteps = {
+      ...fixturePlay,
+      branches: fixturePlay.branches.map((b) =>
+        b.id === ROOT ? { ...b, steps: [...b.steps, { id: free, t: 3, name: 'Free step' }] } : b,
+      ),
+    };
     stubLayout();
-    renderLive();
-    await userEvent.click(screen.getByRole('button', { name: 'Add step' }));
-    const added = stepsOfRoot().find((s) => s.id !== STEP_ENTRY);
-    if (added === undefined) throw new Error('expected an added step');
+    renderEditor(
+      twoSteps,
+      <LivePlayback>
+        <StepRuler />
+      </LivePlayback>,
+      { wrapPlayback: false },
+    );
 
-    await userEvent.click(screen.getByRole('button', { name: `Edit ${added.name}` }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Free step' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
 
     expect(stepsOfRoot().map((s) => s.id)).toEqual([STEP_ENTRY]);

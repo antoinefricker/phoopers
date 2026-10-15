@@ -79,6 +79,7 @@
       "shot": "Tir"
     },
     "transport": {
+      "add": "Ajouter",
       "nextStep": "Étape suivante",
       "pause": "Pause",
       "play": "Lecture",

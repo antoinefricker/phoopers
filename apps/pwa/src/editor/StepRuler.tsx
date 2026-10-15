@@ -8,7 +8,6 @@ import { constrainStepRetime } from './constraints';
 import { TimelineBar } from './TimelineBar';
 import { LABEL_WIDTH, MIN_SCREEN_DURATION } from './TimelineRow';
 import { TRACK_INSET_PX, fractionOf } from './timelineGeometry';
-import { snapToGrid } from '../play2d/transportMath';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 
@@ -70,8 +69,8 @@ function StepEditor({ step, onDone }: EditorProps) {
  */
 export function StepRuler() {
   const { t } = useTranslation();
-  const { play, addStep, moveStep, removeStep, setStepDuration } = useEditorContext();
-  const { timeline, branchId, currentTimeRef } = usePlaybackContext();
+  const { play, moveStep, removeStep, setStepDuration } = useEditorContext();
+  const { timeline, branchId } = usePlaybackContext();
   const [openId, setOpenId] = useState<StepId | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const { duration, steps } = timeline;
@@ -91,23 +90,9 @@ export function StepRuler() {
 
   return (
     <Box data-testid="step-ruler" style={{ display: 'flex', alignItems: 'center', height: '2rem' }}>
-      <Box w={LABEL_WIDTH} style={{ flexShrink: 0 }}>
-        <Button
-          size="compact-xs"
-          variant="subtle"
-          onClick={() =>
-            addStep(
-              branchId,
-              // During playback the clock is continuous, so the time a step is born at has to
-              // be rounded here rather than trusted.
-              snapToGrid(currentTimeRef.current),
-              t('play.editor.stepDefault', 'Step {{n}}', { n: steps.length + 1 }),
-            )
-          }
-        >
-          {t('play.editor.addStep', 'Add step')}
-        </Button>
-      </Box>
+      {/* Empty, and kept: the ruler's label column holds the width the rows' gutters hold, so
+          the time axis starts at the same x on both. Adding a step moved to the transport. */}
+      <Box w={LABEL_WIDTH} style={{ flexShrink: 0 }} />
       {/* Same inset as TimelineRow's track, so the ruler's time axis lines up with the rows. */}
       <Box
         ref={trackRef}

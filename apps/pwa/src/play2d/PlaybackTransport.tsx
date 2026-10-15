@@ -1,7 +1,13 @@
-import { ActionIcon, Box, Group, Slider } from '@mantine/core';
-import { useRef } from 'react';
+import { ActionIcon, Box, Group, Menu, Slider } from '@mantine/core';
+import { useContext, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IconPlayerPause, IconPlayerPlay, IconPlayerSkipBack, IconPlayerSkipForward } from '@tabler/icons-react';
+import {
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconPlayerSkipBack,
+  IconPlayerSkipForward,
+  IconPlus,
+} from '@tabler/icons-react';
 import {
   GUTTER_WIDTH,
   TIME_GRID_S,
@@ -12,6 +18,7 @@ import {
   snapToStep,
   stepMarks,
 } from './transportMath';
+import { EditorContext } from '../editor/useEditorContext';
 import { usePlaybackContext } from './usePlaybackContext';
 import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 
@@ -23,7 +30,7 @@ const SNAP_THRESHOLD = 0.25;
 
 export function PlaybackTransport() {
   const { t } = useTranslation();
-  const { timeline, currentTimeRef, isPlaying, play, pause, seek } = usePlaybackContext();
+  const { timeline, branchId, currentTimeRef, isPlaying, play, pause, seek } = usePlaybackContext();
   const { displayTime } = usePlaybackTimeContext();
   const max = sliderMax(timeline.duration);
 
@@ -42,6 +49,13 @@ export function PlaybackTransport() {
   // any step it reaches (2.0 + 0.01 snaps straight back to 2.0). Only absolute moves snap.
   const keyboardMoveRef = useRef(false);
 
+  // Read the context directly rather than through the hook: the transport renders without an
+  // editor around it (the 1b tests do), and then there is nothing to add. `PlayCanvas` reads it
+  // the same way, for the same reason.
+  const editor = useContext(EditorContext);
+  const editing = editor?.mode === 'edit';
+  const [addOpen, setAddOpen] = useState(false);
+
   const jump = (direction: 1 | -1) => {
     const next = adjacentStep(currentTimeRef.current, timeline.steps, direction);
     if (next !== undefined) {
@@ -54,6 +68,47 @@ export function PlaybackTransport() {
       {/* The buttons fill the same gutter the timeline gives its row labels, so the scrubber
           and the tracks begin at the same x and one playhead reads true across all three. */}
       <Group gap="xs" w={GUTTER_WIDTH} wrap="nowrap" style={{ flexShrink: 0 }}>
+        {/* The three things a coach adds, leading the row: a step is born at the playhead and a
+            player joins the play it marks, so they belong beside it rather than after the
+            controls that move it. Edit mode only — all three write to the model, and this bar
+            is rendered while playing too. */}
+        {editing && editor !== null && (
+          <Menu opened={addOpen} onChange={setAddOpen} position="bottom-start" shadow="md" trapFocus>
+            <Menu.Target>
+              <ActionIcon
+                variant="default"
+                onClick={() => setAddOpen((open) => !open)}
+                aria-label={t('play.transport.add', 'Add')}
+              >
+                <IconPlus size={18} stroke={1.5} />
+              </ActionIcon>
+            </Menu.Target>
+            {/* A Menu rather than a Popover of buttons: a list of commands is what it is for,
+                and it brings the menu and menuitem roles, arrow-key navigation, Escape and
+                closing on a choice without any of them being written here. */}
+            <Menu.Dropdown data-testid="add-menu">
+              <Menu.Item
+                onClick={() => {
+                  // The clock runs continuously while a play plays, so the instant a step is
+                  // born at is rounded here rather than trusted.
+                  editor.addStep(
+                    branchId,
+                    snapToGrid(currentTimeRef.current),
+                    t('play.editor.stepDefault', 'Step {{n}}', { n: timeline.steps.length + 1 }),
+                  );
+                }}
+              >
+                {t('play.editor.addStep', 'Add step')}
+              </Menu.Item>
+              <Menu.Item onClick={() => editor.addPlayer('offense')}>
+                {t('play.editor.addOffense', 'Add offense')}
+              </Menu.Item>
+              <Menu.Item onClick={() => editor.addPlayer('defense')}>
+                {t('play.editor.addDefense', 'Add defense')}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        )}
         {/* The aria-labels are the only accessible name these buttons have now that the glyphs
           are icons, so they carry the meaning rather than decorating it. */}
         <ActionIcon

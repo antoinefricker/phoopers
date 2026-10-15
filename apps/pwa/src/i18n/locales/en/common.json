@@ -79,6 +79,7 @@
       "shot": "Shot"
     },
     "transport": {
+      "add": "Add",
       "nextStep": "Next step",
       "pause": "Pause",
       "play": "Play",

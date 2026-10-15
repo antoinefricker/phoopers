@@ -94,22 +94,34 @@ describe('EditorToolbar', () => {
   it('shows the edit actions only in edit mode', async () => {
     renderProbe();
 
-    expect(screen.queryByRole('button', { name: 'Add offense' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Starting formation' })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Edit'));
 
     expect(screen.getByTestId('mode')).toHaveTextContent('edit');
-    expect(screen.getByRole('button', { name: 'Add offense' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add defense' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Starting formation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New play' })).toBeInTheDocument();
   });
 
-  it('adds a player from the toolbar', async () => {
+  it('no longer offers the two that moved to the transport', async () => {
+    // Adding a player lives in the add menu beside the playhead. Two ways to do it is one more
+    // than anyone needs to learn, so the toolbar's are gone rather than duplicated.
     renderProbe();
     await userEvent.click(screen.getByText('Edit'));
-    await userEvent.click(screen.getByRole('button', { name: 'Add offense' }));
 
-    expect(screen.getByTestId('count')).toHaveTextContent(String(fixturePlay.players.length + 1));
+    expect(screen.queryByRole('button', { name: 'Add offense' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add defense' })).not.toBeInTheDocument();
+  });
+
+  it('applies the starting formation from the toolbar', async () => {
+    // What "the toolbar writes through the context" is now tested with: the player count still
+    // has to move when a toolbar action fires.
+    renderProbe();
+    await userEvent.click(screen.getByText('Edit'));
+    await userEvent.click(screen.getByRole('button', { name: 'Starting formation' }));
+
+    // The formation adds a full roster rather than replacing one, so the fixture's two remain.
+    expect(screen.getByTestId('count')).toHaveTextContent(String(fixturePlay.players.length + 10));
   });
 });
 
