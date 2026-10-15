@@ -10,7 +10,7 @@ export interface TimelineRowModel {
 // A keyframe marker is an upright rectangle, taller than it is wide, so it reads as an instant
 // rather than as a blob. It is centred on its time with `translate(-50%)`, so it reaches half
 // its WIDTH past that time — which is what the track has to keep room for at either end.
-export const MARKER_WIDTH_PX = 8;
+export const MARKER_WIDTH_PX = 12;
 export const MARKER_HEIGHT_PX = 18;
 
 // The inset lives with the shared axis geometry because the transport needs it too. It must
