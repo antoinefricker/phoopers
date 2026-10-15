@@ -55,7 +55,7 @@
       "placeScreenHint": "Click the player being screened on the court.",
       "problems": "Problems (<count>{{count}}</count>)",
       "remove": "Remove",
-      "removePlayer": "Remove player",
+      "removePlayer": "Remove player {{label}}",
       "removePlayerBody": "Player {{label}} will be removed from every branch, together with every screen they are part of.",
       "removePlayerTitle": "Remove player {{label}}?",
       "removeScreen": "Remove screen",

@@ -30,7 +30,7 @@ const STEP_EPSILON = 1e-6;
 // The three surfaces that share one time axis — the transport's scrubber, the step ruler and
 // the keyframe tracks — lay out against these. The gutter holds the row labels on the timeline
 // and the playback buttons on the transport, so both axes start at the same x.
-export const GUTTER_WIDTH = '7rem';
+export const GUTTER_WIDTH = '160px';
 
 // Room kept at each end of every axis: half the width of a keyframe marker, which is centred
 // on its time and so reaches that far past it. Without it the last marker overflows and the

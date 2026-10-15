@@ -55,7 +55,7 @@
       "placeScreenHint": "Cliquez sur le joueur qui bénéficie de l'écran, sur le terrain.",
       "problems": "Problèmes (<count>{{count}}</count>)",
       "remove": "Supprimer",
-      "removePlayer": "Supprimer le joueur",
+      "removePlayer": "Supprimer le joueur {{label}}",
       "removePlayerBody": "Le joueur {{label}} sera supprimé de toutes les branches, ainsi que tous les écrans dont il fait partie.",
       "removePlayerTitle": "Supprimer le joueur {{label}} ?",
       "removeScreen": "Supprimer l'écran",

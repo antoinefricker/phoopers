@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
@@ -136,38 +136,80 @@ describe('removing a screen', () => {
 });
 
 describe('removing a player', () => {
-  it('offers the action only for a selected player, not the ball', async () => {
+  const removeButton = (entityId: string) =>
+    within(screen.getByTestId(`timeline-row-${entityId}`)).getByRole('button', { name: /^Remove player/ });
+
+  it('offers the action on a player row and never on the ball', async () => {
+    // It is a row's action now, not a selection's: no player has to be picked on the court
+    // first, and the ball has no player to remove.
     await renderView();
-    expect(screen.queryByRole('button', { name: 'Remove player' })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByTestId('edit-token-ball'));
+    expect(removeButton(P1)).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('timeline-row-ball')).queryByRole('button', { name: /^Remove player/ }),
+    ).not.toBeInTheDocument();
+  });
 
-    expect(screen.queryByRole('button', { name: 'Remove player' })).not.toBeInTheDocument();
+  it('names the player it removes, so eleven of them are told apart', async () => {
+    await renderView();
+
+    expect(removeButton(P1)).toHaveAccessibleName('Remove player 1');
   });
 
   it('asks first, and keeps the player when cancelled', async () => {
     await renderView();
 
-    await selectOnCourt(P1);
-    await userEvent.click(screen.getByRole('button', { name: 'Remove player' }));
+    await userEvent.click(removeButton(P1));
     expect(await screen.findByText('Remove player 1?')).toBeInTheDocument();
     expect(players().map((p) => p.id)).toContain(P1);
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(players().map((p) => p.id)).toContain(P1);
+    // The dialog has to close too. Asserting only that the player survived passes just as well
+    // when Cancel does nothing at all, which is how an unwired handler went unnoticed.
+    await waitFor(() => expect(screen.queryByText('Remove player 1?')).not.toBeInTheDocument());
   });
 
-  it('removes the player and their screens once confirmed, and clears the selection', async () => {
+  it('removes the player and their screens once confirmed', async () => {
     await renderView();
 
-    await selectOnCourt(P1);
-    await userEvent.click(screen.getByRole('button', { name: 'Remove player' }));
+    await userEvent.click(removeButton(P1));
     await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
 
     expect(players().map((p) => p.id)).toEqual([P2]);
     // SCREEN_1 is P2 screening for P1, so it goes with P1.
     expect(rootScreens()).toHaveLength(0);
+  });
+
+  it('clears a selection that pointed at the player it removed', async () => {
+    await renderView();
+    await selectOnCourt(P1);
+
+    await userEvent.click(removeButton(P1));
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+
     expect(readProbe().selection).toBeNull();
+  });
+
+  it('leaves the selection alone when another player is removed', async () => {
+    // The row's action is independent of what is selected, so removing one player must not
+    // drop a selection that points at a different one.
+    await renderView();
+    await selectOnCourt(P2);
+
+    await userEvent.click(removeButton(P1));
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+
+    expect(readProbe().selection).toEqual({ kind: 'entity', entityId: P2 });
+  });
+
+  it('is gone from the selection panel', async () => {
+    await renderView();
+    await selectOnCourt(P1);
+
+    expect(
+      within(screen.getByTestId('selection-actions')).queryByRole('button', { name: /^Remove player/ }),
+    ).toBeNull();
   });
 });
 

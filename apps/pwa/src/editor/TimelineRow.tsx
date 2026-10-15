@@ -1,9 +1,9 @@
 import { ActionIcon, Box, CloseButton } from '@mantine/core';
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { IconEye, IconEyeOff } from '@tabler/icons-react';
+import { IconEye, IconEyeOff, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import type { EntityId, ScreenEvent, ScreenId } from '../engine';
+import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
 import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
 import { ConfirmDelete } from './ConfirmDelete';
 import { TimelineBar } from './TimelineBar';
@@ -61,6 +61,13 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   });
   const labelOf = (id: string) => timeline.players.find((p) => p.id === id)?.label ?? id;
   const { hidden, toggleHidden } = useHiddenEntitiesContext();
+  const { removePlayer, selection: editorSelection, select } = useEditorContext();
+  // The dialog stays mounted for Mantine's exit transition, and `count` re-keys it per open,
+  // the same shape the screen removal above uses.
+  const [removingPlayer, setRemovingPlayer] = useState<{ opened: boolean; count: number }>({
+    opened: false,
+    count: 0,
+  });
   const removingScreen = screens.find((s) => s.id === removing.target);
   const isBall = row.team === 'ball';
   // The gutter draws the same token the court does rather than restating it as text, so a row
@@ -92,8 +99,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           variant="subtle"
           color="gray"
           size="sm"
-          ml="auto"
-          mr="xs"
+          ml={4}
           aria-pressed={hidden.has(row.entityId)}
           aria-label={
             hidden.has(row.entityId)
@@ -104,6 +110,20 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         >
           {hidden.has(row.entityId) ? <IconEyeOff size={14} stroke={1.5} /> : <IconEye size={14} stroke={1.5} />}
         </ActionIcon>
+        {/* On a player's row only: the ball has no player to remove. Named after the player,
+            or eleven rows would offer a voice-control user eleven identical buttons. */}
+        {!isBall && (
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            size="sm"
+            ml={4}
+            aria-label={t('play.editor.removePlayer', 'Remove player {{label}}', { label: row.label })}
+            onClick={() => setRemovingPlayer((r) => ({ opened: true, count: r.count + 1 }))}
+          >
+            <IconTrash size={14} stroke={1.5} />
+          </ActionIcon>
+        )}
       </Box>
       {/* Inset so a marker sitting at t=0 or t=duration fits inside the track: it is a rotated
           square, so it reaches half its DIAGONAL past its time. Without this the last marker
@@ -314,6 +334,27 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           );
         })}
       </Box>
+      {!isBall && (
+        <ConfirmDelete
+          key={`player-${removingPlayer.count}`}
+          opened={removingPlayer.opened}
+          title={t('play.editor.removePlayerTitle', 'Remove player {{label}}?', { label: row.label })}
+          body={t(
+            'play.editor.removePlayerBody',
+            'Player {{label}} will be removed from every branch, together with every screen they are part of.',
+            { label: row.label },
+          )}
+          confirmLabel={t('play.editor.remove', 'Remove')}
+          onConfirm={() => {
+            // A selection pointing at this player would outlive it, so it goes too. One
+            // pointing at anyone else is none of this row's business.
+            if (editorSelection?.entityId === row.entityId) select(null);
+            removePlayer(row.entityId as PlayerId);
+            setRemovingPlayer((r) => ({ ...r, opened: false }));
+          }}
+          onClose={() => setRemovingPlayer((r) => ({ ...r, opened: false }))}
+        />
+      )}
       <ConfirmDelete
         key={removing.count}
         opened={removing.opened}
