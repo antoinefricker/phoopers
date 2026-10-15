@@ -5,7 +5,16 @@ import type { Keyframe, Play, PlayerId, Step, StepId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
-import { adjacentStep, sliderMax, snapToGrid, snapToStep, stepAt, stepLabelAt, stepMarks } from './transportMath';
+import {
+  TIME_GRID_S,
+  adjacentStep,
+  sliderMax,
+  snapToGrid,
+  snapToStep,
+  stepAt,
+  stepLabelAt,
+  stepMarks,
+} from './transportMath';
 import { playheadTime } from '../testUtils/transport';
 
 const steps: Step[] = [
@@ -129,27 +138,28 @@ describe('stepAt', () => {
 });
 
 describe('snapToGrid', () => {
-  it('rounds to the nearest half second', () => {
-    expect(snapToGrid(1.2)).toBe(1);
-    expect(snapToGrid(1.3)).toBe(1.5);
-    expect(snapToGrid(1.7)).toBe(1.5);
-    expect(snapToGrid(1.8)).toBe(2);
+  it('rounds to the nearest cell', () => {
+    expect(snapToGrid(1.22)).toBe(1.2);
+    expect(snapToGrid(1.26)).toBe(1.3);
+    expect(snapToGrid(1.74)).toBe(1.7);
+    expect(snapToGrid(1.78)).toBe(1.8);
   });
 
   it('rounds a half-way value up, not to even', () => {
     // Predictable beats statistically fair: a coach dragging right expects the next cell.
-    expect(snapToGrid(1.25)).toBe(1.5);
-    expect(snapToGrid(1.75)).toBe(2);
+    expect(snapToGrid(1.25)).toBe(1.3);
+    expect(snapToGrid(1.75)).toBe(1.8);
   });
 
   it('leaves a value already on the grid alone', () => {
-    for (const t of [0, 0.5, 2, 7.5]) expect(snapToGrid(t)).toBe(t);
+    for (const t of [0, 0.1, 0.5, 2, 7.5]) expect(snapToGrid(t)).toBe(t);
   });
 
   it('gives back a clean multiple, not a float that nearly is', () => {
-    // 0.1 * 3 is 0.30000000000000004; the same trap waits for anything built by multiplying.
-    expect(snapToGrid(6.3)).toBe(6.5);
-    expect(String(snapToGrid(6.3))).toBe('6.5');
+    // 63 cells of 0.1s multiply out to 6.300000000000001; the trap waits for any decimal cell,
+    // so the result is rounded back onto the decimal rather than left as the product.
+    expect(snapToGrid(6.33)).toBe(6.3);
+    expect(String(snapToGrid(6.33))).toBe('6.3');
   });
 
   it('survives a time that is not a number', () => {
@@ -345,21 +355,24 @@ describe('PlaybackTransport', () => {
     renderTransport();
     const slider = screen.getByRole('slider');
 
+    // Written against the cell rather than its value: the increment IS the grid, so the test
+    // follows it rather than being rewritten each time the grid is retuned.
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    expect(slider).toHaveAttribute('aria-valuenow', '0.5');
+    expect(slider).toHaveAttribute('aria-valuenow', String(TIME_GRID_S));
 
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    expect(slider).toHaveAttribute('aria-valuenow', '1');
+    expect(slider).toHaveAttribute('aria-valuenow', String(2 * TIME_GRID_S));
   });
 
   it('lets arrow keys leave a step instead of snapping back onto it', () => {
     renderTransport();
     const slider = screen.getByRole('slider');
 
+    // The next step is at 2s; one arrow press leaves it by a cell rather than snapping back.
     click(screen.getByRole('button', { name: 'Next step' }));
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
 
-    expect(slider).toHaveAttribute('aria-valuenow', '2.5');
+    expect(slider).toHaveAttribute('aria-valuenow', String(2 + TIME_GRID_S));
   });
 
   it('snaps a pointer scrub near a step onto the exact step time', () => {

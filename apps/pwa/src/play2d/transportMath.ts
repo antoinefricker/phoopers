@@ -7,19 +7,36 @@ const TIE_EPSILON = 1e-9;
  * The grid every authored time falls on, in seconds. A play is read by people, and a keyframe
  * at 2.37s says nothing a keyframe at 2.5s does not.
  */
-export const TIME_GRID_S = 0.5;
+export const TIME_GRID_S = 0.1;
+
+// A cell is a decimal fraction, and no decimal fraction is exact in binary: 63 cells of 0.1s
+// multiply out to 6.300000000000001, which prints badly, compares badly and misses the
+// `% 1 === 0` test that tells a whole second from the cells between two of them. Rounding to
+// the microsecond is finer than any cell by six orders of magnitude and lands the result back
+// on the decimal the coach asked for.
+const GRID_PRECISION = 1e6;
+
+/**
+ * The time `cells` grid cells from zero, as a clean decimal.
+ *
+ * Every authored time is built through here, so counting cells is the one way to walk the grid:
+ * adding `TIME_GRID_S` repeatedly accumulates the error this rounds away.
+ */
+export function gridTime(cells: number): number {
+  if (!Number.isFinite(cells)) return 0;
+
+  return Math.round(cells * TIME_GRID_S * GRID_PRECISION) / GRID_PRECISION;
+}
 
 /**
  * Rounds a time to the nearest grid cell, never below zero.
  *
- * The multiply-then-divide keeps the result a clean multiple: adding 0.5 repeatedly, or
- * multiplying a float by a float, drifts into values like 6.300000000000001 that print and
- * compare badly. A time that is not a number becomes 0, there being no cell for it.
+ * A time that is not a number becomes 0, there being no cell for it.
  */
 export function snapToGrid(t: number): number {
   if (!Number.isFinite(t)) return 0;
 
-  return Math.max(0, Math.round(t / TIME_GRID_S) * TIME_GRID_S);
+  return Math.max(0, gridTime(Math.round(t / TIME_GRID_S)));
 }
 
 const STEP_EPSILON = 1e-6;

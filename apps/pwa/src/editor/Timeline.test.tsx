@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
+import { TIME_GRID_S } from '../play2d/transportMath';
 import { TRACK_INSET_PX } from './timelineGeometry';
 import { Timeline } from './Timeline';
 import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
@@ -334,8 +335,8 @@ describe('retiming', () => {
     await dragElement(secondMarker(P1));
 
     // clientX 120 of a 200px row across a 4s play.
-    // 120 / 200 * 4 = 2.4s, which the grid rounds to the nearest half second.
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.5, 4]);
+    // 120 / 200 * 4 = 2.4s, which is already on the grid.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
   });
 
   it('never lets a keyframe cross its neighbour', async () => {
@@ -394,7 +395,7 @@ describe('retiming', () => {
     second.focus();
 
     await user.keyboard('{ArrowRight}');
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.5, 4]);
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2 + TIME_GRID_S, 4]);
 
     // The same element is still focused: the marker is keyed by position, so retiming it does
     // not remount it and a second press lands on the keyframe the first one moved.
@@ -409,9 +410,11 @@ describe('retiming', () => {
     if (first === undefined) throw new Error('expected a first marker');
     first.focus();
 
-    // Four coarse presses ask for 2.0s, which is exactly the neighbour: the bound holds it just
-    // below, and the fifth press has nowhere to go and writes nothing.
-    await user.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}');
+    // Enough presses to ask for 2.0s, which is exactly the neighbour: the bound holds it just
+    // below, and one more press has nowhere to go and writes nothing. Counted from the cell, so
+    // the case survives the grid being retuned.
+    const toTheNeighbour = Math.round(2 / TIME_GRID_S);
+    await user.keyboard('{ArrowRight}'.repeat(toTheNeighbour + 1));
 
     const times = trackOf(readProbe().play, ROOT, P1).map((k) => k.t);
     expect(times).toHaveLength(3);
@@ -429,7 +432,7 @@ describe('retiming', () => {
     await user.keyboard('{ArrowRight}');
 
     const screens = readProbe().play.branches.find((b) => b.id === ROOT)?.screens ?? [];
-    expect(screens.map((s) => s.duration)).toEqual([1.5]);
+    expect(screens.map((s) => s.duration)).toEqual([1 + TIME_GRID_S]);
   });
 
   it('does not retime on a plain click', async () => {
@@ -464,7 +467,7 @@ describe('retiming', () => {
     // The keyframe being dragged is the selected one, so selecting must follow it to its new time.
     await dragElement(secondMarker(P1));
 
-    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2.5 });
+    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2.4 });
   });
 });
 
@@ -486,8 +489,8 @@ describe('drag feel', () => {
 
   it('moves by the pointer delta, not its absolute position, when grabbed off-centre', async () => {
     // Marker centre at 20px; pressed at 50px (30px right of centre), released at 150px. The
-    // marker lands where its CENTRE would be: (150 - 30) / 200 * 4 = 2.4s, which the grid
-    // rounds to 2.5 — not 150 / 200 * 4 = 3s, which the grid would leave at 3.
+    // marker lands where its CENTRE would be: (150 - 30) / 200 * 4 = 2.4s — not
+    // 150 / 200 * 4 = 3s.
     // The grab has to be wider than half a grid cell, or both readings round to the same
     // answer and the case stops telling them apart.
     withRowWidth(200, 20);
@@ -501,7 +504,7 @@ describe('drag feel', () => {
       { keys: '[/MouseLeft]', target: secondMarker(P1) },
     ]);
 
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.5, 4]);
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
   });
 
   it('treats a twitch under the slop as a click, not a retime', async () => {
@@ -534,10 +537,9 @@ describe('drag feel', () => {
       { keys: '[/MouseLeft]', target: first },
     ]);
 
-    // 4px of 200px across 4s.
-    // 4px past the slop is 0.08s, which the grid rounds back to zero — the drag still
-    // demonstrably acted, the marker having been placed and committed.
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2, 4]);
+    // 4px of 200px across 4s is 0.08s, one cell once the grid rounds it: the drag cleared the
+    // slop, so it was placed and committed rather than read as a click.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0.1, 2, 4]);
   });
 });
 
@@ -588,7 +590,7 @@ describe('inherited markers', () => {
     await dragElement(own);
 
     // Released at 2.4s, inside the branch's bounds (floor 2).
-    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([2.5]);
+    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([2.4]);
   });
 });
 
@@ -613,8 +615,8 @@ describe('screen bars', () => {
 
     await dragElement(within(rowFor(P2)).getByTestId(`screen-handle-${SCREEN_1}`));
 
-    // clientX 120 of 200px is 2.4s, which the grid rounds to 2.5; the screen starts at 2s.
-    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.5, 6);
+    // clientX 120 of 200px is 2.4s, already on the grid; the screen starts at 2s.
+    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.4, 6);
   });
 
   it('shows an ancestor screen on a descendant branch without a handle or a remove control', async () => {
@@ -642,7 +644,7 @@ describe('screen bars', () => {
 
     // No layout: the drop maps to t=0, before the screen starts. It floors at one grid cell,
     // rather than being refused (which would leave 1), so the drag demonstrably acted.
-    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.5, 6);
+    expect(screensOfRoot()[0]?.duration).toBeCloseTo(TIME_GRID_S, 6);
   });
 });
 
