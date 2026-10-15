@@ -676,7 +676,7 @@ describe('track alignment', () => {
 describe('text selection', () => {
   it('makes the timeline unselectable, so a marker drag does not select row labels', () => {
     renderEditor(fixturePlay, <Timeline />);
-    const surface = screen.getByTestId('step-ruler').parentElement as HTMLElement;
+    const surface = screen.getByTestId('timeline-surface');
 
     expect(surface.style.userSelect).toBe('none');
   });

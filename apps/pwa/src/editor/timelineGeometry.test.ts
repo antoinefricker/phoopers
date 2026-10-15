@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { resolveBranch } from '../engine';
 import { fixturePlay, P1, ROOT } from '../engine/__fixtures__/play';
-import { MARKER_WIDTH_PX, TRACK_INSET_PX, fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
+import { MARKER_WIDTH_PX, TRACK_INSET_PX, fractionOf, gridTicks, rowsOf, timeFromClientX } from './timelineGeometry';
+import { TIME_GRID_S, gridTime } from '../play2d/transportMath';
 
 describe('fractionOf', () => {
   it('maps a time to its fraction of the duration', () => {
@@ -115,5 +116,55 @@ describe('track inset', () => {
     // Every pixel of inset is a pixel the time axis does not span, on all three surfaces that
     // share it. An inset well past the overhang is waste, not safety.
     expect(TRACK_INSET_PX).toBeLessThanOrEqual(MARKER_WIDTH_PX);
+  });
+});
+
+describe('gridTicks', () => {
+  // Written against TIME_GRID_S rather than its value: a line per authoring cell is the rule,
+  // and the cell has been retuned once already.
+  const CELLS_PER_SECOND = Math.round(1 / TIME_GRID_S);
+
+  it('puts a line on every authoring cell, from zero to the duration', () => {
+    // A minor line marks a time a keyframe can actually take.
+    const ticks = gridTicks(2);
+
+    expect(ticks).toHaveLength(2 * CELLS_PER_SECOND + 1);
+    expect(ticks.map((tick) => tick.t)).toEqual(ticks.map((_, index) => gridTime(index)));
+  });
+
+  it('marks the whole seconds major and the cells between them minor', () => {
+    const ticks = gridTicks(2);
+
+    expect(ticks.filter((tick) => tick.major).map((tick) => tick.t)).toEqual([0, 1, 2]);
+    expect(ticks.filter((tick) => !tick.major)).toHaveLength(ticks.length - 3);
+  });
+
+  it('keeps the times clean rather than letting a cell count drift', () => {
+    // 63 cells of 0.1s multiply out to 6.300000000000001, which misses the `% 1 === 0` test.
+    const ticks = gridTicks(20);
+
+    expect(ticks.map((tick) => tick.t)).toEqual(ticks.map((tick) => Number(tick.t.toFixed(6))));
+    expect(ticks.filter((tick) => tick.major)).toHaveLength(21);
+  });
+
+  it('stops short of the duration when it is not a whole number of cells', () => {
+    const ticks = gridTicks(1 + TIME_GRID_S / 2);
+
+    expect(ticks.at(-1)?.t).toBe(1);
+  });
+
+  it('drops the sub-second cells on a play too long to draw them all', () => {
+    // 240 lines is the cutoff, so the shortest play that crosses it is 240 cells long.
+    const ticks = gridTicks(240 * TIME_GRID_S);
+
+    expect(ticks.every((tick) => tick.major)).toBe(true);
+    expect(ticks).toHaveLength(240 / CELLS_PER_SECOND + 1);
+  });
+
+  it('has no grid for a duration that is not a positive number', () => {
+    expect(gridTicks(0)).toEqual([]);
+    expect(gridTicks(-1)).toEqual([]);
+    expect(gridTicks(Number.NaN)).toEqual([]);
+    expect(gridTicks(Number.POSITIVE_INFINITY)).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import type { EntityId, Keyframe, ResolvedTimeline } from '../engine';
+import { TIME_GRID_S, gridTime } from '../play2d/transportMath';
 
 export interface TimelineRowModel {
   entityId: EntityId;
@@ -18,6 +19,42 @@ export const MARKER_HEIGHT_PX = 18;
 // marker at t = 0 or t = duration overflows its track again; the gutter is the scrollbar's
 // width, reserved on the scrubber as well as on the tracks so the axis ends at one x.
 export { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX } from '../play2d/transportMath';
+
+// Past this many lines the grid stops being a reading aid and becomes a smear of DOM nodes, so
+// a play long enough to cross it keeps only its whole seconds. 240 is four minutes of them.
+const MAX_GRID_LINES = 240;
+
+export interface GridTick {
+  t: number;
+  /** A whole second, drawn more strongly than the half-second between two of them. */
+  major: boolean;
+}
+
+/**
+ * The vertical lines behind the ruler and the tracks: one per `TIME_GRID_S` cell, from 0 to the
+ * duration inclusive, each marked major on a whole second.
+ *
+ * The cell is the authoring grid, so a minor line is literally "a time a keyframe can take".
+ * A duration that is not a positive number has no grid rather than one line or an endless loop.
+ *
+ * Times come from `gridTime`, which is what keeps a cell count a clean decimal: accumulating
+ * the cell, or simply multiplying by it, drifts into values like 6.300000000000001 that miss
+ * the `% 1 === 0` test deciding major from minor.
+ */
+export function gridTicks(duration: number): GridTick[] {
+  if (!Number.isFinite(duration) || duration <= 0) return [];
+
+  const cells = Math.floor(duration / TIME_GRID_S);
+  // Minors first, and only while they stay legible; beyond that the whole seconds carry the grid.
+  const step = cells + 1 > MAX_GRID_LINES ? Math.round(1 / TIME_GRID_S) : 1;
+  const ticks: GridTick[] = [];
+  for (let index = 0; index <= cells; index += step) {
+    const t = gridTime(index);
+    ticks.push({ t, major: t % 1 === 0 });
+  }
+
+  return ticks;
+}
 
 export function fractionOf(t: number, duration: number): number {
   if (!(duration > 0) || !Number.isFinite(t)) return 0;

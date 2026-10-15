@@ -11,7 +11,7 @@ import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { StepRuler } from './StepRuler';
 import { forkTimeOf } from './mutations';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
-import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
+import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX, fractionOf, gridTicks, rowsOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { DRAG_SLOP_PX } from './useTimeDrag';
 
@@ -107,41 +107,82 @@ export function Timeline() {
       {/* Keys arrive from the focused marker button and bubble up to here. */}
       {/* Same reason as the court: dragging a marker must not highlight the row labels or a
           step name. Inputs below re-enable selection for the text they actually edit. */}
-      <Box style={{ position: 'relative', userSelect: 'none' }} onKeyDown={onKeyDown}>
-        <StepRuler />
-        {/* Only the players are sortable: the ball leads the list and is not one. `closestCenter`
+      <Box data-testid="timeline-surface" style={{ position: 'relative', userSelect: 'none' }} onKeyDown={onKeyDown}>
+        {/* The time grid, behind everything: one line per authoring cell, crossing the ruler and
+            every row so they read as one axis rather than as rows that happen to agree. Same
+            insets as the playhead's layer, so a line at t = 0 or t = duration lands on the
+            track's end and not on the marker that overhangs it.
+            Grey at two strengths rather than two colours: the whole second is the border token
+            at full strength and the half-second the same token faded, so the pair stays in
+            step with the theme in light and in dark with nothing to tune twice. */}
+        <Box
+          data-testid="time-grid"
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: `calc(${LABEL_WIDTH} + ${TRACK_INSET_PX}px)`,
+            right: TRACK_INSET_PX,
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        >
+          {gridTicks(duration).map(({ t, major }) => (
+            <div
+              key={t}
+              data-testid={major ? 'time-grid-major' : 'time-grid-minor'}
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: `${fractionOf(t, duration) * 100}%`,
+                width: 1,
+                background: 'var(--mantine-color-default-border)',
+                opacity: major ? 1 : 0.4,
+              }}
+            />
+          ))}
+        </Box>
+        {/* Positioned, and above the grid: the rows and the ruler draw no background of their
+            own, so without a layer of their own the absolutely positioned grid paints over
+            their markers. The playhead's layer sits above both. */}
+        <Box data-testid="timeline-content" style={{ position: 'relative', zIndex: 1 }}>
+          <StepRuler />
+          {/* Only the players are sortable: the ball leads the list and is not one. `closestCenter`
             over rows of equal height reads as "the row the pointer is over". Restricted to the
             vertical axis and to the list's own box, so a drag cannot wander across the time
             axis or out of the panel. */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-          onDragEnd={onDragEnd}
-          accessibility={{ announcements, screenReaderInstructions: { draggable: instructions } }}
-        >
-          <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-            {rowsOf(timeline).map((row) => (
-              <TimelineRow
-                key={row.entityId}
-                row={row}
-                duration={duration}
-                screens={timeline.screens.filter((screen) => screen.screenerId === row.entityId)}
-                selection={selection}
-                onKeyframeRetimed={(entityId, fromT, toT) => {
-                  // The selection names a keyframe by its time, which the drag just changed.
-                  if (selection?.kind === 'keyframe' && selection.entityId === entityId && selection.t === fromT) {
-                    select({ kind: 'keyframe', entityId, t: toT });
-                  }
-                }}
-                onSelectKeyframe={(entityId, t) => {
-                  select({ kind: 'keyframe', entityId, t });
-                  seek(t);
-                }}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+            onDragEnd={onDragEnd}
+            accessibility={{ announcements, screenReaderInstructions: { draggable: instructions } }}
+          >
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              {rowsOf(timeline).map((row) => (
+                <TimelineRow
+                  key={row.entityId}
+                  row={row}
+                  duration={duration}
+                  screens={timeline.screens.filter((screen) => screen.screenerId === row.entityId)}
+                  selection={selection}
+                  onKeyframeRetimed={(entityId, fromT, toT) => {
+                    // The selection names a keyframe by its time, which the drag just changed.
+                    if (selection?.kind === 'keyframe' && selection.entityId === entityId && selection.t === fromT) {
+                      select({ kind: 'keyframe', entityId, t: toT });
+                    }
+                  }}
+                  onSelectKeyframe={(entityId, t) => {
+                    select({ kind: 'keyframe', entityId, t });
+                    seek(t);
+                  }}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </Box>
         {/* Matches the tracks' inset on both sides, so the playhead and the mask stay aligned
             with the markers rather than drifting by the inset at the far end. */}
         <Box
@@ -152,6 +193,7 @@ export function Timeline() {
             left: `calc(${LABEL_WIDTH} + ${TRACK_INSET_PX}px)`,
             right: TRACK_INSET_PX,
             pointerEvents: 'none',
+            zIndex: 2,
           }}
         >
           {/* Dims what the branch inherits and cannot change. Presentation only: the court layer
