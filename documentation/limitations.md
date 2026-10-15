@@ -319,7 +319,8 @@ reading order over a play actually is.
 
 ### The time grid thins by window width, which nothing guards against
 
-`gridTicks` draws one line per `TIME_GRID_S` cell behind the ruler and the tracks, and gives up
+`gridTicks` draws one line per `TIME_GRID_S` cell behind the transport, the ruler and the
+tracks, and gives up
 its sub-second lines only past `MAX_GRID_LINES` — a count, not a spacing. Nothing therefore
 reacts to the width the track is actually given, so the same play reads as a grid on a wide
 window and as hatching on a narrow one.

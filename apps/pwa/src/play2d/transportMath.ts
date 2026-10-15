@@ -56,6 +56,16 @@ export const GUTTER_WIDTH = '160px';
 // rather than beside the marker it is derived from.
 export const TRACK_INSET_PX = 6;
 
+// The transport's row is exactly as tall as its buttons. Pinned here rather than left to
+// Mantine's default ActionIcon height, because the time grid has to know it and cannot read it:
+// the grid is drawn by a sibling of the transport, which is laid out after it.
+export const TRANSPORT_ROW_HEIGHT_PX = 28;
+
+// The scrubber's time axis: the line its thumb travels along, down the middle of that row. The
+// grid's lines start here rather than at the top of the row, so they hang from the scrubber
+// instead of crossing it — a scrubber carries one line of time, not a height of it.
+export const SCRUBBER_AXIS_PX = TRANSPORT_ROW_HEIGHT_PX / 2;
+
 // The tracks scroll vertically and the scrubber does not, so the scrollbar's width is taken
 // from the tracks alone and the two axes end at different x the moment the rows overflow.
 // Both surfaces reserve it unconditionally instead: a gutter that appears with the scrollbar

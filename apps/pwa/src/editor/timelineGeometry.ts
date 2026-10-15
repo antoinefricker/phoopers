@@ -18,7 +18,7 @@ export const MARKER_HEIGHT_PX = 18;
 // the room each end of the axis keeps, and must stay at or above half `MARKER_WIDTH_PX` or a
 // marker at t = 0 or t = duration overflows its track again; the gutter is the scrollbar's
 // width, reserved on the scrubber as well as on the tracks so the axis ends at one x.
-export { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX } from '../play2d/transportMath';
+export { SCROLLBAR_GUTTER_PX, SCRUBBER_AXIS_PX, TRACK_INSET_PX } from '../play2d/transportMath';
 
 // Past this many lines the grid stops being a reading aid and becomes a smear of DOM nodes, so
 // a play long enough to cross it keeps only its whole seconds. 240 is four minutes of them.

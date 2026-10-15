@@ -5,12 +5,15 @@ import { resolveBranch } from '../engine';
 import { ROOT, fixturePlay } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
+import { SCRUBBER_AXIS_PX, TRANSPORT_ROW_HEIGHT_PX } from '../play2d/transportMath';
 import { gridTicks } from './timelineGeometry';
 import { renderEditor } from './testUtils/renderEditor';
 
 beforeEach(() => stubViewportWidth(1440));
 
 const enterEditMode = () => userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
+
+const px = (value: string) => Number(value.replace('px', ''));
 
 // The duration is resolved from the branch, not stored on the play.
 const DURATION = resolveBranch(fixturePlay, ROOT).duration;
@@ -50,12 +53,41 @@ describe('the time grid behind the timeline', () => {
     expect(lefts.at(-1)).toBe('100%');
   });
 
-  it('shares the axis insets with the playhead, so a line lands on the track and not past it', async () => {
+  it('ends where the playhead does, although it is measured from further out', async () => {
+    // The two no longer share a parent: the playhead is inside the scroll viewport, which
+    // already reserves the scrollbar's gutter, while the grid is outside it and has to reserve
+    // that gutter itself. Their raw `right` therefore differ by exactly the gutter, and the
+    // lines still land on the same x. Asserting them equal would pin the wrong thing.
     const grid = await renderTimeline();
-    const playhead = screen.getByTestId('timeline-playhead').parentElement;
+    const playhead = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
+    const viewport = screen.getByTestId('timeline-viewport');
 
-    expect(grid.style.left).toBe(playhead?.style.left);
-    expect(grid.style.right).toBe(playhead?.style.right);
+    expect(grid.style.left).toBe(playhead.style.left);
+    expect(px(grid.style.right)).toBe(px(viewport.style.paddingRight) + px(playhead.style.right));
+  });
+
+  it('starts its lines on the scrubber axis, derived from the transport own height', async () => {
+    // The whole point of deriving it: the offset used to be a hand-tuned 12, which would have
+    // drifted off the scrubber in silence the day the transport row or the thumb changed size.
+    // Both sides are pinned here, so a change to one without the other fails rather than slips.
+    const grid = await renderTimeline();
+    const transport = screen.getByTestId('transport-row');
+    const [line] = within(grid).getAllByTestId('time-grid-major');
+
+    expect(transport).toHaveStyle({ height: `${TRANSPORT_ROW_HEIGHT_PX}px` });
+    expect(px(line?.style.top ?? '')).toBe(TRANSPORT_ROW_HEIGHT_PX / 2);
+    expect(px(line?.style.top ?? '')).toBe(SCRUBBER_AXIS_PX);
+  });
+
+  it('runs behind the transport and not only behind the rows', async () => {
+    // The point of the change: a line that stopped at the step ruler left the scrubber above it
+    // on an axis of its own. The grid is a sibling of the box holding BOTH, so it spans them.
+    const grid = await renderTimeline();
+    const transport = screen.getByTestId('transport-row');
+
+    expect(grid.parentElement?.contains(transport)).toBe(true);
+    // And outside the rows' scroll area, or it would be clipped back to them.
+    expect(screen.getByTestId('timeline-viewport').contains(grid)).toBe(false);
   });
 
   it('stays out of the way: no pointer events, and hidden from assistive technology', async () => {
@@ -66,12 +98,22 @@ describe('the time grid behind the timeline', () => {
     expect(grid).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('sits behind the rows and under the playhead', async () => {
+  it('sits behind the surfaces it is drawn for', async () => {
+    // Compared against its own sibling, not across stacking contexts: the grid and the box
+    // holding the transport and the timeline are the two children that share a parent, and
+    // theirs is the only z-index comparison the browser actually resolves between them.
     const grid = await renderTimeline();
-    const playhead = screen.getByTestId('timeline-playhead').parentElement;
+    const above = screen.getByTestId('transport-row').closest('[style*="z-index"]') as HTMLElement;
+
+    expect(grid.parentElement?.contains(above)).toBe(true);
+    expect(Number(grid.style.zIndex)).toBeLessThan(Number(above.style.zIndex));
+  });
+
+  it('keeps the playhead above the rows inside the timeline', async () => {
+    await renderTimeline();
+    const playhead = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
     const rows = screen.getByTestId('timeline-content');
 
-    expect(Number(grid.style.zIndex)).toBeLessThan(Number(rows.style.zIndex));
-    expect(Number(rows.style.zIndex)).toBeLessThan(Number(playhead?.style.zIndex));
+    expect(Number(rows.style.zIndex)).toBeLessThan(Number(playhead.style.zIndex));
   });
 });
