@@ -20,4 +20,14 @@ void i18n
     interpolation: { escapeValue: false },
   });
 
+// Assistive technology picks its voice and its pronunciation from `<html lang>`, so the
+// document has to say which language it is actually in. Set on every change and once at start,
+// because the detector may have resolved a language before anything subscribed.
+const trackDocumentLanguage = (language: string) => {
+  if (typeof document !== 'undefined') document.documentElement.lang = language;
+};
+
+i18n.on('languageChanged', trackDocumentLanguage);
+trackDocumentLanguage(i18n.resolvedLanguage ?? SUPPORTED_LOCALES[0]);
+
 export default i18n;

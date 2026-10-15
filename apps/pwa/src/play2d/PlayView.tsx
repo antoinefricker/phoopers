@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActionIcon, Box, Group, Paper, Popover, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
 import { IconGitBranch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 import { SelectionActions } from '../editor/SelectionActions';
 import { IssuePanel } from '../editor/IssuePanel';
 import { EditorToolbar } from '../editor/EditorToolbar';
@@ -88,6 +89,9 @@ export function PlayView() {
                   { value: 'half', label: t('play.court.half', 'Half court') },
                 ]}
               />
+              {/* After the court view, at the far end of the header's controls: it is set once
+                  and left alone, unlike its neighbours. */}
+              <LanguageSwitcher />
             </Group>
           </Group>
           {/* The time controls sit above the court, between it and the header. The scrubber stays

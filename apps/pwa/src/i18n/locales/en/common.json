@@ -1,4 +1,7 @@
 {
+  "app": {
+    "language": "Language"
+  },
   "play": {
     "branches": {
       "label": "Play branches",

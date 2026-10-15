@@ -1,4 +1,7 @@
 {
+  "app": {
+    "language": "Langue"
+  },
   "play": {
     "branches": {
       "label": "Variantes du schéma",
