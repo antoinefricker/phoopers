@@ -19,7 +19,7 @@ export function SelectionActions() {
         <Paper withBorder p="xs" data-testid="selection-actions">
           <Group gap="sm">
             <Text size="sm" fw={500}>
-              {t('play.editor.selectedPlayer', 'Player {{label}}', { label: player.label })}
+              {t('play.editor.selectedPlayer', 'Player {{label}}', { label: player.number })}
             </Text>
             <Button
               size="xs"

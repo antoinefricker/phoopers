@@ -3,14 +3,14 @@ import { COURT_DIMENSIONS, resolveBranch, stateAt } from '../../engine';
 import { FORMATION } from '../formation';
 
 // Each side is numbered 1..5 on its own, so both teams hold a player called "2"; the court
-// tells them apart by the circle's fill. A label is never reused: the next free integer is one
+// tells them apart by the circle's fill. A number is never reused: the next free integer is one
 // past the highest in use, which keeps numbering stable when a middle player is removed.
-// The leading "X" is still stripped when reading existing labels, so a play authored before
+// The leading "X" is still stripped when reading existing numbers, so a play authored before
 // defenders lost the prefix keeps numbering correctly.
-export function nextLabel(players: readonly Player[], team: 'offense' | 'defense'): string {
+export function nextNumber(players: readonly Player[], team: 'offense' | 'defense'): string {
   const used = players
     .filter((p) => p.team === team)
-    .map((p) => Number.parseInt(p.label.replace(/^X/, ''), 10))
+    .map((p) => Number.parseInt(p.number.replace(/^X/, ''), 10))
     .filter((n) => Number.isFinite(n));
   const next = used.length === 0 ? 1 : Math.max(...used) + 1;
 
@@ -30,7 +30,7 @@ const mapRoot = (play: Play, mutate: (branch: Branch) => Branch): Branch[] =>
 // at the origin, so the token would simply not appear. Writing t=0 on placement is what keeps
 // that unreachable by hand.
 export function addPlayer(play: Play, team: 'offense' | 'defense', id: PlayerId): Play {
-  const player: Player = { id, team, label: nextLabel(play.players, team) };
+  const player: Player = { id, team, number: nextNumber(play.players, team) };
 
   return {
     ...play,
@@ -127,7 +127,7 @@ export function applyFormation(play: Play, ids: FormationIds): Play {
     ids[team].forEach((id, index) => {
       const position = positions[index];
       if (position === undefined) return;
-      players.push({ id, team, label: nextLabel([...play.players, ...players], team) });
+      players.push({ id, team, number: nextNumber([...play.players, ...players], team) });
       tracks[id] = [{ t: 0, position }];
     });
   }

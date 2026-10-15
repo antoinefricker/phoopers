@@ -51,10 +51,10 @@ describe('rowsOf', () => {
     expect(row?.keyframes.map((k) => k.attachedTo)).toEqual([P1, P1, 'p2', 'p2']);
   });
 
-  it('labels a player row with the player label and a team', () => {
+  it('numbers a player row and carries their team', () => {
     const row = rowsOf(timeline).find((r) => r.entityId === P1);
 
-    expect(row?.label).toBe('1');
+    expect(row?.number).toBe('1');
     expect(row?.team).toBe('offense');
   });
 

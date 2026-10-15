@@ -3,7 +3,8 @@ import { TIME_GRID_S, gridTime } from '../play2d/transportMath';
 
 export interface TimelineRowModel {
   entityId: EntityId;
-  label: string;
+  /** The number drawn inside the symbol. Empty for the ball, which wears none. */
+  number: string;
   team: 'offense' | 'defense' | 'ball';
   keyframes: Keyframe[];
 }
@@ -69,7 +70,7 @@ export function fractionOf(t: number, duration: number): number {
 export function rowsOf(timeline: ResolvedTimeline): TimelineRowModel[] {
   const players: TimelineRowModel[] = timeline.players.map((player) => ({
     entityId: player.id,
-    label: player.label,
+    number: player.number,
     team: player.team,
     keyframes: timeline.anchors[player.id] ?? [],
   }));
@@ -77,7 +78,8 @@ export function rowsOf(timeline: ResolvedTimeline): TimelineRowModel[] {
   // The ball leads. It is the one row a coach never reorders — it is not a player and has no
   // place in `play.players`, which carries the order of everything that is — so it sits where
   // nothing has to be dragged past it.
-  return [{ entityId: 'ball', label: 'ball', team: 'ball', keyframes: timeline.anchors.ball ?? [] }, ...players];
+  // The ball wears no number and is never renamed: the views name it outright.
+  return [{ entityId: 'ball', number: '', team: 'ball', keyframes: timeline.anchors.ball ?? [] }, ...players];
 }
 
 // Maps a pointer's x to a time across a row. Without layout (jsdom, a hidden canvas) the box is

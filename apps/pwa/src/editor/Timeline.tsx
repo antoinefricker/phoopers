@@ -54,7 +54,7 @@ export function Timeline() {
   const sortableIds = timeline.players.map((player) => player.id);
   // dnd-kit identifies by `UniqueIdentifier`, so the comparison crosses the branded id on
   // purpose: these three only ever read what the sortable list was given.
-  const nameOf = (id: string) => timeline.players.find((player) => String(player.id) === id)?.label ?? id;
+  const nameOf = (id: string) => timeline.players.find((player) => String(player.id) === id)?.number ?? id;
   const positionOf = (id: string) => sortableIds.findIndex((candidate) => String(candidate) === id) + 1;
 
   // dnd-kit speaks English by default, which would be the one untranslated thing a French

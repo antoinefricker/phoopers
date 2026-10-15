@@ -60,7 +60,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
     opened: false,
     count: 0,
   });
-  const labelOf = (id: string) => timeline.players.find((p) => p.id === id)?.label ?? id;
+  const numberOf = (id: string) => timeline.players.find((p) => p.id === id)?.number ?? id;
   const { hidden, toggleHidden, isolate } = useHiddenEntitiesContext();
   const { removePlayer, selection: editorSelection, select } = useEditorContext();
   // The dialog stays mounted for Mantine's exit transition, and `count` re-keys it per open,
@@ -88,8 +88,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   const rowName = isBall
     ? t('play.editor.ballRow', 'Ball')
     : row.team === 'offense'
-      ? t('play.editor.offenseRow', 'Offense {{label}}', { label: row.label })
-      : t('play.editor.defenseRow', 'Defense {{label}}', { label: row.label });
+      ? t('play.editor.offenseRow', 'Offense {{number}}', { number: row.number })
+      : t('play.editor.defenseRow', 'Defense {{number}}', { number: row.number });
 
   return (
     <Box
@@ -119,7 +119,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           color="gray"
           size="sm"
           ref={setActivatorNodeRef}
-          aria-label={t('play.editor.reorderRow', 'Reorder {{label}}', { label: row.label })}
+          aria-label={t('play.editor.reorderRow', 'Reorder {{label}}', { label: row.number })}
           style={{ cursor: 'grab', touchAction: 'none', visibility: isBall ? 'hidden' : 'visible' }}
           {...sortableAttributes}
           {...sortableListeners}
@@ -132,7 +132,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           ) : (
             <PlayerSymbolBadge
               team={row.team === 'defense' ? 'defense' : 'offense'}
-              label={row.label}
+              number={row.number}
               sizePx={ROW_SYMBOL_PX}
               name={rowName}
             />
@@ -174,7 +174,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           color="red"
           size="sm"
           mr={4}
-          aria-label={t('play.editor.removePlayer', 'Remove player {{label}}', { label: row.label })}
+          aria-label={t('play.editor.removePlayer', 'Remove player {{label}}', { label: row.number })}
           onClick={() => setRemovingPlayer((r) => ({ opened: true, count: r.count + 1 }))}
           style={{ visibility: isBall ? 'hidden' : 'visible' }}
         >
@@ -404,11 +404,11 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         <ConfirmDelete
           key={`player-${removingPlayer.count}`}
           opened={removingPlayer.opened}
-          title={t('play.editor.removePlayerTitle', 'Remove player {{label}}?', { label: row.label })}
+          title={t('play.editor.removePlayerTitle', 'Remove player {{label}}?', { label: row.number })}
           body={t(
             'play.editor.removePlayerBody',
             'Player {{label}} will be removed from every branch, together with every screen they are part of.',
-            { label: row.label },
+            { label: row.number },
           )}
           confirmLabel={t('play.editor.remove', 'Remove')}
           onConfirm={() => {
@@ -426,8 +426,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         opened={removing.opened}
         title={t('play.editor.removeScreenTitle', 'Remove this screen?')}
         body={t('play.editor.removeScreenBody', 'The screen set by {{screener}} for {{beneficiary}} will be removed.', {
-          screener: removingScreen === undefined ? '' : labelOf(removingScreen.screenerId),
-          beneficiary: removingScreen === undefined ? '' : labelOf(removingScreen.beneficiaryId),
+          screener: removingScreen === undefined ? '' : numberOf(removingScreen.screenerId),
+          beneficiary: removingScreen === undefined ? '' : numberOf(removingScreen.beneficiaryId),
         })}
         confirmLabel={t('play.editor.remove', 'Remove')}
         onConfirm={() => {

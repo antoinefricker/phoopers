@@ -154,7 +154,7 @@ export function CourtEditLayer() {
         hitTarget(
           player.id as PlayerId,
           PLAYER_HIT_RADIUS,
-          t('play.editor.dragPlayer', 'Move player {{label}}', { label: player.label }),
+          t('play.editor.dragPlayer', 'Move player {{label}}', { label: player.number }),
         ),
       )}
       {hasBall && hitTarget('ball', BALL_HIT_RADIUS, t('play.editor.dragBall', 'Move the ball'))}

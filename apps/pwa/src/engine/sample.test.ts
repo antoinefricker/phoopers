@@ -309,7 +309,7 @@ describe('moving versus standing still', () => {
         name: 'standing',
         court: 'fiba',
         rootBranchId: ROOT,
-        players: [{ id: P1, team: 'offense', label: '1' }],
+        players: [{ id: P1, team: 'offense', number: '1' }],
         branches: [
           {
             id: ROOT,

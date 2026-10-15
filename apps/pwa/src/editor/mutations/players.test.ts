@@ -4,7 +4,7 @@ import { resolveBranch, stateAt, validatePlay } from '../../engine';
 import { distance } from '../../engine/vec2';
 import { fixturePlay, P1, P2, ROOT } from '../../engine/__fixtures__/play';
 import { FORMATION } from '../formation';
-import { addPlayer, applyFormation, movePlayer, nextLabel, removePlayer } from './players';
+import { addPlayer, applyFormation, movePlayer, nextNumber, removePlayer } from './players';
 
 const NEW = 'p-new' as PlayerId;
 const trackOf = (play: Play, id: PlayerId) => play.branches.find((b) => b.id === ROOT)?.tracks[id];
@@ -29,10 +29,10 @@ describe('addPlayer', () => {
   });
 
   it('numbers offense and defense independently', () => {
-    expect(nextLabel(fixturePlay.players, 'offense')).toBe('3');
+    expect(nextNumber(fixturePlay.players, 'offense')).toBe('3');
     // Defenders were "X1".."X5" when the symbol was an X. The symbol is now an outlined
     // circle, so the number stands alone and the teams are told apart by the circle's fill.
-    expect(nextLabel(fixturePlay.players, 'defense')).toBe('1');
+    expect(nextNumber(fixturePlay.players, 'defense')).toBe('1');
   });
 });
 
@@ -142,7 +142,7 @@ describe('movePlayer', () => {
   const ids = (play: Play) => play.players.map((p) => p.id);
   const three = {
     ...fixturePlay,
-    players: [...fixturePlay.players, { id: 'p3' as PlayerId, team: 'defense' as const, label: 'X1' }],
+    players: [...fixturePlay.players, { id: 'p3' as PlayerId, team: 'defense' as const, number: 'X1' }],
   };
 
   it('moves a player to the index asked for', () => {

@@ -258,7 +258,7 @@ describe('TokenLayer', () => {
     // an EMPTY track (anchors present but no keyframes) samples to the court origin instead.
     const withoutTrack: Play = {
       ...hornsPlay,
-      players: [...hornsPlay.players, { id: 'bench' as never, team: 'offense', label: 'B' }],
+      players: [...hornsPlay.players, { id: 'bench' as never, team: 'offense', number: 'B' }],
     };
     const withEmptyTrack: Play = {
       ...withoutTrack,

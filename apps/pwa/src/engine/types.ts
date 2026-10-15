@@ -15,7 +15,11 @@ export type Easing = EasingPreset | CubicBezierEasing;
 export interface Player {
   id: PlayerId;
   team: 'offense' | 'defense';
-  label: string;
+  /**
+   * The number inside the symbol on the court, "1".."5". Each side is numbered on its own, so
+   * both teams hold a player called "2" and the symbol's shape tells them apart.
+   */
+  number: string;
 }
 
 export interface Keyframe {

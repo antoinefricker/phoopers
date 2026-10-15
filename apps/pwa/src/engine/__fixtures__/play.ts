@@ -12,8 +12,8 @@ export const fixturePlay: Play = {
   name: 'Horns entry',
   court: 'fiba',
   players: [
-    { id: P1, team: 'offense', label: '1' },
-    { id: P2, team: 'offense', label: '2' },
+    { id: P1, team: 'offense', number: '1' },
+    { id: P2, team: 'offense', number: '2' },
   ],
   rootBranchId: ROOT,
   branches: [
