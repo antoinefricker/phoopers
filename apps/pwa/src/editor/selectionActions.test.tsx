@@ -136,7 +136,7 @@ describe('removing a screen', () => {
 });
 
 describe('removing a player', () => {
-  // The gutter is 160px and the name needs most of what is left beside the symbol, so removing
+  // The gutter is 180px and the name needs much of what is left beside the symbol, so removing
   // lives in the row's actions menu rather than on a button of its own. Opening it is therefore
   // part of reaching the command.
   const openRowMenu = async (entityId: string) => {

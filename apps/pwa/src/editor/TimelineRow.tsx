@@ -160,7 +160,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
             />
           )}
           {/* Beside the symbol, not instead of it: the symbol says which side, the name says
-              which player. The gutter is narrow — about 62px are left here — so a long name
+              which player. The gutter is narrow — about 82px are left here — so a long name
               ellipses and carries the whole of itself in `title`. Hidden from assistive
               technology because the badge beside it already carries the very same string as its
               accessible name, and a screen reader would otherwise read every row twice. */}
@@ -205,9 +205,9 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         </ActionIcon>
         {/* On a player's row only: the ball is neither named nor removed, having no record in
             `play.players` to hold either. It keeps the space so every row's controls line up.
-            A menu rather than two more buttons: the gutter is 160px and already holds four
+            A menu rather than two more buttons: the gutter is 180px and already holds four
             controls, and a fifth would take the width the name needs — measured, "Attaquant 1"
-            is 55px of the 62 left beside the symbol. Trading the delete button for this one
+            is 55px of the 82 left beside the symbol. Trading the delete button for this one
             costs nothing and buys the rename an obvious home.
             Every entry is named after the player, or eleven rows would offer a voice-control
             user eleven identical commands. */}

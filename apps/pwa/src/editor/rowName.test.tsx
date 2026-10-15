@@ -56,7 +56,7 @@ describe('the name beside a row symbol', () => {
   });
 
   it('carries the whole name in the title, the gutter being too narrow for a long one', async () => {
-    // About 62px are left beside the symbol, so a long name ellipses on screen. The title is
+    // About 82px are left beside the symbol, so a long name ellipses on screen. The title is
     // then the only place the rest of it survives.
     const long = 'Meneur de jeu remplacant';
     await render(named(long));

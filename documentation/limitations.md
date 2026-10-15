@@ -326,8 +326,8 @@ reacts to the width the track is actually given, so the same play reads as a gri
 window and as hatching on a narrow one.
 
 Measured in a browser on the sample play (8s, so 81 lines, 72 of them minor): at a 1024px
-viewport the track is 808px and the lines fall 10.1px apart; at 768px the track is 552px and
-they fall 6.9px apart. The count guard does not engage in either case — at a 0.1s cell it first
+viewport the track is 788px and the lines fall 9.85px apart; at 768px the track is 532px and
+they fall 6.65px apart. The count guard does not engage in either case — at a 0.1s cell it first
 engages on a play longer than 24s, whatever the window.
 
 It was left because the two strengths carry the reading at these widths: the whole seconds stay
