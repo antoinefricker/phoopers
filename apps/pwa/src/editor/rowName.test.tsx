@@ -79,8 +79,13 @@ describe('the name beside a row symbol', () => {
     const row = within(screen.getByTestId(`timeline-row-${P1}`));
 
     expect(row.getByRole('button', { name: 'Hide Pivot' })).toBeInTheDocument();
-    expect(row.getByRole('button', { name: 'Remove player Pivot' })).toBeInTheDocument();
     expect(row.getByRole('button', { name: 'Reorder Pivot' })).toBeInTheDocument();
+    expect(row.getByRole('button', { name: 'Actions for Pivot' })).toBeInTheDocument();
+
+    await userEvent.click(row.getByRole('button', { name: 'Actions for Pivot' }));
+    const menu = within(await screen.findByTestId(`row-menu-${P1}`));
+
+    expect(menu.getByRole('menuitem', { name: 'Remove player Pivot' })).toBeInTheDocument();
   });
 
   it('names the players in the screen dialog the same way', async () => {

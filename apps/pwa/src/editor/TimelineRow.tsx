@@ -1,7 +1,7 @@
-import { ActionIcon, Box, CloseButton, Text } from '@mantine/core';
+import { ActionIcon, Box, CloseButton, Menu, Text } from '@mantine/core';
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { IconEye, IconEyeOff, IconGripVertical, IconTrash } from '@tabler/icons-react';
+import { IconDots, IconEye, IconEyeOff, IconGripVertical, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
 import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
@@ -76,6 +76,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
     opened: false,
     count: 0,
   });
+  const [menuOpen, setMenuOpen] = useState(false);
   const removingScreen = screens.find((s) => s.id === removing.target);
   const isBall = row.team === 'ball';
   // The ball is not sortable: it leads the list and is not a player. `disabled` keeps the row
@@ -198,20 +199,42 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         >
           {hidden.has(row.entityId) ? <IconEyeOff size={14} stroke={1.5} /> : <IconEye size={14} stroke={1.5} />}
         </ActionIcon>
-        {/* On a player's row only: the ball has no player to remove. Named after the player,
-            or eleven rows would offer a voice-control user eleven identical buttons. */}
-
-        <ActionIcon
-          variant="subtle"
-          color="red"
-          size="sm"
-          mr={4}
-          aria-label={t('play.editor.removePlayer', 'Remove player {{label}}', { label: rowName })}
-          onClick={() => setRemovingPlayer((r) => ({ opened: true, count: r.count + 1 }))}
-          style={{ visibility: isBall ? 'hidden' : 'visible' }}
-        >
-          <IconTrash size={14} stroke={1.5} />
-        </ActionIcon>
+        {/* On a player's row only: the ball has no player to remove. It keeps the space so
+            every row's controls line up.
+            A menu rather than a button per command: the gutter is 160px and already holds four
+            controls, and a fifth would take the width the name needs — measured, "Attaquant 1"
+            is 55px of the 62 left beside the symbol. Trading the delete button for this one
+            costs nothing and leaves room for the commands to come.
+            Every entry is named after the player, or eleven rows would offer a voice-control
+            user eleven identical commands. */}
+        {/* Portalled, which is Mantine's default and is load-bearing here: the row lives inside
+            the tracks' scroll area, and a dropdown rendered in place is clipped by it — measured
+            at 57px of the menu cut off below the viewport's edge. jsdom has no layout, so no
+            test can see this; it is why the menu is opened in a browser before it is believed. */}
+        <Menu opened={menuOpen} onChange={setMenuOpen} position="bottom-end" shadow="md" trapFocus>
+          <Menu.Target>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              mr={4}
+              aria-label={t('play.editor.rowActions', 'Actions for {{label}}', { label: rowName })}
+              onClick={() => setMenuOpen((open) => !open)}
+              style={{ visibility: isBall ? 'hidden' : 'visible' }}
+            >
+              <IconDots size={14} stroke={1.5} />
+            </ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown data-testid={`row-menu-${row.entityId}`}>
+            <Menu.Item
+              color="red"
+              leftSection={<IconTrash size={14} stroke={1.5} />}
+              onClick={() => setRemovingPlayer((r) => ({ opened: true, count: r.count + 1 }))}
+            >
+              {t('play.editor.removePlayer', 'Remove player {{label}}', { label: rowName })}
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
       </Box>
       {/* Inset so a marker sitting at t=0 or t=duration fits inside the track: it is a rotated
           square, so it reaches half its DIAGONAL past its time. Without this the last marker

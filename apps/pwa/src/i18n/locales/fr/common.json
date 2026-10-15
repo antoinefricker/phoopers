@@ -76,6 +76,7 @@
       "reorderStart_one": "",
       "reorderStart_many": "",
       "reorderStart_other": "",
+      "rowActions": "Actions pour {{label}}",
       "save": "Enregistrer",
       "screenDuration": "Durée de l'écran",
       "selectedPlayer": "Joueur {{label}}",

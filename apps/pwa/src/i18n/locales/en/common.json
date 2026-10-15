@@ -72,6 +72,7 @@
       "reorderRow": "Reorder {{label}}",
       "reorderStart_one": "Picked up {{name}}, position {{position}} of {{count}}.",
       "reorderStart_other": "Picked up {{name}}, position {{position}} of {{count}}.",
+      "rowActions": "Actions for {{label}}",
       "save": "Save",
       "screenDuration": "Screen duration",
       "selectedPlayer": "Player {{label}}",
