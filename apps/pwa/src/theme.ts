@@ -8,4 +8,12 @@ const FONT_STACK = '"Roboto Condensed", system-ui, sans-serif';
 export const theme = createTheme({
   fontFamily: FONT_STACK,
   headings: { fontFamily: FONT_STACK },
+  components: {
+    ActionIcon: {
+      // Round, every one of them. Set as a style rather than through the `radius` prop: that
+      // prop resolves a token name or a pixel number, and a percentage is neither — it would
+      // emit `var(--mantine-radius-50%)`, which is not a variable that exists.
+      styles: { root: { borderRadius: '50%' } },
+    },
+  },
 });

@@ -82,16 +82,18 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   return (
     <Box data-testid={`timeline-row-${row.entityId}`} style={{ display: 'flex', alignItems: 'center', height: '2rem' }}>
       <Box w={GUTTER_WIDTH} style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-        {isBall ? (
-          <BallSymbolBadge sizePx={ROW_SYMBOL_PX} name={rowName} />
-        ) : (
-          <PlayerSymbolBadge
-            team={row.team === 'defense' ? 'defense' : 'offense'}
-            label={row.label}
-            sizePx={ROW_SYMBOL_PX}
-            name={rowName}
-          />
-        )}
+        <Box style={{ flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }}>
+          {isBall ? (
+            <BallSymbolBadge sizePx={ROW_SYMBOL_PX} name={rowName} />
+          ) : (
+            <PlayerSymbolBadge
+              team={row.team === 'defense' ? 'defense' : 'offense'}
+              label={row.label}
+              sizePx={ROW_SYMBOL_PX}
+              name={rowName}
+            />
+          )}
+        </Box>
         {/* The name goes in the label, not just "Hide": eleven rows would otherwise offer a
             voice-control user eleven identical buttons. `aria-pressed` carries the state, which
             the icon alone shows only to those who can see it. */}
@@ -112,18 +114,18 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         </ActionIcon>
         {/* On a player's row only: the ball has no player to remove. Named after the player,
             or eleven rows would offer a voice-control user eleven identical buttons. */}
-        {!isBall && (
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            size="sm"
-            ml={4}
-            aria-label={t('play.editor.removePlayer', 'Remove player {{label}}', { label: row.label })}
-            onClick={() => setRemovingPlayer((r) => ({ opened: true, count: r.count + 1 }))}
-          >
-            <IconTrash size={14} stroke={1.5} />
-          </ActionIcon>
-        )}
+
+        <ActionIcon
+          variant="subtle"
+          color="red"
+          size="sm"
+          mr={4}
+          aria-label={t('play.editor.removePlayer', 'Remove player {{label}}', { label: row.label })}
+          onClick={() => setRemovingPlayer((r) => ({ opened: true, count: r.count + 1 }))}
+          style={{ visibility: isBall ? 'hidden' : 'visible' }}
+        >
+          <IconTrash size={14} stroke={1.5} />
+        </ActionIcon>
       </Box>
       {/* Inset so a marker sitting at t=0 or t=duration fits inside the track: it is a rotated
           square, so it reaches half its DIAGONAL past its time. Without this the last marker
