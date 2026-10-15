@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { P1, fixturePlay } from '../engine/__fixtures__/play';
+import { P1, P2, fixturePlay } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { renderEditor } from './testUtils/renderEditor';
@@ -17,6 +17,16 @@ const pathFor = (container: HTMLElement, entityId: string) =>
   container.querySelector(`[data-testid="player-path"][data-player-id="${entityId}"]`);
 const hideButton = (entityId: string) =>
   within(screen.getByTestId(`timeline-row-${entityId}`)).getByRole('button', { name: /^(Hide|Show) / });
+const ballToken = (container: HTMLElement) => container.querySelector('[data-testid="ball-token"]');
+
+// Alt is held across the press, as a pointer does, rather than passed as an option: the handler
+// reads `event.altKey` off the click, which only a real modifier state sets.
+const altClick = async (button: HTMLElement) => {
+  const user = userEvent.setup();
+  await user.keyboard('{Alt>}');
+  await user.click(button);
+  await user.keyboard('{/Alt}');
+};
 
 describe('hiding an entity from the court', () => {
   it('takes the token and its path off the court, and leaves the row behind', async () => {
@@ -162,5 +172,87 @@ describe('hiding an entity from the court', () => {
 
     expect(hideButton(P1)).toHaveAccessibleName('Show Offense 1');
     expect(hideButton(P1)).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+describe('isolating one entity with alt+click', () => {
+  it('leaves the clicked entity on the court and takes every other one off', async () => {
+    const { container } = renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+    await enterEditMode();
+
+    await altClick(hideButton(P1));
+
+    expect(tokenFor(container, P1)).not.toBeNull();
+    expect(tokenFor(container, P2)).toBeNull();
+    expect(ballToken(container)).toBeNull();
+  });
+
+  it('brings them all back when the clicked entity is already the only one showing', async () => {
+    // The second press has to undo the first, or isolating is a one-way trip a coach escapes
+    // only by clicking every other row.
+    const { container } = renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+    await enterEditMode();
+    await altClick(hideButton(P1));
+    // Asserted, or a pair of plain toggles would pass this case without isolating anything.
+    expect(tokenFor(container, P2)).toBeNull();
+
+    await altClick(hideButton(P1));
+
+    expect(tokenFor(container, P1)).not.toBeNull();
+    expect(tokenFor(container, P2)).not.toBeNull();
+    expect(ballToken(container)).not.toBeNull();
+  });
+
+  it('reveals the clicked entity when it was itself hidden', async () => {
+    // "Show only this one" has to show it: isolating a hidden row from its own button would
+    // otherwise empty the court.
+    const { container } = renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+    await enterEditMode();
+    await userEvent.click(hideButton(P1));
+    expect(tokenFor(container, P1)).toBeNull();
+
+    await altClick(hideButton(P1));
+
+    expect(tokenFor(container, P1)).not.toBeNull();
+    expect(tokenFor(container, P2)).toBeNull();
+  });
+
+  it('reads "already alone" from the court rather than from the last isolate', async () => {
+    // Isolate P1, then show P2 by hand: P1 is no longer alone, so the next alt+click isolates
+    // again rather than restoring. A stored "isolated id" would have restored here.
+    const { container } = renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+    await enterEditMode();
+    await altClick(hideButton(P1));
+    await userEvent.click(hideButton(P2));
+    expect(tokenFor(container, P2)).not.toBeNull();
+
+    await altClick(hideButton(P1));
+
+    expect(tokenFor(container, P1)).not.toBeNull();
+    expect(tokenFor(container, P2)).toBeNull();
+    expect(ballToken(container)).toBeNull();
+  });
+
+  it('isolates the ball too, it having a row like any other entity', async () => {
+    const { container } = renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+    await enterEditMode();
+
+    await altClick(hideButton('ball'));
+
+    expect(ballToken(container)).not.toBeNull();
+    expect(tokenFor(container, P1)).toBeNull();
+    expect(tokenFor(container, P2)).toBeNull();
+  });
+
+  it('leaves a plain click a plain toggle', async () => {
+    // The modifier is the whole difference; without it the button must not touch other rows.
+    const { container } = renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+    await enterEditMode();
+
+    await userEvent.click(hideButton(P1));
+
+    expect(tokenFor(container, P1)).toBeNull();
+    expect(tokenFor(container, P2)).not.toBeNull();
+    expect(ballToken(container)).not.toBeNull();
   });
 });

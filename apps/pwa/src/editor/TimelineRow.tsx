@@ -9,7 +9,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { ConfirmDelete } from './ConfirmDelete';
 import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
-import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf } from './timelineGeometry';
+import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
 import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
@@ -61,7 +61,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
     count: 0,
   });
   const labelOf = (id: string) => timeline.players.find((p) => p.id === id)?.label ?? id;
-  const { hidden, toggleHidden } = useHiddenEntitiesContext();
+  const { hidden, toggleHidden, isolate } = useHiddenEntitiesContext();
   const { removePlayer, selection: editorSelection, select } = useEditorContext();
   // The dialog stays mounted for Mantine's exit transition, and `count` re-keys it per open,
   // the same shape the screen removal above uses.
@@ -113,20 +113,19 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         {/* Leads the gutter, where a hand reaches to pick a row up. The listeners go on the
             handle alone rather than the row, so a drag starts here and nowhere else — the rest
             of the row is markers to grab and controls to press. */}
-        {!isBall && (
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size="sm"
-            ref={setActivatorNodeRef}
-            aria-label={t('play.editor.reorderRow', 'Reorder {{label}}', { label: row.label })}
-            style={{ cursor: 'grab', touchAction: 'none' }}
-            {...sortableAttributes}
-            {...sortableListeners}
-          >
-            <IconGripVertical size={14} stroke={1.5} />
-          </ActionIcon>
-        )}
+
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="sm"
+          ref={setActivatorNodeRef}
+          aria-label={t('play.editor.reorderRow', 'Reorder {{label}}', { label: row.label })}
+          style={{ cursor: 'grab', touchAction: 'none', visibility: isBall ? 'hidden' : 'visible' }}
+          {...sortableAttributes}
+          {...sortableListeners}
+        >
+          <IconGripVertical size={14} stroke={1.5} />
+        </ActionIcon>
         <Box style={{ flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }}>
           {isBall ? (
             <BallSymbolBadge sizePx={ROW_SYMBOL_PX} name={rowName} />
@@ -141,7 +140,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         </Box>
         {/* The name goes in the label, not just "Hide": eleven rows would otherwise offer a
             voice-control user eleven identical buttons. `aria-pressed` carries the state, which
-            the icon alone shows only to those who can see it. */}
+            the icon alone shows only to those who can see it.
+            Alt and not Ctrl: on macOS Ctrl+click IS the secondary click, so the browser opens a
+            context menu and the modified click never arrives. Alt is the solo modifier in the
+            drawing tools a coach is likely to have met, and it is free on every platform. */}
         <ActionIcon
           variant="subtle"
           color="gray"
@@ -153,7 +155,14 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               ? t('play.editor.showEntity', 'Show {{name}}', { name: rowName })
               : t('play.editor.hideEntity', 'Hide {{name}}', { name: rowName })
           }
-          onClick={() => toggleHidden(row.entityId)}
+          onClick={(event) =>
+            event.altKey
+              ? isolate(
+                  row.entityId,
+                  rowsOf(timeline).map((r) => r.entityId),
+                )
+              : toggleHidden(row.entityId)
+          }
         >
           {hidden.has(row.entityId) ? <IconEyeOff size={14} stroke={1.5} /> : <IconEye size={14} stroke={1.5} />}
         </ActionIcon>
