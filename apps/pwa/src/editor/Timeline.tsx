@@ -11,7 +11,7 @@ import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { StepRuler } from './StepRuler';
 import { forkTimeOf } from './mutations';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
-import { TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
+import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { DRAG_SLOP_PX } from './useTimeDrag';
 
@@ -92,8 +92,18 @@ export function Timeline() {
   // so whether the rows continue below the fold is something the coach has to see without
   // first moving the pointer into the panel. The bar is offset rather than laid over the
   // tracks, which end at the same x as the scrubber above them.
+  // The gutter is padded here rather than through `offsetScrollbars`, whose padding appears
+  // only while the bar does: the scrubber above cannot follow that, so the two axes parted
+  // company as soon as the rows overflowed. The transport reserves the same width always.
+  // On the viewport, not on the Box below it: an absolutely positioned child — the playhead,
+  // the pre-fork mask — is laid out against its container's PADDING box, so padding there
+  // would move the tracks and leave both of them behind.
   return (
-    <ScrollArea type="auto" offsetScrollbars="y">
+    <ScrollArea
+      type="auto"
+      viewportProps={{ 'data-testid': 'timeline-viewport' }}
+      styles={{ viewport: { paddingRight: SCROLLBAR_GUTTER_PX } }}
+    >
       {/* Keys arrive from the focused marker button and bubble up to here. */}
       {/* Same reason as the court: dragging a marker must not highlight the row labels or a
           step name. Inputs below re-enable selection for the text they actually edit. */}

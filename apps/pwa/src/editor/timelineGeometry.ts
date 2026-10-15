@@ -13,10 +13,11 @@ export interface TimelineRowModel {
 export const MARKER_WIDTH_PX = 12;
 export const MARKER_HEIGHT_PX = 18;
 
-// The inset lives with the shared axis geometry because the transport needs it too. It must
-// stay at or above half the marker's diagonal — ceil(14 * sqrt(2) / 2) = 10 — or a marker at
-// t = 0 or t = duration overflows its track again.
-export { TRACK_INSET_PX } from '../play2d/transportMath';
+// Both live with the shared axis geometry because the transport needs them too: the inset is
+// the room each end of the axis keeps, and must stay at or above half `MARKER_WIDTH_PX` or a
+// marker at t = 0 or t = duration overflows its track again; the gutter is the scrollbar's
+// width, reserved on the scrubber as well as on the tracks so the axis ends at one x.
+export { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX } from '../play2d/transportMath';
 
 export function fractionOf(t: number, duration: number): number {
   if (!(duration > 0) || !Number.isFinite(t)) return 0;

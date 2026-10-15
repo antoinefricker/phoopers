@@ -39,6 +39,13 @@ export const GUTTER_WIDTH = '160px';
 // rather than beside the marker it is derived from.
 export const TRACK_INSET_PX = 6;
 
+// The tracks scroll vertically and the scrubber does not, so the scrollbar's width is taken
+// from the tracks alone and the two axes end at different x the moment the rows overflow.
+// Both surfaces reserve it unconditionally instead: a gutter that appears with the scrollbar
+// would move the axis under the coach's pointer as a row is added. Mantine's own scrollbar
+// size, `--scrollarea-scrollbar-size`, which is 0.75rem at the default scale.
+export const SCROLLBAR_GUTTER_PX = 12;
+
 export function snapToStep(t: number, steps: readonly Step[], threshold: number): number {
   let best: number | undefined;
   let bestDistance = Infinity;

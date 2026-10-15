@@ -10,6 +10,7 @@ import {
 } from '@tabler/icons-react';
 import {
   GUTTER_WIDTH,
+  SCROLLBAR_GUTTER_PX,
   TIME_GRID_S,
   TRACK_INSET_PX,
   adjacentStep,
@@ -64,7 +65,15 @@ export function PlaybackTransport() {
   };
 
   return (
-    <Group gap={0} align="center" wrap="nowrap">
+    // The same gutter the tracks below keep for their scrollbar, so the scrubber ends where
+    // the markers do whether or not the rows are scrolling. See `SCROLLBAR_GUTTER_PX`.
+    <Group
+      gap={0}
+      align="center"
+      wrap="nowrap"
+      data-testid="transport-row"
+      style={{ paddingRight: SCROLLBAR_GUTTER_PX }}
+    >
       {/* The buttons fill the same gutter the timeline gives its row labels, so the scrubber
           and the tracks begin at the same x and one playhead reads true across all three. */}
       <Group gap="xs" w={GUTTER_WIDTH} wrap="nowrap" style={{ flexShrink: 0 }}>
