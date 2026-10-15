@@ -37,7 +37,7 @@ export const GUTTER_WIDTH = '160px';
 // panel grows a horizontal scrollbar. The scrubber takes the same inset or it drifts from the
 // markers at the far end — which is why the number lives here, with the shared axis geometry,
 // rather than beside the marker it is derived from.
-export const TRACK_INSET_PX = 4;
+export const TRACK_INSET_PX = 6;
 
 export function snapToStep(t: number, steps: readonly Step[], threshold: number): number {
   let best: number | undefined;
