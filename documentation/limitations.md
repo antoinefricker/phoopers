@@ -317,6 +317,27 @@ labelled "X1".."X5".
 name each token group, and give the paths text alternatives — then decide what a sensible
 reading order over a play actually is.
 
+### The time grid thins by window width, which nothing guards against
+
+`gridTicks` draws one line per `TIME_GRID_S` cell behind the ruler and the tracks, and gives up
+its sub-second lines only past `MAX_GRID_LINES` — a count, not a spacing. Nothing therefore
+reacts to the width the track is actually given, so the same play reads as a grid on a wide
+window and as hatching on a narrow one.
+
+Measured in a browser on the sample play (8s, so 81 lines, 72 of them minor): at a 1024px
+viewport the track is 808px and the lines fall 10.1px apart; at 768px the track is 552px and
+they fall 6.9px apart. The count guard does not engage in either case — at a 0.1s cell it first
+engages on a play longer than 24s, whatever the window.
+
+It was left because the two strengths carry the reading at these widths: the whole seconds stay
+legible as the cells between them close up, which is what the grid is for. A spacing guard also
+needs a measured width, and the component has none — the track is laid out by flex, so its width
+is known to the browser and not to React without a `ResizeObserver`.
+
+**Fix:** observe the track and drop the minor lines below a floor of about 8px of spacing, the
+same way `MAX_GRID_LINES` drops them by count. `gridTicks` already takes the whole decision in
+one place, so it would take a width argument and nothing else would move.
+
 ## Test coverage gaps
 
 ### The animation loop is not unit-testable
