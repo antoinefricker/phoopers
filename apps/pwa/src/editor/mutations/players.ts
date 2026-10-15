@@ -18,6 +18,35 @@ export function nextNumber(players: readonly Player[], team: 'offense' | 'defens
   return String(next);
 }
 
+/**
+ * Gives a player the coach's own name, or takes it back when they clear the field.
+ *
+ * A name of nothing but spaces is no name: the property is DROPPED rather than written empty,
+ * so `entityName` returns to the side and the number and the play never carries blank strings
+ * that would have to be guarded against everywhere they are read.
+ *
+ * The name is trimmed on the way in. A leading space is a slip, never a choice, and leaving it
+ * would make two players called "Pivot" sort and read as different ones.
+ */
+export function renamePlayer(play: Play, playerId: PlayerId, label: string): Play {
+  const trimmed = label.trim();
+
+  return {
+    ...play,
+    players: play.players.map((player) => {
+      if (player.id !== playerId) return player;
+      if (trimmed === '') {
+        const unnamed = { ...player };
+        delete unnamed.label;
+
+        return unnamed;
+      }
+
+      return { ...player, label: trimmed };
+    }),
+  };
+}
+
 const centre = (play: Play): Vec2 => {
   const { length, width } = COURT_DIMENSIONS[play.court];
 

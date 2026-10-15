@@ -85,6 +85,7 @@ describe('the name beside a row symbol', () => {
     await userEvent.click(row.getByRole('button', { name: 'Actions for Pivot' }));
     const menu = within(await screen.findByTestId(`row-menu-${P1}`));
 
+    expect(menu.getByRole('menuitem', { name: 'Rename Pivot' })).toBeInTheDocument();
     expect(menu.getByRole('menuitem', { name: 'Remove player Pivot' })).toBeInTheDocument();
   });
 

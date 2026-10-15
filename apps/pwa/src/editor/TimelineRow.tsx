@@ -1,13 +1,14 @@
 import { ActionIcon, Box, CloseButton, Menu, Text } from '@mantine/core';
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { IconDots, IconEye, IconEyeOff, IconGripVertical, IconTrash } from '@tabler/icons-react';
+import { IconDots, IconEye, IconEyeOff, IconGripVertical, IconPencil, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
 import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
 import { useSortable } from '@dnd-kit/sortable';
 import { ConfirmDelete } from './ConfirmDelete';
 import { entityName } from './entityName';
+import { RenamePlayer } from './RenamePlayer';
 import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
 import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
@@ -69,7 +70,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
     return player === undefined ? id : entityName(player, t);
   };
   const { hidden, toggleHidden, isolate } = useHiddenEntitiesContext();
-  const { removePlayer, selection: editorSelection, select } = useEditorContext();
+  const { removePlayer, renamePlayer, selection: editorSelection, select } = useEditorContext();
   // The dialog stays mounted for Mantine's exit transition, and `count` re-keys it per open,
   // the same shape the screen removal above uses.
   const [removingPlayer, setRemovingPlayer] = useState<{ opened: boolean; count: number }>({
@@ -77,6 +78,9 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
     count: 0,
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  // Same shape as the removal above: kept mounted for the exit transition, re-keyed per open so
+  // the field starts from the player's current name without an effect writing state.
+  const [renaming, setRenaming] = useState<{ opened: boolean; count: number }>({ opened: false, count: 0 });
   const removingScreen = screens.find((s) => s.id === removing.target);
   const isBall = row.team === 'ball';
   // The ball is not sortable: it leads the list and is not a player. `disabled` keeps the row
@@ -199,12 +203,12 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         >
           {hidden.has(row.entityId) ? <IconEyeOff size={14} stroke={1.5} /> : <IconEye size={14} stroke={1.5} />}
         </ActionIcon>
-        {/* On a player's row only: the ball has no player to remove. It keeps the space so
-            every row's controls line up.
-            A menu rather than a button per command: the gutter is 160px and already holds four
+        {/* On a player's row only: the ball is neither named nor removed, having no record in
+            `play.players` to hold either. It keeps the space so every row's controls line up.
+            A menu rather than two more buttons: the gutter is 160px and already holds four
             controls, and a fifth would take the width the name needs — measured, "Attaquant 1"
             is 55px of the 62 left beside the symbol. Trading the delete button for this one
-            costs nothing and leaves room for the commands to come.
+            costs nothing and buys the rename an obvious home.
             Every entry is named after the player, or eleven rows would offer a voice-control
             user eleven identical commands. */}
         {/* Portalled, which is Mantine's default and is load-bearing here: the row lives inside
@@ -226,6 +230,12 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
             </ActionIcon>
           </Menu.Target>
           <Menu.Dropdown data-testid={`row-menu-${row.entityId}`}>
+            <Menu.Item
+              leftSection={<IconPencil size={14} stroke={1.5} />}
+              onClick={() => setRenaming((r) => ({ opened: true, count: r.count + 1 }))}
+            >
+              {t('play.editor.renamePlayer', 'Rename {{label}}', { label: rowName })}
+            </Menu.Item>
             <Menu.Item
               color="red"
               leftSection={<IconTrash size={14} stroke={1.5} />}
@@ -455,6 +465,19 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           );
         })}
       </Box>
+      {!isBall && (
+        <RenamePlayer
+          key={`rename-${renaming.count}`}
+          opened={renaming.opened}
+          current={row.label ?? ''}
+          // The name WITHOUT the one the coach gave: the placeholder says what clearing the
+          // field gives back, so passing `rowName` showed them their own name as the thing
+          // they would fall back to.
+          fallback={entityName({ ...row, label: undefined }, t)}
+          onRename={(label) => renamePlayer(row.entityId as PlayerId, label)}
+          onClose={() => setRenaming((r) => ({ ...r, opened: false }))}
+        />
+      )}
       {!isBall && (
         <ConfirmDelete
           key={`player-${removingPlayer.count}`}

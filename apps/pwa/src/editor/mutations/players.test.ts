@@ -4,7 +4,7 @@ import { resolveBranch, stateAt, validatePlay } from '../../engine';
 import { distance } from '../../engine/vec2';
 import { fixturePlay, P1, P2, ROOT } from '../../engine/__fixtures__/play';
 import { FORMATION } from '../formation';
-import { addPlayer, applyFormation, movePlayer, nextNumber, removePlayer } from './players';
+import { addPlayer, applyFormation, movePlayer, nextNumber, removePlayer, renamePlayer } from './players';
 
 const NEW = 'p-new' as PlayerId;
 const trackOf = (play: Play, id: PlayerId) => play.branches.find((b) => b.id === ROOT)?.tracks[id];
@@ -181,5 +181,59 @@ describe('movePlayer', () => {
     movePlayer(three, P1, 2);
 
     expect(JSON.stringify(three)).toBe(before);
+  });
+});
+
+describe('renamePlayer', () => {
+  const nameOf = (play: Play, id: PlayerId) => play.players.find((p) => p.id === id)?.label;
+
+  it('gives the player the name the coach typed', () => {
+    expect(nameOf(renamePlayer(fixturePlay, P1, 'Pivot'), P1)).toBe('Pivot');
+  });
+
+  it('leaves every other player alone', () => {
+    const renamed = renamePlayer(fixturePlay, P1, 'Pivot');
+
+    expect(nameOf(renamed, P2)).toBeUndefined();
+    expect(renamed.players).toHaveLength(fixturePlay.players.length);
+  });
+
+  it('touches nothing but the roster', () => {
+    // A rename is not a change to the play: its branches, steps and tracks are the same objects.
+    const renamed = renamePlayer(fixturePlay, P1, 'Pivot');
+
+    expect(renamed.branches).toBe(fixturePlay.branches);
+  });
+
+  it('drops the name rather than storing an empty one', () => {
+    // `entityName` falls back on an absent name; an empty string stored instead would have to be
+    // guarded against everywhere a name is read.
+    const named = renamePlayer(fixturePlay, P1, 'Pivot');
+
+    const cleared = renamePlayer(named, P1, '');
+
+    expect(nameOf(cleared, P1)).toBeUndefined();
+    expect(Object.hasOwn(cleared.players.find((p) => p.id === P1) ?? {}, 'label')).toBe(false);
+  });
+
+  it('treats a name of nothing but spaces as clearing it', () => {
+    const named = renamePlayer(fixturePlay, P1, 'Pivot');
+
+    expect(nameOf(renamePlayer(named, P1, '   '), P1)).toBeUndefined();
+  });
+
+  it('trims what the coach typed', () => {
+    // A leading space is a slip, never a choice, and would make two "Pivot" read as different.
+    expect(nameOf(renamePlayer(fixturePlay, P1, '  Pivot  '), P1)).toBe('Pivot');
+  });
+
+  it('leaves the number alone, which is not the name', () => {
+    expect(renamePlayer(fixturePlay, P1, 'Pivot').players.find((p) => p.id === P1)?.number).toBe('1');
+  });
+
+  it('does nothing for a player that is not in the play', () => {
+    const play = renamePlayer(fixturePlay, 'nobody' as PlayerId, 'Pivot');
+
+    expect(play.players).toEqual(fixturePlay.players);
   });
 });
