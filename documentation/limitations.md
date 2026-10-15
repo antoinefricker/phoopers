@@ -338,6 +338,29 @@ is known to the browser and not to React without a `ResizeObserver`.
 same way `MAX_GRID_LINES` drops them by count. `gridTicks` already takes the whole decision in
 one place, so it would take a width argument and nothing else would move.
 
+### Isolating an entity is reachable by pointer only, and nothing announces it
+
+Alt+click on a row's visibility button isolates that entity — it hides every other one, and a
+second press brings them all back. The modifier is read off the click (`event.altKey` in
+`TimelineRow`), so the whole feature hangs on a pointer gesture. Nothing on screen, and nothing
+in the button's accessible name, says the gesture exists.
+
+Measured in a browser on the sample play: with the button focused and Alt held, pressing Enter
+fires no `click` event at all — the browser suppresses the default activation while Alt is down —
+so the handler never runs and the court is unchanged. The plain toggle is unaffected: Enter
+without Alt works as it always did. The button's accessible name is "Hide Offense 3" either way.
+
+It was left because the alternatives each cost more than the gesture is worth on its own: a
+second button per row doubles the controls in a gutter that already holds four, and putting
+"alt+click to isolate" in the accessible name makes a voice-control user hear the instruction on
+all eleven rows. The gesture is a shortcut for an action that is already possible by hand, so
+nothing is unreachable — only slower.
+
+**Fix:** give the button an `aria-keyshortcuts` and a visible hint in a tooltip, and add a
+keyboard path that is not a modified activation — a shortcut on the focused row, or an entry in
+the add menu acting on the selection. `isolate` in `HiddenEntitiesContextProvider` already takes
+the whole decision, so any new caller is one line.
+
 ## Test coverage gaps
 
 ### The animation loop is not unit-testable
