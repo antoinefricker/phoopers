@@ -7,6 +7,7 @@ import { FORMATION } from '../formation';
 // past the highest in use, which keeps numbering stable when a middle player is removed.
 // The leading "X" is still stripped when reading existing numbers, so a play authored before
 // defenders lost the prefix keeps numbering correctly.
+// It numbers only; a new player carries no `label`, the coach not having named them yet.
 export function nextNumber(players: readonly Player[], team: 'offense' | 'defense'): string {
   const used = players
     .filter((p) => p.team === team)

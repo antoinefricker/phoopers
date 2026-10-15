@@ -153,14 +153,14 @@ describe('removing a player', () => {
   it('names the player it removes, so eleven of them are told apart', async () => {
     await renderView();
 
-    expect(removeButton(P1)).toHaveAccessibleName('Remove player 1');
+    expect(removeButton(P1)).toHaveAccessibleName('Remove player Offense 1');
   });
 
   it('asks first, and keeps the player when cancelled', async () => {
     await renderView();
 
     await userEvent.click(removeButton(P1));
-    expect(await screen.findByText('Remove player 1?')).toBeInTheDocument();
+    expect(await screen.findByText('Remove player Offense 1?')).toBeInTheDocument();
     expect(players().map((p) => p.id)).toContain(P1);
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 

@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import type { PlayerId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { StepRuler } from './StepRuler';
+import { entityName } from './entityName';
 import { forkTimeOf } from './mutations';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
 import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
@@ -54,7 +55,11 @@ export function Timeline() {
   const sortableIds = timeline.players.map((player) => player.id);
   // dnd-kit identifies by `UniqueIdentifier`, so the comparison crosses the branded id on
   // purpose: these three only ever read what the sortable list was given.
-  const nameOf = (id: string) => timeline.players.find((player) => String(player.id) === id)?.number ?? id;
+  const nameOf = (id: string) => {
+    const player = timeline.players.find((candidate) => String(candidate.id) === id);
+
+    return player === undefined ? id : entityName(player, t);
+  };
   const positionOf = (id: string) => sortableIds.findIndex((candidate) => String(candidate) === id) + 1;
 
   // dnd-kit speaks English by default, which would be the one untranslated thing a French

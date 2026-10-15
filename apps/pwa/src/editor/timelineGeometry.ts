@@ -5,6 +5,8 @@ export interface TimelineRowModel {
   entityId: EntityId;
   /** The number drawn inside the symbol. Empty for the ball, which wears none. */
   number: string;
+  /** The coach's own name for the entity, absent while they have not given one. */
+  label?: string;
   team: 'offense' | 'defense' | 'ball';
   keyframes: Keyframe[];
 }
@@ -71,6 +73,7 @@ export function rowsOf(timeline: ResolvedTimeline): TimelineRowModel[] {
   const players: TimelineRowModel[] = timeline.players.map((player) => ({
     entityId: player.id,
     number: player.number,
+    label: player.label,
     team: player.team,
     keyframes: timeline.anchors[player.id] ?? [],
   }));

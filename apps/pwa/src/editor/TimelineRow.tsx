@@ -1,4 +1,4 @@
-import { ActionIcon, Box, CloseButton } from '@mantine/core';
+import { ActionIcon, Box, CloseButton, Text } from '@mantine/core';
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { IconEye, IconEyeOff, IconGripVertical, IconTrash } from '@tabler/icons-react';
@@ -7,6 +7,7 @@ import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
 import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
 import { useSortable } from '@dnd-kit/sortable';
 import { ConfirmDelete } from './ConfirmDelete';
+import { entityName } from './entityName';
 import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
 import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
@@ -60,7 +61,13 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
     opened: false,
     count: 0,
   });
-  const numberOf = (id: string) => timeline.players.find((p) => p.id === id)?.number ?? id;
+  // Through the same helper as the row's own name, so a player the coach renamed is named that
+  // way in the screen dialog too rather than falling back to a bare number.
+  const nameOfPlayer = (id: string) => {
+    const player = timeline.players.find((p) => p.id === id);
+
+    return player === undefined ? id : entityName(player, t);
+  };
   const { hidden, toggleHidden, isolate } = useHiddenEntitiesContext();
   const { removePlayer, selection: editorSelection, select } = useEditorContext();
   // The dialog stays mounted for Mantine's exit transition, and `count` re-keys it per open,
@@ -85,11 +92,9 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   // The gutter draws the same token the court does rather than restating it as text, so a row
   // is recognised by the symbol the coach already reads on the floor. The badge carries the
   // name a screen reader needs, which the bare number never did — both teams used to read "2".
-  const rowName = isBall
-    ? t('play.editor.ballRow', 'Ball')
-    : row.team === 'offense'
-      ? t('play.editor.offenseRow', 'Offense {{number}}', { number: row.number })
-      : t('play.editor.defenseRow', 'Defense {{number}}', { number: row.number });
+  // `entityName` is shared with the court and the selection bar, so a renamed player reads the
+  // same everywhere and the fallback cannot drift between them.
+  const rowName = entityName(row, t);
 
   return (
     <Box
@@ -119,14 +124,26 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           color="gray"
           size="sm"
           ref={setActivatorNodeRef}
-          aria-label={t('play.editor.reorderRow', 'Reorder {{label}}', { label: row.number })}
+          aria-label={t('play.editor.reorderRow', 'Reorder {{label}}', { label: rowName })}
           style={{ cursor: 'grab', touchAction: 'none', visibility: isBall ? 'hidden' : 'visible' }}
           {...sortableAttributes}
           {...sortableListeners}
         >
           <IconGripVertical size={14} stroke={1.5} />
         </ActionIcon>
-        <Box style={{ flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }}>
+        {/* `minWidth: 0` on both, or the name refuses to shrink below its text and pushes the
+            hide and remove controls out of the gutter instead of ellipsing. */}
+        <Box
+          style={{
+            flexGrow: 1,
+            flexShrink: 1,
+            flexBasis: 'auto',
+            minWidth: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
           {isBall ? (
             <BallSymbolBadge sizePx={ROW_SYMBOL_PX} name={rowName} />
           ) : (
@@ -137,6 +154,21 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               name={rowName}
             />
           )}
+          {/* Beside the symbol, not instead of it: the symbol says which side, the name says
+              which player. The gutter is narrow — about 62px are left here — so a long name
+              ellipses and carries the whole of itself in `title`. Hidden from assistive
+              technology because the badge beside it already carries the very same string as its
+              accessible name, and a screen reader would otherwise read every row twice. */}
+          <Text
+            size="xs"
+            truncate="end"
+            title={rowName}
+            aria-hidden
+            data-testid={`row-name-${row.entityId}`}
+            style={{ minWidth: 0 }}
+          >
+            {rowName}
+          </Text>
         </Box>
         {/* The name goes in the label, not just "Hide": eleven rows would otherwise offer a
             voice-control user eleven identical buttons. `aria-pressed` carries the state, which
@@ -174,7 +206,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           color="red"
           size="sm"
           mr={4}
-          aria-label={t('play.editor.removePlayer', 'Remove player {{label}}', { label: row.number })}
+          aria-label={t('play.editor.removePlayer', 'Remove player {{label}}', { label: rowName })}
           onClick={() => setRemovingPlayer((r) => ({ opened: true, count: r.count + 1 }))}
           style={{ visibility: isBall ? 'hidden' : 'visible' }}
         >
@@ -404,11 +436,11 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         <ConfirmDelete
           key={`player-${removingPlayer.count}`}
           opened={removingPlayer.opened}
-          title={t('play.editor.removePlayerTitle', 'Remove player {{label}}?', { label: row.number })}
+          title={t('play.editor.removePlayerTitle', 'Remove player {{label}}?', { label: rowName })}
           body={t(
             'play.editor.removePlayerBody',
             'Player {{label}} will be removed from every branch, together with every screen they are part of.',
-            { label: row.number },
+            { label: rowName },
           )}
           confirmLabel={t('play.editor.remove', 'Remove')}
           onConfirm={() => {
@@ -426,8 +458,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         opened={removing.opened}
         title={t('play.editor.removeScreenTitle', 'Remove this screen?')}
         body={t('play.editor.removeScreenBody', 'The screen set by {{screener}} for {{beneficiary}} will be removed.', {
-          screener: removingScreen === undefined ? '' : numberOf(removingScreen.screenerId),
-          beneficiary: removingScreen === undefined ? '' : numberOf(removingScreen.beneficiaryId),
+          screener: removingScreen === undefined ? '' : nameOfPlayer(removingScreen.screenerId),
+          beneficiary: removingScreen === undefined ? '' : nameOfPlayer(removingScreen.beneficiaryId),
         })}
         confirmLabel={t('play.editor.remove', 'Remove')}
         onConfirm={() => {

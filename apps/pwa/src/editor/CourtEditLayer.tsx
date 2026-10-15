@@ -4,6 +4,7 @@ import type { EntityId, PlayerId } from '../engine';
 import { stateAt } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { snapToGrid } from '../play2d/transportMath';
+import { entityName } from './entityName';
 import { forkTimeOf } from './mutations';
 import { DRAG_SLOP_PX } from './useTimeDrag';
 import { courtPointFromEvent, dropTargetAt } from './pointer';
@@ -154,7 +155,7 @@ export function CourtEditLayer() {
         hitTarget(
           player.id as PlayerId,
           PLAYER_HIT_RADIUS,
-          t('play.editor.dragPlayer', 'Move player {{label}}', { label: player.number }),
+          t('play.editor.dragPlayer', 'Move player {{label}}', { label: entityName(player, t) }),
         ),
       )}
       {hasBall && hitTarget('ball', BALL_HIT_RADIUS, t('play.editor.dragBall', 'Move the ball'))}

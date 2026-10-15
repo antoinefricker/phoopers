@@ -40,7 +40,7 @@ export const HELD_BALL_OFFSET = TOKEN_SIZE / 2 / Math.SQRT2;
 
 interface Props {
   team: Player['team'];
-  /** The glyph inside the symbol: the player's number. */
+  /** The glyph inside the symbol: the player's number, never the coach's name for them. */
   number: string;
 }
 

@@ -51,11 +51,17 @@ describe('rowsOf', () => {
     expect(row?.keyframes.map((k) => k.attachedTo)).toEqual([P1, P1, 'p2', 'p2']);
   });
 
-  it('numbers a player row and carries their team', () => {
+  it('carries a player number, their name and a team onto the row', () => {
     const row = rowsOf(timeline).find((r) => r.entityId === P1);
 
     expect(row?.number).toBe('1');
+    // The fixture names nobody, which is the usual case: the views fall back to side + number.
+    expect(row?.label).toBeUndefined();
     expect(row?.team).toBe('offense');
+  });
+
+  it('gives the ball no number, it wearing none', () => {
+    expect(rowsOf(timeline).find((r) => r.entityId === 'ball')?.number).toBe('');
   });
 
   it('gives a player with no track an empty row rather than omitting them', () => {
