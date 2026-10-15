@@ -36,7 +36,10 @@ export function rowsOf(timeline: ResolvedTimeline): TimelineRowModel[] {
     keyframes: timeline.anchors[player.id] ?? [],
   }));
 
-  return [...players, { entityId: 'ball', label: 'ball', team: 'ball', keyframes: timeline.anchors.ball ?? [] }];
+  // The ball leads. It is the one row a coach never reorders — it is not a player and has no
+  // place in `play.players`, which carries the order of everything that is — so it sits where
+  // nothing has to be dragged past it.
+  return [{ entityId: 'ball', label: 'ball', team: 'ball', keyframes: timeline.anchors.ball ?? [] }, ...players];
 }
 
 // Maps a pointer's x to a time across a row. Without layout (jsdom, a hidden canvas) the box is

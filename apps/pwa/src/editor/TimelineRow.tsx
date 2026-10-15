@@ -1,10 +1,11 @@
 import { ActionIcon, Box, CloseButton } from '@mantine/core';
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { IconEye, IconEyeOff, IconTrash } from '@tabler/icons-react';
+import { IconEye, IconEyeOff, IconGripVertical, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
 import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
+import { useSortable } from '@dnd-kit/sortable';
 import { ConfirmDelete } from './ConfirmDelete';
 import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
@@ -70,6 +71,17 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   });
   const removingScreen = screens.find((s) => s.id === removing.target);
   const isBall = row.team === 'ball';
+  // The ball is not sortable: it leads the list and is not a player. `disabled` keeps the row
+  // in the layout and out of the reordering, the way its delete control is rendered hidden.
+  const {
+    attributes: sortableAttributes,
+    listeners: sortableListeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: row.entityId, disabled: isBall });
   // The gutter draws the same token the court does rather than restating it as text, so a row
   // is recognised by the symbol the coach already reads on the floor. The badge carries the
   // name a screen reader needs, which the bare number never did — both teams used to read "2".
@@ -80,8 +92,41 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
       : t('play.editor.defenseRow', 'Defense {{label}}', { label: row.label });
 
   return (
-    <Box data-testid={`timeline-row-${row.entityId}`} style={{ display: 'flex', alignItems: 'center', height: '2rem' }}>
+    <Box
+      data-testid={`timeline-row-${row.entityId}`}
+      ref={setNodeRef}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        height: '2rem',
+        // Written by dnd-kit while a row is in flight, undefined at rest. Only y is used: the
+        // drag is restricted to the vertical axis, so `@dnd-kit/utilities` would be a fourth
+        // package to turn one number into one string.
+        transform: transform === null ? undefined : `translate3d(0, ${transform.y}px, 0)`,
+        transition: transition ?? undefined,
+        // Lifted over its neighbours while dragged, or the rows below paint across it.
+        zIndex: isDragging ? 20 : undefined,
+        position: isDragging ? 'relative' : undefined,
+      }}
+    >
       <Box w={GUTTER_WIDTH} style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+        {/* Leads the gutter, where a hand reaches to pick a row up. The listeners go on the
+            handle alone rather than the row, so a drag starts here and nowhere else — the rest
+            of the row is markers to grab and controls to press. */}
+        {!isBall && (
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            ref={setActivatorNodeRef}
+            aria-label={t('play.editor.reorderRow', 'Reorder {{label}}', { label: row.label })}
+            style={{ cursor: 'grab', touchAction: 'none' }}
+            {...sortableAttributes}
+            {...sortableListeners}
+          >
+            <IconGripVertical size={14} stroke={1.5} />
+          </ActionIcon>
+        )}
         <Box style={{ flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }}>
           {isBall ? (
             <BallSymbolBadge sizePx={ROW_SYMBOL_PX} name={rowName} />

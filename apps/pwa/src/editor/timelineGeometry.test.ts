@@ -20,11 +20,21 @@ describe('fractionOf', () => {
 describe('rowsOf', () => {
   const timeline = resolveBranch(fixturePlay, ROOT);
 
-  it('produces one row per player plus the ball, ball last', () => {
+  it('produces one row per player plus the ball, ball first', () => {
+    // The ball leads: it is the one row a coach never reorders, so it sits where nothing has to
+    // move past it, and `play.players` is left to carry the order of everything that does.
     const rows = rowsOf(timeline);
 
     expect(rows).toHaveLength(fixturePlay.players.length + 1);
-    expect(rows.at(-1)?.entityId).toBe('ball');
+    expect(rows[0]?.entityId).toBe('ball');
+  });
+
+  it('keeps the players in the order the play holds them', () => {
+    expect(
+      rowsOf(timeline)
+        .slice(1)
+        .map((r) => r.entityId),
+    ).toEqual(fixturePlay.players.map((p) => p.id));
   });
 
   it('carries each entity keyframes, in time order', () => {
@@ -58,8 +68,10 @@ describe('rowsOf', () => {
       ROOT,
     );
 
+    // By id, not by position: the case is about the player keeping a row, and the ball leads
+    // the list now.
     expect(rowsOf(sparse)).toHaveLength(fixturePlay.players.length + 1);
-    expect(rowsOf(sparse)[0]?.keyframes).toEqual([]);
+    expect(rowsOf(sparse).find((r) => r.entityId === P1)?.keyframes).toEqual([]);
   });
 });
 

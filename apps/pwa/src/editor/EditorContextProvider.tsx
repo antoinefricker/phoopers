@@ -44,6 +44,9 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
   const removePlayer = useCallback<EditorContextValue['removePlayer']>((playerId) => {
     setPlay((current) => mutations.removePlayer(current, playerId));
   }, []);
+  const movePlayer = useCallback<EditorContextValue['movePlayer']>((playerId, toIndex) => {
+    setPlay((current) => mutations.movePlayer(current, playerId, toIndex));
+  }, []);
   const setKeyframe = useCallback<EditorContextValue['setKeyframe']>((branchId, entityId, t, position) => {
     setPlay((current) => mutations.setKeyframe(current, branchId, entityId, t, position));
   }, []);
@@ -143,6 +146,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       addPlayer,
       applyFormation,
       removePlayer,
+      movePlayer,
       setKeyframe,
       attachBall,
       releaseBall,
@@ -171,6 +175,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       addPlayer,
       applyFormation,
       removePlayer,
+      movePlayer,
       setKeyframe,
       attachBall,
       releaseBall,

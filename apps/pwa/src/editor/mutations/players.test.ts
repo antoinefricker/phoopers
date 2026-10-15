@@ -4,7 +4,7 @@ import { resolveBranch, stateAt, validatePlay } from '../../engine';
 import { distance } from '../../engine/vec2';
 import { fixturePlay, P1, P2, ROOT } from '../../engine/__fixtures__/play';
 import { FORMATION } from '../formation';
-import { addPlayer, applyFormation, nextLabel, removePlayer } from './players';
+import { addPlayer, applyFormation, movePlayer, nextLabel, removePlayer } from './players';
 
 const NEW = 'p-new' as PlayerId;
 const trackOf = (play: Play, id: PlayerId) => play.branches.find((b) => b.id === ROOT)?.tracks[id];
@@ -135,5 +135,51 @@ describe('applyFormation', () => {
     const ball = play.branches[0]?.tracks.ball;
     expect(ball).toEqual([{ t: 0, attachedTo: ids.offense[0] }]);
     expect(validatePlay(play)).toEqual([]);
+  });
+});
+
+describe('movePlayer', () => {
+  const ids = (play: Play) => play.players.map((p) => p.id);
+  const three = {
+    ...fixturePlay,
+    players: [...fixturePlay.players, { id: 'p3' as PlayerId, team: 'defense' as const, label: 'X1' }],
+  };
+
+  it('moves a player to the index asked for', () => {
+    expect(ids(movePlayer(three, 'p3' as PlayerId, 0))).toEqual(['p3', P1, P2]);
+    expect(ids(movePlayer(three, P1, 2))).toEqual([P2, 'p3', P1]);
+  });
+
+  it('moves one back without disturbing the rest', () => {
+    expect(ids(movePlayer(three, P2, 0))).toEqual([P2, P1, 'p3']);
+  });
+
+  it('is a no-op when the player is already there', () => {
+    expect(movePlayer(three, P1, 0)).toBe(three);
+  });
+
+  it('clamps an index outside the roster rather than dropping anyone', () => {
+    // The caller is a drag, and a drop past the last row is a thing a hand does.
+    expect(ids(movePlayer(three, P1, 99))).toEqual([P2, 'p3', P1]);
+    expect(ids(movePlayer(three, 'p3' as PlayerId, -5))).toEqual(['p3', P1, P2]);
+  });
+
+  it('is a no-op for a player the play does not have', () => {
+    expect(movePlayer(three, 'nobody' as PlayerId, 0)).toBe(three);
+  });
+
+  it('touches nothing but the order', () => {
+    const moved = movePlayer(three, P1, 2);
+
+    expect(moved.branches).toEqual(three.branches);
+    expect(new Set(ids(moved))).toEqual(new Set(ids(three)));
+    expect(validatePlay(moved)).toEqual([]);
+  });
+
+  it('leaves the input play untouched', () => {
+    const before = JSON.stringify(three);
+    movePlayer(three, P1, 2);
+
+    expect(JSON.stringify(three)).toBe(before);
   });
 });

@@ -89,6 +89,31 @@ export function removePlayer(play: Play, playerId: PlayerId): Play {
   };
 }
 
+/**
+ * Moves a player to another place in the roster.
+ *
+ * The roster's order is the order of the timeline's rows, so this is what a drag between rows
+ * writes. Nothing else reads it: a player's tracks, screens and keyframes are keyed by id, so
+ * reordering moves rows and touches no play data.
+ *
+ * `toIndex` is clamped rather than refused: the caller is a drag, and a drop past the last row
+ * is something a hand does.
+ */
+export function movePlayer(play: Play, playerId: PlayerId, toIndex: number): Play {
+  const from = play.players.findIndex((p) => p.id === playerId);
+  if (from === -1) return play;
+
+  const to = Math.min(Math.max(Math.trunc(toIndex), 0), play.players.length - 1);
+  if (to === from) return play;
+
+  const players = [...play.players];
+  const [moved] = players.splice(from, 1);
+  if (moved === undefined) return play;
+  players.splice(to, 0, moved);
+
+  return { ...play, players };
+}
+
 export type FormationIds = { offense: PlayerId[]; defense: PlayerId[] };
 
 // Builds the whole roster in one pass rather than calling addPlayer ten times, so the ball

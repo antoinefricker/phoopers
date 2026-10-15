@@ -22,6 +22,8 @@ export interface EditorContextValue {
   addPlayer: (team: 'offense' | 'defense') => void;
   applyFormation: () => void;
   removePlayer: (playerId: PlayerId) => void;
+  /** Where a player sits in the roster, which is the order of the timeline's rows. */
+  movePlayer: (playerId: PlayerId, toIndex: number) => void;
   setKeyframe: (branchId: BranchId, entityId: EntityId, t: number, position: Vec2) => void;
   attachBall: (branchId: BranchId, t: number, playerId: PlayerId) => void;
   releaseBall: (branchId: BranchId, t: number, position: Vec2) => void;

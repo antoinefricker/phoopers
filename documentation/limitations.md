@@ -327,6 +327,28 @@ transform to the right element.
 
 **Fix:** end-to-end coverage, which waits for Playwright.
 
+### No test reorders a timeline row
+
+The handle, its name, its absence on the ball's row, the ball keeping the head of the list, and
+a cancelled drag leaving the order alone are all covered. The gesture that actually moves a row
+is not.
+
+dnd-kit decides what a move passes by measuring nodes, through layout and a `ResizeObserver`
+that reports. jsdom has neither: every box is zero-high and the suite's observer is an inert
+stub, so the pointer and the keyboard both end up with no neighbour to move past. Measured:
+with per-row `getBoundingClientRect` stubs giving each row a distinct 32px band, and with
+`Element.prototype.scrollIntoView` stubbed — which dnd-kit's keyboard sensor calls and whose
+absence was throwing — the order after a full pick-up, arrow, drop sequence is unchanged.
+
+Both paths were verified by hand in a browser instead: the keyboard moved offense 1 below
+offense 2 and announced "Ligne 1 saisie, position 1 sur 10", and a 64px pointer drag over 32px
+rows moved offense 2 down several places.
+
+It was left because making it testable means simulating the library's measurement — a stub that
+reports sizes it invents — which would test the stub as much as the feature.
+
+**Fix:** Playwright, the same answer as the entry below, which this is a particular case of.
+
 ### Layout is not testable in jsdom
 
 Nothing in the suite can see how the page looks. The responsive layout, the court filling its

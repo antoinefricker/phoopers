@@ -22,3 +22,7 @@ class ResizeObserverStub {
   disconnect() {}
 }
 globalThis.ResizeObserver ??= ResizeObserverStub;
+
+// jsdom implements no scrolling, and dnd-kit's keyboard sensor brings the row it picks up into
+// view on the first key press. Without this it throws before a drag ever starts.
+Element.prototype.scrollIntoView ??= () => {};
