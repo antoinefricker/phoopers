@@ -45,6 +45,9 @@ const SNAP_FRACTION = 0.02;
 // The row is 2rem tall; the badge leaves a little air above and below.
 const ROW_SYMBOL_PX = 24;
 
+// Mantine's xs CloseButton, measured: the screen's label starts past it rather than under it.
+const SCREEN_CLOSE_PX = 18;
+
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
   const { t } = useTranslation();
   const { play, moveKeyframe, setScreenDuration, removeScreen } = useEditorContext();
@@ -306,6 +309,34 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 : undefined
             }
           >
+            {/* What the block IS, which nothing said before: a violet bar carried no meaning on
+                its own, and the beneficiary only appeared in the removal dialog. The row already
+                names the screener, so the label names the other half.
+                Transparent to the pointer, like the bar itself: a row's keyframe markers sit
+                under a screen and have to stay grabbable. That costs the `title` tooltip a
+                hover would need, so a bar too short for the whole string shows it elided — the
+                full text is still in the DOM, and an ellipsis is a painting, so a screen reader
+                reads all of it either way. */}
+            <Box
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                // Past the remove control when there is one; an inherited screen has none.
+                left: ownScreenIds.has(screen.id) ? SCREEN_CLOSE_PX + 4 : 4,
+                // Clear of the duration handle, which straddles the bar's right edge.
+                right: 8,
+                display: 'flex',
+                alignItems: 'center',
+                pointerEvents: 'none',
+              }}
+            >
+              <Text size="xs" truncate="end" data-testid={`screen-label-${screen.id}`} style={{ minWidth: 0 }}>
+                {t('play.editor.screenFor', 'Screen for {{label}}', {
+                  label: nameOfPlayer(screen.beneficiaryId),
+                })}
+              </Text>
+            </Box>
             {ownScreenIds.has(screen.id) ? (
               <CloseButton
                 size="xs"

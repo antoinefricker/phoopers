@@ -83,6 +83,7 @@
       "rowActions": "Actions pour {{label}}",
       "save": "Enregistrer",
       "screenDuration": "Durée de l'écran",
+      "screenFor": "Écran pour {{label}}",
       "selectedPlayer": "Joueur {{label}}",
       "showEntity": "Afficher {{name}}",
       "stepDefault": "Étape {{n}}",

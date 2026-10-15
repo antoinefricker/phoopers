@@ -79,6 +79,7 @@
       "rowActions": "Actions for {{label}}",
       "save": "Save",
       "screenDuration": "Screen duration",
+      "screenFor": "Screen for {{label}}",
       "selectedPlayer": "Player {{label}}",
       "showEntity": "Show {{name}}",
       "stepDefault": "Step {{n}}",
