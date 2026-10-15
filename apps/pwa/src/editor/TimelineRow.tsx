@@ -281,7 +281,17 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
             inherited={!ownScreenIds.has(screen.id)}
             leftPercent={percent(screen.t, duration)}
             widthPercent={`${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`}
-            background="var(--mantine-color-grape-light)"
+            // The offense's blue, lightened: a block reads as belonging to the attack without
+            // the saturated blue-6 their court tokens wear, which as a band behind text competed
+            // with the tokens themselves. blue-3 is the lightest shade that still lets a dark
+            // blue handle sit on it — measured, blue-4 drops that pair to 2.46:1 — while staying
+            // a visible band on the white panel at 1.96:1, where the grape it replaces was 1.3.
+            // The app has no dark scheme, so these are the only readings of them.
+            background="var(--mantine-color-blue-3)"
+            // Measured at 3.10:1 against the bar, over the 3:1 a non-text control needs but not
+            // by much: lightening the bar any further costs the handle before it costs the
+            // label. On the saturated blue-6 no shade of blue reached 3:1 at all.
+            handleBackground="var(--mantine-color-blue-9)"
             handle={
               ownScreenIds.has(screen.id)
                 ? {
@@ -340,6 +350,9 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
             {ownScreenIds.has(screen.id) ? (
               <CloseButton
                 size="xs"
+                // Black, like the label beside it: the default grey sat at 2.30:1 on the blue
+                // this replaced, under the 3:1 a control needs. Black measures 10.69 on blue-3.
+                c="black"
                 data-testid={`screen-remove-${screen.id}`}
                 aria-label={t('play.editor.removeScreen', 'Remove screen')}
                 onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}

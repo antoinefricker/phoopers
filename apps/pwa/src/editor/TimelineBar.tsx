@@ -9,6 +9,12 @@ export interface TimelineBarProps {
   leftPercent: string;
   widthPercent: string;
   background: string;
+  /**
+   * The colour of the handle on the right edge. Expected wherever `handle` is set, and ignored
+   * otherwise — an inherited bar has no handle to paint. No default: a handle has to sit against
+   * the fill it is the edge of, so no one colour is right for every bar. The default that used
+   * to be here was grape, and no bar had been grape for some time.
+   */
   handleBackground?: string;
   testId: string;
   /** Marks a bar belonging to an ancestor branch, which this branch may not change. */
@@ -40,7 +46,7 @@ export function TimelineBar({
   leftPercent,
   widthPercent,
   background,
-  handleBackground = 'var(--mantine-color-grape-filled)',
+  handleBackground,
   testId,
   inherited,
   bar,
