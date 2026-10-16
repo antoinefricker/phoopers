@@ -108,7 +108,10 @@ export function TimelineBar({
             display: 'flex',
             alignItems: 'center',
             gap: 4,
-            paddingLeft: 4,
+            // Even on both sides: the caption used to sit 4px in and the controls 8px, which
+            // read as the text being pushed against the bar's leading edge once both bars drew
+            // one. Symmetric is the one choice that needs no reason per bar.
+            paddingLeft: 8,
             paddingRight: 8,
             // Transparent as a whole, like the bar under it: a row's markers sit beneath a
             // screen and must stay grabbable. The controls opt back in for themselves.
