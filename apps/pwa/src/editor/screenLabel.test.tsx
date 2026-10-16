@@ -57,6 +57,20 @@ describe('the label on a screen block', () => {
     expect(label().parentElement).toHaveStyle({ pointerEvents: 'none' });
   });
 
+  it('puts its remove control where a step label bar puts its own', async () => {
+    // Both go through TimelineBar's `actions` slot rather than each placing itself, which is
+    // what makes them land at the same end of their bar. jsdom has no layout, so the slot is
+    // what the test can pin: the control must be inside it and not a loose child of the bar.
+    await render();
+    const bar = screen.getByTestId(`screen-bar-${SCREEN_1}`);
+    const remove = screen.getByTestId(`screen-remove-${SCREEN_1}`);
+
+    expect(bar.contains(remove)).toBe(true);
+    expect(remove.parentElement).toHaveStyle({ right: '8px' });
+    // The label stops short of it rather than running under it.
+    expect(screen.getByTestId(`screen-label-${SCREEN_1}`).parentElement).toHaveStyle({ right: '30px' });
+  });
+
   it('labels an inherited screen too, which a branch may see but not change', async () => {
     renderEditor(
       fixturePlay,

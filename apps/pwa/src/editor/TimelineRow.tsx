@@ -45,7 +45,7 @@ const SNAP_FRACTION = 0.02;
 // The row is 2rem tall; the badge leaves a little air above and below.
 const ROW_SYMBOL_PX = 24;
 
-// Mantine's xs CloseButton, measured: the screen's label starts past it rather than under it.
+// Mantine's xs CloseButton, measured: the screen's label stops short of it rather than under it.
 const SCREEN_CLOSE_PX = 18;
 
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
@@ -318,6 +318,19 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   }
                 : undefined
             }
+            actions={
+              ownScreenIds.has(screen.id) ? (
+                <CloseButton
+                  size="xs"
+                  // Black, like the label beside it: the default grey sat at 2.30:1 on the blue
+                  // this replaced, under the 3:1 a control needs. Black measures 10.69 on blue-3.
+                  c="black"
+                  data-testid={`screen-remove-${screen.id}`}
+                  aria-label={t('play.editor.removeScreen', 'Remove screen')}
+                  onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
+                />
+              ) : undefined
+            }
           >
             {/* What the block IS, which nothing said before: a violet bar carried no meaning on
                 its own, and the beneficiary only appeared in the removal dialog. The row already
@@ -332,10 +345,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 position: 'absolute',
                 top: 0,
                 bottom: 0,
-                // Past the remove control when there is one; an inherited screen has none.
-                left: ownScreenIds.has(screen.id) ? SCREEN_CLOSE_PX + 4 : 4,
-                // Clear of the duration handle, which straddles the bar's right edge.
-                right: 8,
+                left: 4,
+                // Clear of the remove control, which sits at the bar's end — where a step
+                // label bar puts its own — and of the duration handle straddling that edge.
+                right: ownScreenIds.has(screen.id) ? SCREEN_CLOSE_PX + 12 : 8,
                 display: 'flex',
                 alignItems: 'center',
                 pointerEvents: 'none',
@@ -347,18 +360,6 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 })}
               </Text>
             </Box>
-            {ownScreenIds.has(screen.id) ? (
-              <CloseButton
-                size="xs"
-                // Black, like the label beside it: the default grey sat at 2.30:1 on the blue
-                // this replaced, under the 3:1 a control needs. Black measures 10.69 on blue-3.
-                c="black"
-                data-testid={`screen-remove-${screen.id}`}
-                aria-label={t('play.editor.removeScreen', 'Remove screen')}
-                onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
-                style={{ position: 'absolute', top: 0, bottom: 0, left: 0, height: 'auto', pointerEvents: 'auto' }}
-              />
-            ) : null}
           </TimelineBar>
         ))}
         {isBall &&
