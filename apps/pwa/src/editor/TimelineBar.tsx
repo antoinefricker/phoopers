@@ -157,7 +157,7 @@ export function TimelineBar({
             position: 'absolute',
             top: 0,
             bottom: 0,
-            right: -3,
+            right: 0,
             width: 6,
             padding: 0,
             border: 0,
