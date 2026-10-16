@@ -22,7 +22,9 @@ const render = async (play: Play = fixturePlay) => {
   await enterEditMode();
 };
 
-const label = () => screen.getByTestId(`screen-label-${SCREEN_1}`);
+// The caption is the shared bar's, not an element the screen owns any more: reaching it through
+// the bar is what keeps this test honest about where the text actually comes from.
+const label = () => within(screen.getByTestId(`screen-bar-${SCREEN_1}`)).getByTestId('bar-caption');
 
 describe('the label on a screen block', () => {
   it('says what the block is and who it is set for', async () => {
@@ -36,10 +38,8 @@ describe('the label on a screen block', () => {
   it('sits on the screener row, not the beneficiary one', async () => {
     await render();
 
-    expect(
-      within(screen.getByTestId(`timeline-row-${P2}`)).getByTestId(`screen-label-${SCREEN_1}`),
-    ).toBeInTheDocument();
-    expect(within(screen.getByTestId(`timeline-row-${P1}`)).queryByTestId(`screen-label-${SCREEN_1}`)).toBeNull();
+    expect(within(screen.getByTestId(`timeline-row-${P2}`)).getByTestId(`screen-bar-${SCREEN_1}`)).toBeInTheDocument();
+    expect(within(screen.getByTestId(`timeline-row-${P1}`)).queryByTestId(`screen-bar-${SCREEN_1}`)).toBeNull();
   });
 
   it('calls the beneficiary by the name the coach gave them', async () => {
@@ -57,18 +57,16 @@ describe('the label on a screen block', () => {
     expect(label().parentElement).toHaveStyle({ pointerEvents: 'none' });
   });
 
-  it('puts its remove control where a step label bar puts its own', async () => {
-    // Both go through TimelineBar's `actions` slot rather than each placing itself, which is
-    // what makes them land at the same end of their bar. jsdom has no layout, so the slot is
-    // what the test can pin: the control must be inside it and not a loose child of the bar.
+  it('shares one row with its remove control, so neither has to guess the other width', async () => {
+    // The clearance between them used to be a number each caller wrote down — 36px for a step
+    // bar, 30px here — and it drifted the moment a control moved. They are siblings in one flex
+    // row now: the caption takes the slack and elides into it, the control keeps its natural
+    // width, and no number is written anywhere. That shared parent is what the test pins.
     await render();
-    const bar = screen.getByTestId(`screen-bar-${SCREEN_1}`);
     const remove = screen.getByTestId(`screen-remove-${SCREEN_1}`);
 
-    expect(bar.contains(remove)).toBe(true);
-    expect(remove.parentElement).toHaveStyle({ right: '8px' });
-    // The label stops short of it rather than running under it.
-    expect(screen.getByTestId(`screen-label-${SCREEN_1}`).parentElement).toHaveStyle({ right: '30px' });
+    expect(label().parentElement).toBe(remove.parentElement?.parentElement);
+    expect(label()).toHaveAttribute('data-truncate', 'end');
   });
 
   it('labels an inherited screen too, which a branch may see but not change', async () => {
@@ -82,7 +80,7 @@ describe('the label on a screen block', () => {
     await userEvent.click(screen.getByRole('button', { name: `select ${SWITCH}` }));
 
     expect(label()).toHaveTextContent('Screen for Offense 1');
-    // It carries no remove control, so its label starts at the bar's own edge instead.
+    // It carries no remove control, so its caption has the whole bar to itself.
     expect(screen.queryByTestId(`screen-remove-${SCREEN_1}`)).toBeNull();
   });
 });

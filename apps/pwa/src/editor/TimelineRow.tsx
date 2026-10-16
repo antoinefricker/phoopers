@@ -11,7 +11,16 @@ import { entityName } from './entityName';
 import { RenamePlayer } from './RenamePlayer';
 import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
-import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
+import {
+  MARKER_WIDTH_PX,
+  MARKER_HEIGHT_PX,
+  TRACK_INSET_PX,
+  barResize,
+  fractionOf,
+  percentOf,
+  rowsOf,
+  spanWidth,
+} from './timelineGeometry';
 import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
@@ -33,8 +42,6 @@ interface Props {
   onKeyframeRetimed: (entityId: EntityId, fromT: number, toT: number) => void;
 }
 
-const percent = (t: number, duration: number) => `${fractionOf(t, duration) * 100}%`;
-
 // A screen shorter than this cannot be grabbed, and `setScreenDuration` refuses a non-positive one.
 // One grid cell: every authored time falls on the grid, so the shortest screen is the distance
 // between two of them.
@@ -44,9 +51,6 @@ const SNAP_FRACTION = 0.02;
 
 // The row is 2rem tall; the badge leaves a little air above and below.
 const ROW_SYMBOL_PX = 24;
-
-// Mantine's xs CloseButton, measured: the screen's label stops short of it rather than under it.
-const SCREEN_CLOSE_PX = 18;
 
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
   const { t } = useTranslation();
@@ -279,8 +283,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
             key={screen.id}
             testId={`screen-bar-${screen.id}`}
             inherited={!ownScreenIds.has(screen.id)}
-            leftPercent={percent(screen.t, duration)}
-            widthPercent={`${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`}
+            leftPercent={percentOf(screen.t, duration)}
+            widthPercent={spanWidth(screen.t, screen.t + screen.duration, duration)}
             // The offense's blue, lightened: a block reads as belonging to the attack without
             // the saturated blue-6 their court tokens wear, which as a band behind text competed
             // with the tokens themselves. blue-3 is the lightest shade that still lets a dark
@@ -301,18 +305,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                       current: screen.t + screen.duration,
                       // The edge cannot go left of the screen's own start: it floors at a minimum duration.
                       resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
-                      place: (element, end) => {
-                        const bar = element.parentElement;
-                        if (bar !== null) {
-                          bar.style.width = `${(fractionOf(end, duration) - fractionOf(screen.t, duration)) * 100}%`;
-                        }
-                      },
-                      restore: (element) => {
-                        const bar = element.parentElement;
-                        if (bar !== null) {
-                          bar.style.width = `${(fractionOf(screen.t + screen.duration, duration) - fractionOf(screen.t, duration)) * 100}%`;
-                        }
-                      },
+                      ...barResize(screen.t, screen.t + screen.duration, duration),
                       commit: (end) => setScreenDuration(screen.id, end - screen.t),
                     }),
                   }
@@ -331,36 +324,15 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 />
               ) : undefined
             }
-          >
-            {/* What the block IS, which nothing said before: a violet bar carried no meaning on
-                its own, and the beneficiary only appeared in the removal dialog. The row already
-                names the screener, so the label names the other half.
-                Transparent to the pointer, like the bar itself: a row's keyframe markers sit
-                under a screen and have to stay grabbable. That costs the `title` tooltip a
-                hover would need, so a bar too short for the whole string shows it elided — the
-                full text is still in the DOM, and an ellipsis is a painting, so a screen reader
-                reads all of it either way. */}
-            <Box
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                left: 4,
-                // Clear of the remove control, which sits at the bar's end — where a step
-                // label bar puts its own — and of the duration handle straddling that edge.
-                right: ownScreenIds.has(screen.id) ? SCREEN_CLOSE_PX + 12 : 8,
-                display: 'flex',
-                alignItems: 'center',
-                pointerEvents: 'none',
-              }}
-            >
-              <Text size="xs" truncate="end" data-testid={`screen-label-${screen.id}`} style={{ minWidth: 0 }}>
-                {t('play.editor.screenFor', 'Screen for {{label}}', {
-                  label: nameOfPlayer(screen.beneficiaryId),
-                })}
-              </Text>
-            </Box>
-          </TimelineBar>
+            // What the block IS, which nothing said before: a bar carried no meaning on its own,
+            // and the beneficiary only appeared in the removal dialog. The row already names the
+            // screener, so the caption names the other half. Elided by the bar when it is too
+            // narrow — the full text stays in the DOM, and an ellipsis is a painting, so a
+            // screen reader reads all of it either way.
+            caption={t('play.editor.screenFor', 'Screen for {{label}}', {
+              label: nameOfPlayer(screen.beneficiaryId),
+            })}
+          ></TimelineBar>
         ))}
         {isBall &&
           row.keyframes.map((k, index) => {
@@ -371,7 +343,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               position: 'absolute',
               top: '25%',
               height: '50%',
-              left: percent(k.t, duration),
+              left: percentOf(k.t, duration),
               width: `${(fractionOf(next.t, duration) - fractionOf(k.t, duration)) * 100}%`,
             };
 
@@ -473,10 +445,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                         snap ? SNAP_FRACTION * duration : 0,
                       ),
                     place: (element, value) => {
-                      element.style.left = percent(value, duration);
+                      element.style.left = percentOf(value, duration);
                     },
                     restore: (element) => {
-                      element.style.left = percent(k.t, duration);
+                      element.style.left = percentOf(k.t, duration);
                     },
                     commit: (value) => {
                       moveKeyframe(branchId, row.entityId, k.t, value);
@@ -488,7 +460,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 position: 'absolute',
                 zIndex: 10,
                 top: '50%',
-                left: percent(k.t, duration),
+                left: percentOf(k.t, duration),
                 touchAction: owned ? 'none' : undefined,
                 width: MARKER_WIDTH_PX,
                 height: MARKER_HEIGHT_PX,

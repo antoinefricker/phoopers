@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { resolveBranch } from '../engine';
 import { fixturePlay, P1, ROOT } from '../engine/__fixtures__/play';
-import { MARKER_WIDTH_PX, TRACK_INSET_PX, fractionOf, gridTicks, rowsOf, timeFromClientX } from './timelineGeometry';
+import {
+  MARKER_WIDTH_PX,
+  TRACK_INSET_PX,
+  barResize,
+  fractionOf,
+  gridTicks,
+  percentOf,
+  rowsOf,
+  spanWidth,
+  timeFromClientX,
+} from './timelineGeometry';
 import { TIME_GRID_S, gridTime } from '../play2d/transportMath';
 
 describe('fractionOf', () => {
@@ -172,5 +182,75 @@ describe('gridTicks', () => {
     expect(gridTicks(-1)).toEqual([]);
     expect(gridTicks(Number.NaN)).toEqual([]);
     expect(gridTicks(Number.POSITIVE_INFINITY)).toEqual([]);
+  });
+});
+
+describe('percentOf and spanWidth', () => {
+  it('places a time at its share of the duration', () => {
+    expect(percentOf(2, 8)).toBe('25%');
+  });
+
+  it('measures a span as the distance between its two ends', () => {
+    expect(spanWidth(2, 4, 8)).toBe('25%');
+  });
+
+  it('gives a span that starts where it ends no width', () => {
+    expect(spanWidth(3, 3, 8)).toBe('0%');
+  });
+
+  it('clamps a span reaching past the play to the end of it', () => {
+    // `fractionOf` clamps each end, so a screen overrunning the play stops at the track's edge
+    // rather than drawing past it and growing a horizontal scrollbar.
+    expect(spanWidth(4, 99, 8)).toBe('50%');
+  });
+
+  it('survives a zero duration rather than dividing by it', () => {
+    expect(percentOf(2, 0)).toBe('0%');
+    expect(spanWidth(2, 4, 0)).toBe('0%');
+  });
+});
+
+describe('barResize', () => {
+  // The handle is a child of the bar it resizes, which is the relationship the helper encodes.
+  const handleInBar = () => {
+    const bar = document.createElement('div');
+    const handle = document.createElement('button');
+    bar.appendChild(handle);
+
+    return { bar, handle };
+  };
+
+  it('writes the width of the bar the handle sits on, not the handle', () => {
+    const { bar, handle } = handleInBar();
+
+    barResize(2, 4, 8).place(handle, 6);
+
+    expect(bar.style.width).toBe('50%');
+    expect(handle.style.width).toBe('');
+  });
+
+  it('puts the bar back to where the span ended when a drag is abandoned', () => {
+    const { bar, handle } = handleInBar();
+    barResize(2, 4, 8).place(handle, 6);
+
+    barResize(2, 4, 8).restore(handle);
+
+    expect(bar.style.width).toBe('25%');
+  });
+
+  it('measures from the span start, which a drag of the end never moves', () => {
+    const { bar, handle } = handleInBar();
+
+    barResize(4, 6, 8).place(handle, 8);
+
+    expect(bar.style.width).toBe('50%');
+  });
+
+  it('writes nothing for a handle with no bar rather than throwing', () => {
+    // The drag only previews; the commit that follows reads the model, not the DOM.
+    const orphan = document.createElement('button');
+
+    expect(() => barResize(2, 4, 8).place(orphan, 6)).not.toThrow();
+    expect(() => barResize(2, 4, 8).restore(orphan)).not.toThrow();
   });
 });

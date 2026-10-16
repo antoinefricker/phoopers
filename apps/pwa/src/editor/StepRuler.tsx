@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Button, Group, Popover, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Box, Button, Group, Popover, TextInput } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { IconPencil, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -7,13 +7,11 @@ import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { constrainStepRetime } from './constraints';
 import { TimelineBar } from './TimelineBar';
 import { LABEL_WIDTH, MIN_SCREEN_DURATION } from './TimelineRow';
-import { TRACK_INSET_PX, fractionOf } from './timelineGeometry';
+import { TRACK_INSET_PX, barResize, percentOf, spanWidth } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 
 const SNAP_FRACTION = 0.02;
-
-const percent = (t: number, duration: number) => `${fractionOf(t, duration) * 100}%`;
 
 interface EditorProps {
   step: Step;
@@ -107,7 +105,7 @@ export function StepRuler() {
       >
         {ordered.map((step, index) => {
           const others = steps.filter((s) => s.id !== step.id);
-          const barWidth = `${(fractionOf(windowEnd(step, index), duration) - fractionOf(step.t, duration)) * 100}%`;
+          const barWidth = spanWidth(step.t, windowEnd(step, index), duration);
 
           // An ancestor's step is shown (it is a snap mark) but belongs to that ancestor: moving,
           // renaming or removing it from here would rewrite the base play and every sibling.
@@ -118,14 +116,12 @@ export function StepRuler() {
                 key={step.id}
                 testId={`step-bar-${step.id}`}
                 inherited
-                leftPercent={percent(step.t, duration)}
+                leftPercent={percentOf(step.t, duration)}
                 widthPercent={barWidth}
                 background="var(--mantine-color-blue-light)"
-              >
-                <Text size="xs" component="span" style={{ paddingLeft: 4, opacity: 0.6 }}>
-                  {step.name}
-                </Text>
-              </TimelineBar>
+                caption={step.name}
+                captionDimmed
+              />
             );
           }
 
@@ -139,7 +135,7 @@ export function StepRuler() {
             >
               <TimelineBar
                 testId={`step-bar-${step.id}`}
-                leftPercent={percent(step.t, duration)}
+                leftPercent={percentOf(step.t, duration)}
                 widthPercent={barWidth}
                 background="var(--mantine-color-blue-light)"
                 handleBackground="var(--mantine-color-blue-filled)"
@@ -152,10 +148,10 @@ export function StepRuler() {
                   resolve: (rawT, snap) =>
                     constrainStepRetime(play, step.id, step.t, rawT, others, snap ? SNAP_FRACTION * duration : 0),
                   place: (element, value) => {
-                    element.style.left = percent(value, duration);
+                    element.style.left = percentOf(value, duration);
                   },
                   restore: (element) => {
-                    element.style.left = percent(step.t, duration);
+                    element.style.left = percentOf(step.t, duration);
                   },
                   commit: (value) => moveStep(step.id, value),
                 })}
@@ -168,16 +164,7 @@ export function StepRuler() {
                     // of the play for a last step: two windows may never overlap.
                     resolve: (rawT) =>
                       Math.min(Math.max(rawT, step.t + MIN_SCREEN_DURATION), ordered[index + 1]?.t ?? duration),
-                    place: (element, value) => {
-                      const bar = element.parentElement;
-                      if (bar !== null) {
-                        bar.style.width = `${(fractionOf(value, duration) - fractionOf(step.t, duration)) * 100}%`;
-                      }
-                    },
-                    restore: (element) => {
-                      const bar = element.parentElement;
-                      if (bar !== null) bar.style.width = barWidth;
-                    },
+                    ...barResize(step.t, windowEnd(step, index), duration),
                     commit: (value) => setStepDuration(step.id, value - step.t),
                   }),
                 }}
@@ -204,24 +191,11 @@ export function StepRuler() {
                     </ActionIcon>
                   </>
                 }
-              >
-                <Text
-                  size="xs"
-                  component="span"
-                  // Clipped rather than spilling: a name on a narrow window near the end of the
-                  // ruler would otherwise run past the track and grow a horizontal scrollbar.
-                  style={{
-                    display: 'block',
-                    paddingLeft: 4,
-                    paddingRight: 36,
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {step.name}
-                </Text>
-              </TimelineBar>
+                // Clipped rather than spilling, by the bar: a name on a narrow window near the
+                // end of the ruler would otherwise run past the track and grow a horizontal
+                // scrollbar. The room it leaves the two controls used to be a hardcoded 36px.
+                caption={step.name}
+              />
               <Popover.Dropdown>
                 <StepEditor step={step} onDone={() => setOpenId(null)} />
               </Popover.Dropdown>

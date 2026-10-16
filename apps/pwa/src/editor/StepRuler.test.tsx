@@ -402,11 +402,14 @@ describe('step label bars', () => {
   it('clips a long step name instead of letting it leave the bar', () => {
     // A name past the end of the track grows the panel a horizontal scrollbar, which this
     // branch has already fixed twice elsewhere.
+    // The clipping now comes from the shared bar's caption, so what is asserted is that the
+    // name goes through it: Mantine marks a truncating Text with `data-truncate`, and the rule
+    // itself lives in its stylesheet, which jsdom does not load.
     renderEditor(withSteps([{ id: STEP_ENTRY, t: 3.5, name: 'A very long step name indeed' }]), <StepRuler />);
     const name = screen.getByText('A very long step name indeed');
 
-    expect(name.style.overflow).toBe('hidden');
-    expect(name.style.textOverflow).toBe('ellipsis');
+    expect(name).toHaveAttribute('data-truncate', 'end');
+    expect(name).toHaveAttribute('data-testid', 'bar-caption');
   });
 
   it('stops the handle at the next step', async () => {

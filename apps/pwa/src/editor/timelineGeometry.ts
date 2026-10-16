@@ -65,6 +65,37 @@ export function fractionOf(t: number, duration: number): number {
   return Math.min(Math.max(t / duration, 0), 1);
 }
 
+/** A time as a share of the play's length, ready for a bar's `left`. */
+export const percentOf = (t: number, duration: number): string => `${fractionOf(t, duration) * 100}%`;
+
+/** The span from `from` to `to` as a share of the play's length, ready for a bar's `width`. */
+export const spanWidth = (from: number, to: number, duration: number): string =>
+  `${(fractionOf(to, duration) - fractionOf(from, duration)) * 100}%`;
+
+/**
+ * The `place` and `restore` a bar's right-edge handle needs, which are the same for every bar
+ * that has one: dragging the edge changes the bar's WIDTH, and the bar is the handle's parent.
+ *
+ * Both a screen's duration and a step label's window are resized this way, and both used to
+ * carry their own copy of the parent lookup and the width formula — four of them between the
+ * two, which is three too many for a rule that is identical in every case.
+ *
+ * `from` is where the span starts and does not move; `to` is where it ends when the drag is
+ * abandoned. A handle with no parent writes nothing rather than throwing: the drag is a
+ * presentational preview, and the commit that follows it reads the model, not the DOM.
+ */
+export function barResize(from: number, to: number, duration: number) {
+  const setWidth = (element: HTMLElement, end: number) => {
+    const bar = element.parentElement;
+    if (bar !== null) bar.style.width = spanWidth(from, end, duration);
+  };
+
+  return {
+    place: (element: HTMLElement, value: number) => setWidth(element, value),
+    restore: (element: HTMLElement) => setWidth(element, to),
+  };
+}
+
 // Reads `anchors`, which carries each entity's keyframes, NOT `spans`: a prepared span
 // substitutes {0,0} for an attached ball endpoint, so building rows from spans would draw the
 // ball's markers at the court corner. A player with no track still gets a row (empty), so the
