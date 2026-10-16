@@ -362,6 +362,35 @@ keyboard path that is not a modified activation — a shortcut on the focused ro
 the add menu acting on the selection. `isolate` in `HiddenEntitiesContextProvider` already takes
 the whole decision, so any new caller is one line.
 
+### A timeline bar's controls are under the non-text contrast floor
+
+`TimelineBar` takes one colour and fills itself with that colour's `light` variant, and everything
+it carries — the right-edge handle, and the edit and remove controls the callers put in it — wears
+the normal variant of that same colour. The two are points on the same ramp, so how far apart they
+land is a property of the hue, not something the component controls.
+
+Measured in a browser, against the 3:1 that WCAG 1.4.11 asks of a non-text control. A screen
+block (`blue`) puts its handle at 2.88:1 and its remove control at 2.88:1. A step label bar
+(`primary`, currently yellow) puts its handle at 1.67:1 — at which point it is not merely
+low-contrast but invisible, with nothing to see at the bar's right edge — and both its edit and
+remove controls at 2.69:1. The captions are unaffected, at 17.01:1 and 18.82:1.
+
+A second cost, on the step label bar only: its remove control gave up the red it used to carry at
+4.89:1. Colour was the only thing marking it as destructive rather than ordinary, so it is now
+told apart from the edit control beside it by its glyph alone. The screen block's remove control
+was never red and loses nothing.
+
+It was left because one colour name driving the whole bar is the point of the prop — it is what
+stops a caller picking a fill without a handle — and because no shade of a given hue can be relied
+on to clear the floor once the primary is a setting: the darkest shade reaches 3.10:1 in blue,
+3.81 in green and 2.69 in yellow. The alternative below was offered and declined in favour of
+keeping every part of a bar in one colour.
+
+**Fix:** keep each control filled with its colour and give it a 1px `dark-6` outline, which
+measures 12.17:1 against the yellow bar. The hue stays, the perceivability comes from the outline,
+and it is one place in `TimelineBar` covering both bars. The destructive control additionally
+wants something other than colour to mark it — a confirmation it already has, or a glyph weight.
+
 ## Test coverage gaps
 
 ### The animation loop is not unit-testable

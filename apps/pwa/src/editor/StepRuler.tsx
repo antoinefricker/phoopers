@@ -107,6 +107,10 @@ export function StepRuler() {
           const others = steps.filter((s) => s.id !== step.id);
           const barWidth = spanWidth(step.t, windowEnd(step, index), duration);
 
+          // The app's own colour, through the primary variables rather than a named green: a
+          // step is the product's way of annotating a play, not something either team owns, and
+          // the bars follow the primary wherever it goes next. The court's blue and red, and the
+          // screen blocks that echo the offense, stay named on purpose.
           // An ancestor's step is shown (it is a snap mark) but belongs to that ancestor: moving,
           // renaming or removing it from here would rewrite the base play and every sibling.
           // The same rule keyframes follow in `TimelineRow`.
@@ -118,7 +122,7 @@ export function StepRuler() {
                 inherited
                 leftPercent={percentOf(step.t, duration)}
                 widthPercent={barWidth}
-                background="var(--mantine-color-blue-light)"
+                color="primary"
                 caption={step.name}
                 captionDimmed
               />
@@ -137,8 +141,7 @@ export function StepRuler() {
                 testId={`step-bar-${step.id}`}
                 leftPercent={percentOf(step.t, duration)}
                 widthPercent={barWidth}
-                background="var(--mantine-color-blue-light)"
-                handleBackground="var(--mantine-color-blue-filled)"
+                color="primary"
                 label={step.name}
                 // The bar itself retimes the step, as its tick did before it had a width.
                 bar={bind({
@@ -180,10 +183,12 @@ export function StepRuler() {
                         <IconPencil size={12} stroke={1.5} />
                       </ActionIcon>
                     </Popover.Target>
+                    {/* Both controls wear the bar's own colour, which for a step label bar is
+                        the primary — so neither names a colour, the ActionIcon default being
+                        the primary already. The remove icon gave up its red for it. */}
                     <ActionIcon
                       size="xs"
                       variant="subtle"
-                      color="red"
                       aria-label={t('play.editor.removeStep', 'Remove {{name}}', { name: step.name })}
                       onClick={() => removeStep(step.id)}
                     >

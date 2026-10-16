@@ -59,7 +59,7 @@ export function PlaybackTransport() {
   const [addOpen, setAddOpen] = useState(false);
 
   const jump = (direction: 1 | -1) => {
-    const next = adjacentStep(currentTimeRef.current, timeline.steps, direction);
+    const next = adjacentStep(currentTimeRef.current, timeline.steps, direction, timeline.duration);
     if (next !== undefined) {
       scrubTo(next);
     }
@@ -91,7 +91,10 @@ export function PlaybackTransport() {
           <Menu opened={addOpen} onChange={setAddOpen} position="bottom-start" shadow="md" trapFocus>
             <Menu.Target>
               <ActionIcon
-                variant="default"
+                // Filled in the app's own colour, not `default`: that variant is the neutral
+                // outlined button and ignores colour entirely, so filling it is the only way to
+                // colour it. No `color` prop — a filled ActionIcon is the primary already.
+                variant="filled"
                 onClick={() => setAddOpen((open) => !open)}
                 aria-label={t('play.transport.add', 'Add')}
               >

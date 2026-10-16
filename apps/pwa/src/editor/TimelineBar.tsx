@@ -8,14 +8,13 @@ export interface TimelineBarProps {
   /** Where the bar starts and how wide it is, as CSS the caller has already computed. */
   leftPercent: string;
   widthPercent: string;
-  background: string;
   /**
-   * The colour of the handle on the right edge. Expected wherever `handle` is set, and ignored
-   * otherwise — an inherited bar has no handle to paint. No default: a handle has to sit against
-   * the fill it is the edge of, so no one colour is right for every bar. The default that used
-   * to be here was grape, and no bar had been grape for some time.
+   * The bar's colour, as one name: a Mantine colour ("blue") or "primary" to follow the theme.
+   * The bar fills itself with that colour's LIGHT variant and paints its handle with the normal
+   * one, so the two can never be picked apart — they used to be two props, and a caller choosing
+   * one without the other is how a handle ended up invisible against its own bar.
    */
-  handleBackground?: string;
+  color: string;
   testId: string;
   /** Marks a bar belonging to an ancestor branch, which this branch may not change. */
   inherited?: boolean;
@@ -54,8 +53,7 @@ export interface TimelineBarProps {
 export function TimelineBar({
   leftPercent,
   widthPercent,
-  background,
-  handleBackground,
+  color,
   testId,
   inherited,
   bar,
@@ -66,6 +64,11 @@ export function TimelineBar({
   captionDimmed,
   children,
 }: TimelineBarProps): ReactElement {
+  // "primary" is its own set of variables rather than a colour name Mantine would interpolate.
+  const background = color === 'primary' ? 'var(--mantine-primary-color-light)' : `var(--mantine-color-${color}-light)`;
+  const handleBackground =
+    color === 'primary' ? 'var(--mantine-primary-color-filled)' : `var(--mantine-color-${color}-filled)`;
+
   return (
     <Box
       data-testid={testId}
@@ -154,7 +157,7 @@ export function TimelineBar({
             position: 'absolute',
             top: 0,
             bottom: 0,
-            right: -3,
+            right: 0,
             width: 6,
             padding: 0,
             border: 0,
