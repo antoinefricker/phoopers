@@ -103,12 +103,16 @@ export function PlayView() {
             flex column does by default. */}
           <Box
             style={{
-              flex: '1 1 auto',
+              // Only in edit mode does this region hold anything that needs room. Playing, it is
+              // the transport and nothing else, so it takes its own height: it used to keep the
+              // floor below either way, which reserved 92px — measured — for a timeline that is
+              // not rendered.
+              flex: mode === 'edit' ? '1 1 auto' : '0 0 auto',
               // Enough for the transport, the ruler and two rows. Without a floor this region
               // is squeezed to nothing on a short window and the page still does not scroll,
               // which leaves the controls present but unusable. With it, a window too short
               // for the court's 400px and this scrolls the page instead.
-              minHeight: 120,
+              minHeight: mode === 'edit' ? 120 : undefined,
               display: 'flex',
               flexDirection: 'column',
               gap: 'var(--mantine-spacing-sm)',
