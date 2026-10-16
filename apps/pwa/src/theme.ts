@@ -11,6 +11,11 @@ export const theme = createTheme({
   // colour as one of the two teams, so blue meant both "this app" and "the attack". The teams
   // keep their blue and red, which are the court's language and not the product's.
   primaryColor: 'yellow',
+  // Let Mantine pick black or white for whatever sits on a filled control, rather than taking
+  // its white default: with a high-luminance primary, white on filled measured 1.86:1 on the
+  // play button — the app's main control, effectively illegible. Set on the theme and not per
+  // button so a control added later cannot miss it.
+  autoContrast: true,
   fontFamily: FONT_STACK,
   headings: { fontFamily: FONT_STACK },
   components: {
