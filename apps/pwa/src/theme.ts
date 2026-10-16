@@ -6,6 +6,11 @@ import { createTheme } from '@mantine/core';
 const FONT_STACK = '"Roboto Condensed", system-ui, sans-serif';
 
 export const theme = createTheme({
+  // Deliberately NOT the blue the offense wears. Mantine's default primary is blue,
+  // which made the app's own chrome — the play button, the scrubber, a focus ring — the same
+  // colour as one of the two teams, so blue meant both "this app" and "the attack". The teams
+  // keep their blue and red, which are the court's language and not the product's.
+  primaryColor: 'yellow',
   fontFamily: FONT_STACK,
   headings: { fontFamily: FONT_STACK },
   components: {
