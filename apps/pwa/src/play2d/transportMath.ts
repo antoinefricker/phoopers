@@ -92,9 +92,24 @@ export function snapToStep(t: number, steps: readonly Step[], threshold: number)
   return best ?? t;
 }
 
-export function adjacentStep(t: number, steps: readonly Step[], direction: 1 | -1): number | undefined {
-  const times = steps
-    .map((step) => step.t)
+/**
+ * The next place the step buttons should land, going forward or back from `t`.
+ *
+ * The stops are the steps PLUS the two ends of the play: without them a coach could reach every
+ * step but neither the opening formation nor the final position, which are the two instants a
+ * play is most often looked at. A step already sitting on an end is not counted twice.
+ *
+ * Undefined when there is nowhere further to go — at the start going back, at the end going
+ * forward — which is what leaves the playhead where it is rather than moving it nowhere.
+ */
+export function adjacentStep(
+  t: number,
+  steps: readonly Step[],
+  direction: 1 | -1,
+  duration: number,
+): number | undefined {
+  const ends = Number.isFinite(duration) && duration > 0 ? [0, duration] : [0];
+  const times = [...new Set([...ends, ...steps.map((step) => step.t)])]
     .filter((time) => (direction === 1 ? time > t + STEP_EPSILON : time < t - STEP_EPSILON))
     .sort((a, b) => (direction === 1 ? a - b : b - a));
 

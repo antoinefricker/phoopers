@@ -70,24 +70,59 @@ describe('snapToStep', () => {
 });
 
 describe('adjacentStep', () => {
+  // `steps` sits at 2 and 4; the play runs to 8 throughout.
+  const DURATION = 8;
+
   it('finds the next step strictly after the current time', () => {
-    expect(adjacentStep(2, steps, 1)).toBe(4);
+    expect(adjacentStep(2, steps, 1, DURATION)).toBe(4);
   });
 
   it('finds the previous step strictly before the current time', () => {
-    expect(adjacentStep(4, steps, -1)).toBe(2);
+    expect(adjacentStep(4, steps, -1, DURATION)).toBe(2);
   });
 
-  it('returns undefined past the ends', () => {
-    expect(adjacentStep(4, steps, 1)).toBeUndefined();
-    expect(adjacentStep(2, steps, -1)).toBeUndefined();
+  it('reaches the end of the play past the last step', () => {
+    // Without the ends as stops a coach could reach every step but neither the opening
+    // formation nor the final position, which are the two instants a play is most looked at.
+    expect(adjacentStep(4, steps, 1, DURATION)).toBe(8);
+  });
+
+  it('reaches the start of the play before the first step', () => {
+    expect(adjacentStep(2, steps, -1, DURATION)).toBe(0);
+  });
+
+  it('stops at the ends rather than moving nowhere', () => {
+    expect(adjacentStep(8, steps, 1, DURATION)).toBeUndefined();
+    expect(adjacentStep(0, steps, -1, DURATION)).toBeUndefined();
+  });
+
+  it('crosses the whole play when it holds no steps at all', () => {
+    expect(adjacentStep(0, [], 1, DURATION)).toBe(8);
+    expect(adjacentStep(8, [], -1, DURATION)).toBe(0);
+  });
+
+  it('counts a step sitting on an end once, not twice', () => {
+    // Deduped, or going forward from 0 would land on 0 again and the button would do nothing.
+    const onEnds: Step[] = [
+      { id: 'a' as StepId, t: 0, name: 'Start' },
+      { id: 'b' as StepId, t: 8, name: 'Finish' },
+    ];
+
+    expect(adjacentStep(0, onEnds, 1, DURATION)).toBe(8);
+    expect(adjacentStep(8, onEnds, -1, DURATION)).toBe(0);
+  });
+
+  it('has only the start to offer for a play with no length', () => {
+    expect(adjacentStep(0, [], 1, 0)).toBeUndefined();
+    expect(adjacentStep(1, [], -1, 0)).toBe(0);
+    expect(adjacentStep(0, [], 1, Number.NaN)).toBeUndefined();
   });
 
   it('is independent of the order steps are stored in', () => {
     const reversed = [...steps].reverse();
 
-    expect(adjacentStep(0, reversed, 1)).toBe(2);
-    expect(adjacentStep(10, reversed, -1)).toBe(4);
+    expect(adjacentStep(0, reversed, 1, DURATION)).toBe(2);
+    expect(adjacentStep(10, reversed, -1, DURATION)).toBe(8);
   });
 
   it('steps past a shared time in one jump', () => {
@@ -97,8 +132,8 @@ describe('adjacentStep', () => {
       { id: 'c' as StepId, t: 5, name: 'C' },
     ];
 
-    expect(adjacentStep(2, duplicates, 1)).toBe(5);
-    expect(adjacentStep(5, duplicates, -1)).toBe(2);
+    expect(adjacentStep(2, duplicates, 1, DURATION)).toBe(5);
+    expect(adjacentStep(5, duplicates, -1, DURATION)).toBe(2);
   });
 });
 
@@ -293,7 +328,9 @@ describe('PlaybackTransport', () => {
     expect(screen.queryByText('Double high screen')).not.toBeInTheDocument();
   });
 
-  it('jumps to the next step, then the one after, then stops at the last', () => {
+  it('jumps step by step, then to the end of the play, then stops', () => {
+    // The sample's steps are at 2 and 4 and it runs to 8, so the end is a stop of its own:
+    // a coach reaching the last step still has the final position to get to.
     renderTransport();
     const next = screen.getByRole('button', { name: 'Next step' });
 
@@ -304,7 +341,23 @@ describe('PlaybackTransport', () => {
     expect(playheadTime()).toBeCloseTo(4.0, 5);
 
     click(next);
-    expect(playheadTime()).toBeCloseTo(4.0, 5);
+    expect(playheadTime()).toBeCloseTo(8.0, 5);
+
+    click(next);
+    expect(playheadTime()).toBeCloseTo(8.0, 5);
+  });
+
+  it('jumps back to the start of the play before the first step', () => {
+    renderTransport();
+
+    click(screen.getByRole('button', { name: 'Next step' }));
+    expect(playheadTime()).toBeCloseTo(2.0, 5);
+
+    click(screen.getByRole('button', { name: 'Previous step' }));
+    expect(playheadTime()).toBeCloseTo(0, 5);
+
+    click(screen.getByRole('button', { name: 'Previous step' }));
+    expect(playheadTime()).toBeCloseTo(0, 5);
   });
 
   it('jumps back to the previous step', () => {

@@ -59,7 +59,7 @@ export function PlaybackTransport() {
   const [addOpen, setAddOpen] = useState(false);
 
   const jump = (direction: 1 | -1) => {
-    const next = adjacentStep(currentTimeRef.current, timeline.steps, direction);
+    const next = adjacentStep(currentTimeRef.current, timeline.steps, direction, timeline.duration);
     if (next !== undefined) {
       scrubTo(next);
     }
