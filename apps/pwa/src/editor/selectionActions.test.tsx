@@ -136,31 +136,40 @@ describe('removing a screen', () => {
 });
 
 describe('removing a player', () => {
-  const removeButton = (entityId: string) =>
-    within(screen.getByTestId(`timeline-row-${entityId}`)).getByRole('button', { name: /^Remove player/ });
+  // The gutter is 180px and the name needs much of what is left beside the symbol, so removing
+  // lives in the row's actions menu rather than on a button of its own. Opening it is therefore
+  // part of reaching the command.
+  const openRowMenu = async (entityId: string) => {
+    const row = within(screen.getByTestId(`timeline-row-${entityId}`));
+    await userEvent.click(row.getByRole('button', { name: /^Actions for/ }));
+
+    return within(await screen.findByTestId(`row-menu-${entityId}`));
+  };
+  const removeItem = async (entityId: string) =>
+    (await openRowMenu(entityId)).getByRole('menuitem', { name: /^Remove player/ });
 
   it('offers the action on a player row and never on the ball', async () => {
     // It is a row's action now, not a selection's: no player has to be picked on the court
-    // first, and the ball has no player to remove.
+    // first, and the ball has no player to remove — so it is offered no menu at all.
     await renderView();
 
-    expect(removeButton(P1)).toBeInTheDocument();
+    expect(await removeItem(P1)).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('timeline-row-ball')).queryByRole('button', { name: /^Remove player/ }),
+      within(screen.getByTestId('timeline-row-ball')).queryByRole('button', { name: /^Actions for/ }),
     ).not.toBeInTheDocument();
   });
 
   it('names the player it removes, so eleven of them are told apart', async () => {
     await renderView();
 
-    expect(removeButton(P1)).toHaveAccessibleName('Remove player 1');
+    expect(await removeItem(P1)).toHaveAccessibleName('Remove player Offense 1');
   });
 
   it('asks first, and keeps the player when cancelled', async () => {
     await renderView();
 
-    await userEvent.click(removeButton(P1));
-    expect(await screen.findByText('Remove player 1?')).toBeInTheDocument();
+    await userEvent.click(await removeItem(P1));
+    expect(await screen.findByText('Remove player Offense 1?')).toBeInTheDocument();
     expect(players().map((p) => p.id)).toContain(P1);
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
@@ -173,7 +182,7 @@ describe('removing a player', () => {
   it('removes the player and their screens once confirmed', async () => {
     await renderView();
 
-    await userEvent.click(removeButton(P1));
+    await userEvent.click(await removeItem(P1));
     await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
 
     expect(players().map((p) => p.id)).toEqual([P2]);
@@ -185,7 +194,7 @@ describe('removing a player', () => {
     await renderView();
     await selectOnCourt(P1);
 
-    await userEvent.click(removeButton(P1));
+    await userEvent.click(await removeItem(P1));
     await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
 
     expect(readProbe().selection).toBeNull();
@@ -197,7 +206,7 @@ describe('removing a player', () => {
     await renderView();
     await selectOnCourt(P2);
 
-    await userEvent.click(removeButton(P1));
+    await userEvent.click(await removeItem(P1));
     await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
 
     expect(readProbe().selection).toEqual({ kind: 'entity', entityId: P2 });

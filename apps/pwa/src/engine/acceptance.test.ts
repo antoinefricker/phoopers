@@ -111,7 +111,7 @@ describe('acceptance', () => {
         { t: 2, position: { x: 1, y: 1 } },
         { t: 1, position: { x: 2, y: 2 } },
       ]),
-      'duplicate-id': { ...fixturePlay, players: [...fixturePlay.players, { id: P1, team: 'defense', label: 'X1' }] },
+      'duplicate-id': { ...fixturePlay, players: [...fixturePlay.players, { id: P1, team: 'defense', number: 'X1' }] },
       'unknown-player-reference': withBranch(ROOT, (b) => ({
         ...b,
         screens: b.screens.map((s) => ({ ...s, screenerId: 'ghost' as PlayerId })),

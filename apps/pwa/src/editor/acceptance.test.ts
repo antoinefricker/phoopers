@@ -129,7 +129,7 @@ describe('building a play from an empty court', () => {
     const play = addPlayer(applyFormation(emptyPlay, { offense, defense }), 'offense', 'o6' as PlayerId);
 
     expect(play.players).toHaveLength(11);
-    expect(play.players.at(-1)?.label).toBe('6');
+    expect(play.players.at(-1)?.number).toBe('6');
     expect(validatePlay(play)).toEqual([]);
   });
 });

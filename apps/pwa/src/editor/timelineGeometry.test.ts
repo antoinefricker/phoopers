@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { resolveBranch } from '../engine';
 import { fixturePlay, P1, ROOT } from '../engine/__fixtures__/play';
-import { MARKER_WIDTH_PX, TRACK_INSET_PX, fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
+import {
+  MARKER_WIDTH_PX,
+  TRACK_INSET_PX,
+  barResize,
+  fractionOf,
+  gridTicks,
+  percentOf,
+  rowsOf,
+  spanWidth,
+  timeFromClientX,
+} from './timelineGeometry';
+import { TIME_GRID_S, gridTime } from '../play2d/transportMath';
 
 describe('fractionOf', () => {
   it('maps a time to its fraction of the duration', () => {
@@ -50,11 +61,17 @@ describe('rowsOf', () => {
     expect(row?.keyframes.map((k) => k.attachedTo)).toEqual([P1, P1, 'p2', 'p2']);
   });
 
-  it('labels a player row with the player label and a team', () => {
+  it('carries a player number, their name and a team onto the row', () => {
     const row = rowsOf(timeline).find((r) => r.entityId === P1);
 
-    expect(row?.label).toBe('1');
+    expect(row?.number).toBe('1');
+    // The fixture names nobody, which is the usual case: the views fall back to side + number.
+    expect(row?.label).toBeUndefined();
     expect(row?.team).toBe('offense');
+  });
+
+  it('gives the ball no number, it wearing none', () => {
+    expect(rowsOf(timeline).find((r) => r.entityId === 'ball')?.number).toBe('');
   });
 
   it('gives a player with no track an empty row rather than omitting them', () => {
@@ -115,5 +132,125 @@ describe('track inset', () => {
     // Every pixel of inset is a pixel the time axis does not span, on all three surfaces that
     // share it. An inset well past the overhang is waste, not safety.
     expect(TRACK_INSET_PX).toBeLessThanOrEqual(MARKER_WIDTH_PX);
+  });
+});
+
+describe('gridTicks', () => {
+  // Written against TIME_GRID_S rather than its value: a line per authoring cell is the rule,
+  // and the cell has been retuned once already.
+  const CELLS_PER_SECOND = Math.round(1 / TIME_GRID_S);
+
+  it('puts a line on every authoring cell, from zero to the duration', () => {
+    // A minor line marks a time a keyframe can actually take.
+    const ticks = gridTicks(2);
+
+    expect(ticks).toHaveLength(2 * CELLS_PER_SECOND + 1);
+    expect(ticks.map((tick) => tick.t)).toEqual(ticks.map((_, index) => gridTime(index)));
+  });
+
+  it('marks the whole seconds major and the cells between them minor', () => {
+    const ticks = gridTicks(2);
+
+    expect(ticks.filter((tick) => tick.major).map((tick) => tick.t)).toEqual([0, 1, 2]);
+    expect(ticks.filter((tick) => !tick.major)).toHaveLength(ticks.length - 3);
+  });
+
+  it('keeps the times clean rather than letting a cell count drift', () => {
+    // 63 cells of 0.1s multiply out to 6.300000000000001, which misses the `% 1 === 0` test.
+    const ticks = gridTicks(20);
+
+    expect(ticks.map((tick) => tick.t)).toEqual(ticks.map((tick) => Number(tick.t.toFixed(6))));
+    expect(ticks.filter((tick) => tick.major)).toHaveLength(21);
+  });
+
+  it('stops short of the duration when it is not a whole number of cells', () => {
+    const ticks = gridTicks(1 + TIME_GRID_S / 2);
+
+    expect(ticks.at(-1)?.t).toBe(1);
+  });
+
+  it('drops the sub-second cells on a play too long to draw them all', () => {
+    // 240 lines is the cutoff, so the shortest play that crosses it is 240 cells long.
+    const ticks = gridTicks(240 * TIME_GRID_S);
+
+    expect(ticks.every((tick) => tick.major)).toBe(true);
+    expect(ticks).toHaveLength(240 / CELLS_PER_SECOND + 1);
+  });
+
+  it('has no grid for a duration that is not a positive number', () => {
+    expect(gridTicks(0)).toEqual([]);
+    expect(gridTicks(-1)).toEqual([]);
+    expect(gridTicks(Number.NaN)).toEqual([]);
+    expect(gridTicks(Number.POSITIVE_INFINITY)).toEqual([]);
+  });
+});
+
+describe('percentOf and spanWidth', () => {
+  it('places a time at its share of the duration', () => {
+    expect(percentOf(2, 8)).toBe('25%');
+  });
+
+  it('measures a span as the distance between its two ends', () => {
+    expect(spanWidth(2, 4, 8)).toBe('25%');
+  });
+
+  it('gives a span that starts where it ends no width', () => {
+    expect(spanWidth(3, 3, 8)).toBe('0%');
+  });
+
+  it('clamps a span reaching past the play to the end of it', () => {
+    // `fractionOf` clamps each end, so a screen overrunning the play stops at the track's edge
+    // rather than drawing past it and growing a horizontal scrollbar.
+    expect(spanWidth(4, 99, 8)).toBe('50%');
+  });
+
+  it('survives a zero duration rather than dividing by it', () => {
+    expect(percentOf(2, 0)).toBe('0%');
+    expect(spanWidth(2, 4, 0)).toBe('0%');
+  });
+});
+
+describe('barResize', () => {
+  // The handle is a child of the bar it resizes, which is the relationship the helper encodes.
+  const handleInBar = () => {
+    const bar = document.createElement('div');
+    const handle = document.createElement('button');
+    bar.appendChild(handle);
+
+    return { bar, handle };
+  };
+
+  it('writes the width of the bar the handle sits on, not the handle', () => {
+    const { bar, handle } = handleInBar();
+
+    barResize(2, 4, 8).place(handle, 6);
+
+    expect(bar.style.width).toBe('50%');
+    expect(handle.style.width).toBe('');
+  });
+
+  it('puts the bar back to where the span ended when a drag is abandoned', () => {
+    const { bar, handle } = handleInBar();
+    barResize(2, 4, 8).place(handle, 6);
+
+    barResize(2, 4, 8).restore(handle);
+
+    expect(bar.style.width).toBe('25%');
+  });
+
+  it('measures from the span start, which a drag of the end never moves', () => {
+    const { bar, handle } = handleInBar();
+
+    barResize(4, 6, 8).place(handle, 8);
+
+    expect(bar.style.width).toBe('50%');
+  });
+
+  it('writes nothing for a handle with no bar rather than throwing', () => {
+    // The drag only previews; the commit that follows reads the model, not the DOM.
+    const orphan = document.createElement('button');
+
+    expect(() => barResize(2, 4, 8).place(orphan, 6)).not.toThrow();
+    expect(() => barResize(2, 4, 8).restore(orphan)).not.toThrow();
   });
 });

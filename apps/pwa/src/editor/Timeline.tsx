@@ -4,14 +4,15 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useEffect, useRef } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { ComponentProps, KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PlayerId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { StepRuler } from './StepRuler';
+import { entityName } from './entityName';
 import { forkTimeOf } from './mutations';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
-import { TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
+import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { DRAG_SLOP_PX } from './useTimeDrag';
 
@@ -54,7 +55,11 @@ export function Timeline() {
   const sortableIds = timeline.players.map((player) => player.id);
   // dnd-kit identifies by `UniqueIdentifier`, so the comparison crosses the branded id on
   // purpose: these three only ever read what the sortable list was given.
-  const nameOf = (id: string) => timeline.players.find((player) => String(player.id) === id)?.label ?? id;
+  const nameOf = (id: string) => {
+    const player = timeline.players.find((candidate) => String(candidate.id) === id);
+
+    return player === undefined ? id : entityName(player, t);
+  };
   const positionOf = (id: string) => sortableIds.findIndex((candidate) => String(candidate) === id) + 1;
 
   // dnd-kit speaks English by default, which would be the one untranslated thing a French
@@ -92,46 +97,63 @@ export function Timeline() {
   // so whether the rows continue below the fold is something the coach has to see without
   // first moving the pointer into the panel. The bar is offset rather than laid over the
   // tracks, which end at the same x as the scrubber above them.
+  // The gutter is padded here rather than through `offsetScrollbars`, whose padding appears
+  // only while the bar does: the scrubber above cannot follow that, so the two axes parted
+  // company as soon as the rows overflowed. The transport reserves the same width always.
+  // On the viewport, not on the Box below it: an absolutely positioned child — the playhead,
+  // the pre-fork mask — is laid out against its container's PADDING box, so padding there
+  // would move the tracks and leave both of them behind.
   return (
-    <ScrollArea type="auto" offsetScrollbars="y">
+    <ScrollArea
+      type="auto"
+      // Cast because Mantine types this as plain div props, which reject a `data-` key on an
+      // object literal although JSX accepts them on the element itself.
+      viewportProps={{ 'data-testid': 'timeline-viewport' } as ComponentProps<'div'>}
+      styles={{ viewport: { paddingRight: SCROLLBAR_GUTTER_PX } }}
+    >
       {/* Keys arrive from the focused marker button and bubble up to here. */}
       {/* Same reason as the court: dragging a marker must not highlight the row labels or a
           step name. Inputs below re-enable selection for the text they actually edit. */}
-      <Box style={{ position: 'relative', userSelect: 'none' }} onKeyDown={onKeyDown}>
-        <StepRuler />
-        {/* Only the players are sortable: the ball leads the list and is not one. `closestCenter`
+      <Box data-testid="timeline-surface" style={{ position: 'relative', userSelect: 'none' }} onKeyDown={onKeyDown}>
+        {/* Positioned, and above the grid `PlayView` draws behind this whole region: the rows
+            and the ruler have no background of their own, so without a layer of their own the
+            grid paints over their markers. The playhead's layer sits above both. */}
+        <Box data-testid="timeline-content" style={{ position: 'relative', zIndex: 1 }}>
+          <StepRuler />
+          {/* Only the players are sortable: the ball leads the list and is not one. `closestCenter`
             over rows of equal height reads as "the row the pointer is over". Restricted to the
             vertical axis and to the list's own box, so a drag cannot wander across the time
             axis or out of the panel. */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-          onDragEnd={onDragEnd}
-          accessibility={{ announcements, screenReaderInstructions: { draggable: instructions } }}
-        >
-          <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-            {rowsOf(timeline).map((row) => (
-              <TimelineRow
-                key={row.entityId}
-                row={row}
-                duration={duration}
-                screens={timeline.screens.filter((screen) => screen.screenerId === row.entityId)}
-                selection={selection}
-                onKeyframeRetimed={(entityId, fromT, toT) => {
-                  // The selection names a keyframe by its time, which the drag just changed.
-                  if (selection?.kind === 'keyframe' && selection.entityId === entityId && selection.t === fromT) {
-                    select({ kind: 'keyframe', entityId, t: toT });
-                  }
-                }}
-                onSelectKeyframe={(entityId, t) => {
-                  select({ kind: 'keyframe', entityId, t });
-                  seek(t);
-                }}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+            onDragEnd={onDragEnd}
+            accessibility={{ announcements, screenReaderInstructions: { draggable: instructions } }}
+          >
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              {rowsOf(timeline).map((row) => (
+                <TimelineRow
+                  key={row.entityId}
+                  row={row}
+                  duration={duration}
+                  screens={timeline.screens.filter((screen) => screen.screenerId === row.entityId)}
+                  selection={selection}
+                  onKeyframeRetimed={(entityId, fromT, toT) => {
+                    // The selection names a keyframe by its time, which the drag just changed.
+                    if (selection?.kind === 'keyframe' && selection.entityId === entityId && selection.t === fromT) {
+                      select({ kind: 'keyframe', entityId, t: toT });
+                    }
+                  }}
+                  onSelectKeyframe={(entityId, t) => {
+                    select({ kind: 'keyframe', entityId, t });
+                    seek(t);
+                  }}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </Box>
         {/* Matches the tracks' inset on both sides, so the playhead and the mask stay aligned
             with the markers rather than drifting by the inset at the far end. */}
         <Box
@@ -142,6 +164,7 @@ export function Timeline() {
             left: `calc(${LABEL_WIDTH} + ${TRACK_INSET_PX}px)`,
             right: TRACK_INSET_PX,
             pointerEvents: 'none',
+            zIndex: 2,
           }}
         >
           {/* Dims what the branch inherits and cannot change. Presentation only: the court layer

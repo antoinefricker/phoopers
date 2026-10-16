@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StepId } from '../engine';
 import { fixturePlay, ROOT, STEP_ENTRY, SWITCH } from '../engine/__fixtures__/play';
+import { TIME_GRID_S } from '../play2d/transportMath';
 import { StepRuler } from './StepRuler';
 import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch } from './testUtils/renderEditor';
 
@@ -211,7 +212,7 @@ describe('StepRuler', () => {
     bar.focus();
 
     await user.keyboard('{ArrowLeft}');
-    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(1.5);
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(2 - TIME_GRID_S);
 
     await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
     expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(2, 6);
@@ -327,7 +328,8 @@ describe('step label bars', () => {
     const user = userEvent.setup();
     const bar = screen.getByTestId(`step-bar-${STEP_ENTRY}`);
 
-    // Grab 5px into the bar and move 10px right: a 100px track over 4s, so 0.4s.
+    // Grab 5px into the bar and move 10px right: a 100px track over 4s, so 0.4s, which is
+    // already on the grid.
     await user.pointer([
       { keys: '[MouseLeft>]', target: bar, coords: { clientX: 55, clientY: 10 } },
       { target: bar, coords: { clientX: 60, clientY: 10 } },
@@ -335,7 +337,7 @@ describe('step label bars', () => {
       { keys: '[/MouseLeft]', target: bar, coords: { clientX: 65, clientY: 10 } },
     ]);
 
-    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(2.5, 6);
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(2.4, 6);
   });
 
   it('does not retime the step when the duration handle is nudged', async () => {
@@ -400,11 +402,14 @@ describe('step label bars', () => {
   it('clips a long step name instead of letting it leave the bar', () => {
     // A name past the end of the track grows the panel a horizontal scrollbar, which this
     // branch has already fixed twice elsewhere.
+    // The clipping now comes from the shared bar's caption, so what is asserted is that the
+    // name goes through it: Mantine marks a truncating Text with `data-truncate`, and the rule
+    // itself lives in its stylesheet, which jsdom does not load.
     renderEditor(withSteps([{ id: STEP_ENTRY, t: 3.5, name: 'A very long step name indeed' }]), <StepRuler />);
     const name = screen.getByText('A very long step name indeed');
 
-    expect(name.style.overflow).toBe('hidden');
-    expect(name.style.textOverflow).toBe('ellipsis');
+    expect(name).toHaveAttribute('data-truncate', 'end');
+    expect(name).toHaveAttribute('data-testid', 'bar-caption');
   });
 
   it('stops the handle at the next step', async () => {

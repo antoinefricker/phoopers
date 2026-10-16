@@ -30,6 +30,16 @@ export function HiddenEntitiesContextProvider({ children }: { children: ReactNod
 
           return next;
         }),
+      // A toggle, not a one-way isolate: the second press has to undo the first, or a coach who
+      // isolated a player has to click every other row to get the play back. "Already alone" is
+      // read from the others rather than from a stored "isolated" id, so hiding or showing a row
+      // by hand in between leaves the next press meaning what the court actually shows.
+      isolate: (entityId: EntityId, every: readonly EntityId[]) =>
+        setHidden((current) => {
+          const others = every.filter((id) => id !== entityId);
+
+          return others.some((id) => !current.has(id)) ? new Set(others) : NOTHING_HIDDEN;
+        }),
     }),
     [editing, hidden],
   );

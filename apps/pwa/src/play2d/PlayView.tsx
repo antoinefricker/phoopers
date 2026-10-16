@@ -6,6 +6,7 @@ import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 import { SelectionActions } from '../editor/SelectionActions';
 import { IssuePanel } from '../editor/IssuePanel';
 import { EditorToolbar } from '../editor/EditorToolbar';
+import { TimeGrid } from '../editor/TimeGrid';
 import { Timeline } from '../editor/Timeline';
 import { useEditorContext } from '../editor/useEditorContext';
 import { BranchTree } from './BranchTree';
@@ -113,8 +114,29 @@ export function PlayView() {
               gap: 'var(--mantine-spacing-sm)',
             }}
           >
-            <PlaybackTransport />
-            {mode === 'edit' && <Timeline />}
+            {/* The scrubber, the step ruler and the keyframe tracks share one time axis, so the
+                grid behind them is drawn once here rather than once per surface. Relative, and
+                holding only those two: `SelectionActions` and the issue panel below carry no
+                time axis, and a grid running behind them would be noise.
+                `minHeight: 0` so the timeline's own scroll area takes the squeeze, which is what
+                this wrapper would otherwise refuse to pass on. */}
+            <Box style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              {mode === 'edit' && <TimeGrid />}
+              {/* Above the grid, and carrying the gap the region used to give these two. */}
+              <Box
+                style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--mantine-spacing-sm)',
+                  minHeight: 0,
+                }}
+              >
+                <PlaybackTransport />
+                {mode === 'edit' && <Timeline />}
+              </Box>
+            </Box>
             {mode === 'edit' && <SelectionActions />}
             {mode === 'edit' && <IssuePanel />}
           </Box>

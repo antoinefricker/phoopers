@@ -7,19 +7,36 @@ const TIE_EPSILON = 1e-9;
  * The grid every authored time falls on, in seconds. A play is read by people, and a keyframe
  * at 2.37s says nothing a keyframe at 2.5s does not.
  */
-export const TIME_GRID_S = 0.5;
+export const TIME_GRID_S = 0.1;
+
+// A cell is a decimal fraction, and no decimal fraction is exact in binary: 63 cells of 0.1s
+// multiply out to 6.300000000000001, which prints badly, compares badly and misses the
+// `% 1 === 0` test that tells a whole second from the cells between two of them. Rounding to
+// the microsecond is finer than any cell by six orders of magnitude and lands the result back
+// on the decimal the coach asked for.
+const GRID_PRECISION = 1e6;
+
+/**
+ * The time `cells` grid cells from zero, as a clean decimal.
+ *
+ * Every authored time is built through here, so counting cells is the one way to walk the grid:
+ * adding `TIME_GRID_S` repeatedly accumulates the error this rounds away.
+ */
+export function gridTime(cells: number): number {
+  if (!Number.isFinite(cells)) return 0;
+
+  return Math.round(cells * TIME_GRID_S * GRID_PRECISION) / GRID_PRECISION;
+}
 
 /**
  * Rounds a time to the nearest grid cell, never below zero.
  *
- * The multiply-then-divide keeps the result a clean multiple: adding 0.5 repeatedly, or
- * multiplying a float by a float, drifts into values like 6.300000000000001 that print and
- * compare badly. A time that is not a number becomes 0, there being no cell for it.
+ * A time that is not a number becomes 0, there being no cell for it.
  */
 export function snapToGrid(t: number): number {
   if (!Number.isFinite(t)) return 0;
 
-  return Math.max(0, Math.round(t / TIME_GRID_S) * TIME_GRID_S);
+  return Math.max(0, gridTime(Math.round(t / TIME_GRID_S)));
 }
 
 const STEP_EPSILON = 1e-6;
@@ -30,14 +47,31 @@ const STEP_EPSILON = 1e-6;
 // The three surfaces that share one time axis — the transport's scrubber, the step ruler and
 // the keyframe tracks — lay out against these. The gutter holds the row labels on the timeline
 // and the playback buttons on the transport, so both axes start at the same x.
-export const GUTTER_WIDTH = '160px';
+export const GUTTER_WIDTH = '180px';
 
 // Room kept at each end of every axis: half the width of a keyframe marker, which is centred
 // on its time and so reaches that far past it. Without it the last marker overflows and the
 // panel grows a horizontal scrollbar. The scrubber takes the same inset or it drifts from the
 // markers at the far end — which is why the number lives here, with the shared axis geometry,
 // rather than beside the marker it is derived from.
-export const TRACK_INSET_PX = 4;
+export const TRACK_INSET_PX = 6;
+
+// The transport's row is exactly as tall as its buttons. Pinned here rather than left to
+// Mantine's default ActionIcon height, because the time grid has to know it and cannot read it:
+// the grid is drawn by a sibling of the transport, which is laid out after it.
+export const TRANSPORT_ROW_HEIGHT_PX = 28;
+
+// The scrubber's time axis: the line its thumb travels along, down the middle of that row. The
+// grid's lines start here rather than at the top of the row, so they hang from the scrubber
+// instead of crossing it — a scrubber carries one line of time, not a height of it.
+export const SCRUBBER_AXIS_PX = TRANSPORT_ROW_HEIGHT_PX / 2;
+
+// The tracks scroll vertically and the scrubber does not, so the scrollbar's width is taken
+// from the tracks alone and the two axes end at different x the moment the rows overflow.
+// Both surfaces reserve it unconditionally instead: a gutter that appears with the scrollbar
+// would move the axis under the coach's pointer as a row is added. Mantine's own scrollbar
+// size, `--scrollarea-scrollbar-size`, which is 0.75rem at the default scale.
+export const SCROLLBAR_GUTTER_PX = 12;
 
 export function snapToStep(t: number, steps: readonly Step[], threshold: number): number {
   let best: number | undefined;

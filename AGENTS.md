@@ -173,6 +173,12 @@ Adding a new locale: register it in `SUPPORTED_LOCALES` (`apps/pwa/src/i18n/i18n
 - Do not add Claude co-authoring or attribution in the PR description.
 - When creating a PR, generate a summary section and a test plan section formatted as a todo checklist. Leave all test plan items unchecked.
 - Before writing the PR body, run the test suite and record the current test instrumentation in the summary: total tests passing (e.g. `308 passing`) and how many tests this PR adds, so reviewers can see how coverage moved.
+- Turn Auto-fix on for the PR as soon as it is opened, without being asked. It is the Claude Code
+  app's CI monitor, and it is a per-PR switch rather than an account default, so it has to be set
+  every time. With it on, a CI failure, a merge conflict or a review comment wakes the session
+  that opened the PR; without it, nobody is watching and a red build is found days later. It does
+  not relax anything else here: a fix it leads to is still proposed, approved and committed under
+  the rules above. Auto-merge is a different switch and stays off unless the user asks for it.
 
 ### Makefile
 

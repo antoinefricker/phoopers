@@ -10,8 +10,10 @@ import {
 } from '@tabler/icons-react';
 import {
   GUTTER_WIDTH,
+  SCROLLBAR_GUTTER_PX,
   TIME_GRID_S,
   TRACK_INSET_PX,
+  TRANSPORT_ROW_HEIGHT_PX,
   adjacentStep,
   sliderMax,
   snapToGrid,
@@ -64,7 +66,20 @@ export function PlaybackTransport() {
   };
 
   return (
-    <Group gap={0} align="center" wrap="nowrap">
+    // The same gutter the tracks below keep for their scrollbar, so the scrubber ends where
+    // the markers do whether or not the rows are scrolling. See `SCROLLBAR_GUTTER_PX`.
+    <Group
+      gap={0}
+      align="center"
+      wrap="nowrap"
+      data-testid="transport-row"
+      // Stated rather than left to the buttons to settle: the time grid starts on this row's
+      // midline, and a height nobody wrote down is one the grid cannot follow when it changes.
+      // In the style and not through `h`, which Mantine rewrites to rem against its own scale:
+      // the grid's offset is raw px, like the rest of the axis geometry, and two units that
+      // scale differently would part company the moment the root font size moved.
+      style={{ height: TRANSPORT_ROW_HEIGHT_PX, paddingRight: SCROLLBAR_GUTTER_PX }}
+    >
       {/* The buttons fill the same gutter the timeline gives its row labels, so the scrubber
           and the tracks begin at the same x and one playhead reads true across all three. */}
       <Group gap="xs" w={GUTTER_WIDTH} wrap="nowrap" style={{ flexShrink: 0 }}>

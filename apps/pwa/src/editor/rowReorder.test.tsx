@@ -28,7 +28,8 @@ describe('reordering rows', () => {
   it('names the player its handle would move', () => {
     renderEditor(fixturePlay, <Timeline />);
 
-    expect(handleFor(P1)).toHaveAccessibleName('Reorder 1');
+    // Side and number, not the bare number: both teams number 1..5, so "Reorder 1" named two.
+    expect(handleFor(P1)).toHaveAccessibleName('Reorder Offense 1');
   });
 
   it('keeps the ball at the head of the list', () => {

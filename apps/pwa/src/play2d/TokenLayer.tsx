@@ -83,7 +83,7 @@ export function TokenLayer() {
             }
           }}
         >
-          <PlayerSymbol team={player.team} label={player.label} />
+          <PlayerSymbol team={player.team} number={player.number} />
         </g>
       ))}
       {hasBall && (

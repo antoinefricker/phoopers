@@ -15,7 +15,17 @@ export type Easing = EasingPreset | CubicBezierEasing;
 export interface Player {
   id: PlayerId;
   team: 'offense' | 'defense';
-  label: string;
+  /**
+   * The number inside the symbol on the court, "1".."5". Each side is numbered on its own, so
+   * both teams hold a player called "2" and the symbol's shape tells them apart.
+   */
+  number: string;
+  /**
+   * The coach's own name for this player — "Pivot", "Meneur", whatever they call them. Absent
+   * or empty while they have not named one, which is the usual case: the views then fall back
+   * to the side and the number, so a row is never nameless.
+   */
+  label?: string;
 }
 
 export interface Keyframe {

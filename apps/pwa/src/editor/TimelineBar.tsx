@@ -1,4 +1,4 @@
-import { Box } from '@mantine/core';
+import { Box, Text } from '@mantine/core';
 import type { ReactElement, ReactNode } from 'react';
 import type { useTimeDrag } from './useTimeDrag';
 
@@ -9,6 +9,12 @@ export interface TimelineBarProps {
   leftPercent: string;
   widthPercent: string;
   background: string;
+  /**
+   * The colour of the handle on the right edge. Expected wherever `handle` is set, and ignored
+   * otherwise — an inherited bar has no handle to paint. No default: a handle has to sit against
+   * the fill it is the edge of, so no one colour is right for every bar. The default that used
+   * to be here was grape, and no bar had been grape for some time.
+   */
   handleBackground?: string;
   testId: string;
   /** Marks a bar belonging to an ancestor branch, which this branch may not change. */
@@ -24,6 +30,15 @@ export interface TimelineBarProps {
   handle?: { testId: string; label: string; bind: BarGesture };
   /** Drawn at the bar's end, inside it. */
   actions?: ReactNode;
+  /**
+   * What the bar says it is, drawn along it: a step's name, or who a screen is set for. Elided
+   * when the bar is too narrow, which is why it is the bar's job and not the caller's — the room
+   * it has depends on the controls the bar is carrying, and each caller guessing that number
+   * drifted the moment a control moved.
+   */
+  caption?: ReactNode;
+  /** Fades the caption, for a bar this branch may read but not change. */
+  captionDimmed?: boolean;
   /** Drawn inside the bar, positioned by the caller. */
   children?: ReactNode;
 }
@@ -40,13 +55,15 @@ export function TimelineBar({
   leftPercent,
   widthPercent,
   background,
-  handleBackground = 'var(--mantine-color-grape-filled)',
+  handleBackground,
   testId,
   inherited,
   bar,
   label,
   handle,
   actions,
+  caption,
+  captionDimmed,
   children,
 }: TimelineBarProps): ReactElement {
   return (
@@ -76,6 +93,56 @@ export function TimelineBar({
       }}
     >
       {children}
+      {(caption !== undefined || actions !== undefined) && (
+        // One row for both, so the caption's room is what the controls leave rather than a
+        // number each caller writes down: the caption takes the slack and elides into it, the
+        // controls keep their natural width. The padding reproduces where they already sat —
+        // 4px in at the start, 8px in at the end.
+        <Box
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            // Even on both sides: the caption used to sit 4px in and the controls 8px, which
+            // read as the text being pushed against the bar's leading edge once both bars drew
+            // one. Symmetric is the one choice that needs no reason per bar.
+            paddingLeft: 8,
+            paddingRight: 8,
+            // Transparent as a whole, like the bar under it: a row's markers sit beneath a
+            // screen and must stay grabbable. The controls opt back in for themselves.
+            pointerEvents: 'none',
+          }}
+        >
+          {caption !== undefined && (
+            <Text
+              size="xs"
+              truncate="end"
+              data-testid="bar-caption"
+              style={{ flex: '1 1 auto', minWidth: 0, opacity: captionDimmed === true ? 0.6 : undefined }}
+            >
+              {caption}
+            </Text>
+          )}
+          {actions !== undefined && (
+            <Box
+              style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', pointerEvents: 'auto' }}
+              // The controls carry no gesture, so nothing else stops their events reaching the
+              // bar. A press would be captured by it — `useTimeDrag` calls `setPointerCapture`,
+              // which retargets the click away from the control — and an arrow key would retime
+              // the step.
+              onPointerDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              {actions}
+            </Box>
+          )}
+        </Box>
+      )}
       {handle !== undefined && (
         // A button, not a div: the handle is reachable by keyboard, and the arrow keys retime
         // it through the same constraint the drag uses.
@@ -98,29 +165,6 @@ export function TimelineBar({
           }}
           {...handle.bind}
         />
-      )}
-      {actions !== undefined && (
-        <Box
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            // Inside the bar, not past it: a span ending where the track does would otherwise
-            // push its controls off the panel, which grows a horizontal scrollbar. Measured at
-            // 36px past the track for the last step of the sample play.
-            right: 8,
-            display: 'flex',
-            alignItems: 'center',
-            pointerEvents: 'auto',
-          }}
-          // The controls carry no gesture, so nothing else stops their events reaching the bar.
-          // A press would be captured by it — `useTimeDrag` calls `setPointerCapture`, which
-          // retargets the click away from the control — and an arrow key would retime the step.
-          onPointerDown={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        >
-          {actions}
-        </Box>
       )}
     </Box>
   );

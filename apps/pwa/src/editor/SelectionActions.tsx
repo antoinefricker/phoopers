@@ -1,6 +1,7 @@
 import { Button, Group, Paper, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useEditorContext } from './useEditorContext';
+import { entityName } from './entityName';
 
 /**
  * What can be done to the selected player: place a screen from them. A selected keyframe names
@@ -19,7 +20,7 @@ export function SelectionActions() {
         <Paper withBorder p="xs" data-testid="selection-actions">
           <Group gap="sm">
             <Text size="sm" fw={500}>
-              {t('play.editor.selectedPlayer', 'Player {{label}}', { label: player.label })}
+              {t('play.editor.selectedPlayer', 'Player {{label}}', { label: entityName(player, t) })}
             </Text>
             <Button
               size="xs"

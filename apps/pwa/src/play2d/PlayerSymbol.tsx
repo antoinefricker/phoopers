@@ -40,11 +40,12 @@ export const HELD_BALL_OFFSET = TOKEN_SIZE / 2 / Math.SQRT2;
 
 interface Props {
   team: Player['team'];
-  label: string;
+  /** The glyph inside the symbol: the player's number, never the coach's name for them. */
+  number: string;
 }
 
 // Centred on the origin, in court metres, with no transform of its own: the caller places it.
-export function PlayerSymbol({ team, label }: Props) {
+export function PlayerSymbol({ team, number }: Props) {
   return (
     <>
       {/* SHAPE alone separates the teams: blue-6 and red-6 sit at 0.245 and 0.270 luminance,
@@ -75,7 +76,7 @@ export function PlayerSymbol({ team, label }: Props) {
       )}
 
       <text textAnchor="middle" dominantBaseline="central" fontSize={0.5} fill="var(--mantine-color-white)" dy={0}>
-        {label}
+        {number}
       </text>
     </>
   );
@@ -83,7 +84,7 @@ export function PlayerSymbol({ team, label }: Props) {
 
 // A standalone badge for anywhere outside the court's own SVG — the timeline's gutter draws the
 // same token the court does, at row height, rather than restating it as text.
-export function PlayerSymbolBadge({ team, label, sizePx, name }: Props & { sizePx: number; name: string }) {
+export function PlayerSymbolBadge({ team, number, sizePx, name }: Props & { sizePx: number; name: string }) {
   // Every badge is framed on the same reach — the square's half-diagonal — so the two symbols
   // keep the court's equal-AREA relationship instead of an equal box. A square and a disc
   // cannot both fill a 24px badge and cover the same surface: the square's diagonal is the
@@ -99,7 +100,7 @@ export function PlayerSymbolBadge({ team, label, sizePx, name }: Props & { sizeP
       aria-label={name}
       style={{ flexShrink: 0 }}
     >
-      <PlayerSymbol team={team} label={label} />
+      <PlayerSymbol team={team} number={number} />
     </svg>
   );
 }

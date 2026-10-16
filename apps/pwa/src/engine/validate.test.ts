@@ -80,7 +80,7 @@ describe('validatePlay', () => {
   it('reports duplicate ids', () => {
     const play: Play = {
       ...fixturePlay,
-      players: [...fixturePlay.players, { id: P1, team: 'defense', label: 'X1' }],
+      players: [...fixturePlay.players, { id: P1, team: 'defense', number: 'X1' }],
     };
 
     expect(codesFor(play)).toContain('duplicate-id');
