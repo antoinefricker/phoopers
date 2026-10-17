@@ -9,11 +9,11 @@ import { APRON, COURT_SPEC, courtMarkings, fullCourtViewBox, halfCourtViewBox } 
 import { playerPathSegments } from './geometry/paths';
 import { DRIBBLE_AMPLITUDE } from './pathSymbols';
 
-function renderCanvas(halfCourt = false) {
+function renderCanvas(half = false) {
   return render(
     <MantineProvider>
       <PlaybackContextProvider play={hornsPlay}>
-        <PlayCanvas halfCourt={halfCourt} playName={hornsPlay.name} />
+        <PlayCanvas extent={half ? 'half' : 'full'} playName={hornsPlay.name} />
       </PlaybackContextProvider>
     </MantineProvider>,
   );
@@ -61,7 +61,7 @@ describe('PlayCanvas', () => {
     const halfViewBox = screen.getByRole('img').getAttribute('viewBox');
 
     expect(fullPaths.length).toBeGreaterThan(10);
-    // The sample attacks the right basket, so the right half.
+    // A half-court system always shows the right half, where the attacked basket is.
     expect(halfViewBox).toBe(halfCourtViewBox('fiba', 'right'));
     expect(halfViewBox).not.toBe(fullViewBox);
     // Every path's geometry and symbol attributes are identical, as is all the markup inside the svg.

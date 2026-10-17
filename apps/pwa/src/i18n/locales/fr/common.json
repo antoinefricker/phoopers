@@ -15,6 +15,21 @@
       "half": "Demi-terrain",
       "view": "Vue du terrain"
     },
+    "create": {
+      "cancel": "",
+      "court": "",
+      "courtFull": "",
+      "courtHalf": "",
+      "discard": "",
+      "lineup": "",
+      "lineupEmpty": "",
+      "lineupFive": "",
+      "lineupThree": "",
+      "name": "",
+      "namePlaceholder": "",
+      "submit": "",
+      "title": ""
+    },
     "editor": {
       "addDefense": "Ajouter un défenseur",
       "addOffense": "Ajouter un attaquant",
@@ -90,6 +105,12 @@
       "stepDuration": "Durée du label",
       "stepName": "Nom de l'étape",
       "variantName": "Nom de la variante"
+    },
+    "menu": {
+      "create": "",
+      "label": "",
+      "save": "",
+      "saveSoon": ""
     },
     "timeline": {
       "pass": "Passe",

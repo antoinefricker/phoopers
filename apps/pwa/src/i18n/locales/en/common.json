@@ -15,6 +15,21 @@
       "half": "Half court",
       "view": "Court view"
     },
+    "create": {
+      "cancel": "Cancel",
+      "court": "Court",
+      "courtFull": "FIBA full court",
+      "courtHalf": "FIBA half court",
+      "discard": "The system you have open, and all its variants, will be discarded.",
+      "lineup": "Starting placement",
+      "lineupEmpty": "Empty, ball only",
+      "lineupFive": "5 on 5",
+      "lineupThree": "3 on 3",
+      "name": "Name",
+      "namePlaceholder": "Horns, Flex, 1-4 high…",
+      "submit": "Create",
+      "title": "New system"
+    },
     "editor": {
       "addDefense": "Add defense",
       "addOffense": "Add offense",
@@ -86,6 +101,12 @@
       "stepDuration": "Label duration",
       "stepName": "Step name",
       "variantName": "Variant name"
+    },
+    "menu": {
+      "create": "Create a new system",
+      "label": "System menu",
+      "save": "Save",
+      "saveSoon": "Saving arrives with persistence"
     },
     "timeline": {
       "pass": "Pass",

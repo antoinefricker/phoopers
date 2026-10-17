@@ -94,12 +94,12 @@ describe('EditorToolbar', () => {
   it('shows the edit actions only in edit mode', async () => {
     renderProbe();
 
-    expect(screen.queryByRole('button', { name: 'New play' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'System menu' })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Edit'));
 
     expect(screen.getByTestId('mode')).toHaveTextContent('edit');
-    expect(screen.getByRole('button', { name: 'New play' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'System menu' })).toBeInTheDocument();
   });
 
   it('no longer offers the two that moved to the transport', async () => {
