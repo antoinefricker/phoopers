@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ActionIcon, Button, Popover, Stack, Tooltip } from '@mantine/core';
-import { IconDotsVertical } from '@tabler/icons-react';
+import { IconMenu2 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { CreatePlayDialog } from './CreatePlayDialog';
 
@@ -28,7 +28,7 @@ export function PlayMenu() {
             onClick={() => setOpened((open) => !open)}
             aria-label={t('play.menu.label', 'System menu')}
           >
-            <IconDotsVertical size={18} stroke={1.5} />
+            <IconMenu2 size={18} stroke={1.5} />
           </ActionIcon>
         </Popover.Target>
         <Popover.Dropdown>
