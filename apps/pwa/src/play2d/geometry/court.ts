@@ -1,4 +1,4 @@
-import { COURT_DIMENSIONS } from '../../engine';
+import { COURT_DIMENSIONS, OUT_OF_BOUNDS_MARGIN } from '../../engine';
 
 export type CourtType = 'fiba' | 'nba';
 
@@ -130,11 +130,12 @@ export function courtMarkings(court: CourtType): Marking[] {
 
 export const LINE_WIDTH = 0.1;
 
-// The floor runs half a metre past the playing surface, as a hall does: the boundary line is
-// centred on the court's edge, so without it half the line falls outside the frame and the
-// sideline draws at half thickness. The apron subsumes that — ten times the half-width the line
-// needs — and gives the markings somewhere to sit rather than ending flush at the frame.
-export const APRON = 0.5;
+// The floor runs a metre past the playing surface, as a hall does. Two things need the room.
+// The boundary line is centred on the court's edge, so without an apron half the sideline falls
+// outside the frame and draws at half thickness. And a player may be placed a metre out of
+// bounds, which is where a set starts — so the apron IS that metre, shared with the editor's
+// bounds through OUT_OF_BOUNDS_MARGIN. Narrowing it would draw tokens the coach cannot reach.
+export const APRON = OUT_OF_BOUNDS_MARGIN;
 
 export const fullCourtViewBox = (court: CourtType): string => {
   const spec = COURT_SPEC[court];
@@ -143,12 +144,13 @@ export const fullCourtViewBox = (court: CourtType): string => {
 
 export type CourtSide = 'left' | 'right';
 
-/** The half of the floor on `side`. Which half to show is the caller's call (see attackingSide). */
+/** The half of the floor on `side`. Which half to show is the caller's call. */
 export const halfCourtViewBox = (court: CourtType, side: CourtSide): string => {
   const spec = COURT_SPEC[court];
   const half = spec.length / 2;
-  // The apron is on the outer three sides only: the halfway cut cuts through the floor, where
-  // there is no edge and nothing to leave room for.
-  const x = side === 'left' ? -APRON : half;
-  return `${x} ${-APRON} ${half + APRON} ${spec.width + APRON * 2}`;
+  // The halfway cut carries the apron too, unlike the outer edges' reason for one: there is no
+  // line to keep whole there, but a player may stand a metre the other side of it — a defender
+  // dropping back out of a half-court set — and the frame has to show them.
+  const x = side === 'left' ? -APRON : half - APRON;
+  return `${x} ${-APRON} ${half + APRON * 2} ${spec.width + APRON * 2}`;
 };

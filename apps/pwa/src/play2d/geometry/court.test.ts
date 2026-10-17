@@ -186,14 +186,19 @@ describe('courtMarkings', () => {
 });
 
 describe('viewBoxes', () => {
-  it('full court spans the floor and the apron around it', () => {
-    expect(fullCourtViewBox('fiba')).toBe(`${-APRON} ${-APRON} ${28 + APRON * 2} ${15 + APRON * 2}`);
+  // Written as numbers rather than in terms of APRON: the point of these is the metre itself,
+  // which a player may stand in, and an expectation phrased with APRON would follow it anywhere.
+  it('leaves a metre of apron around the full court', () => {
+    expect(APRON).toBe(1);
+    expect(fullCourtViewBox('fiba')).toBe('-1 -1 30 17');
   });
 
-  it('half court carries the apron on its outer sides only', () => {
-    // The halfway cut runs through the floor: there is no edge there, so no apron.
-    expect(halfCourtViewBox('fiba', 'left')).toBe(`${-APRON} ${-APRON} ${14 + APRON} ${15 + APRON * 2}`);
-    expect(halfCourtViewBox('fiba', 'right')).toBe(`14 ${-APRON} ${14 + APRON} ${15 + APRON * 2}`);
-    expect(halfCourtViewBox('nba', 'right')).toBe(`${28.65 / 2} ${-APRON} ${28.65 / 2 + APRON} ${15.24 + APRON * 2}`);
+  it('leaves the same metre past the halfway line', () => {
+    expect(halfCourtViewBox('fiba', 'left')).toBe('-1 -1 16 17');
+    expect(halfCourtViewBox('fiba', 'right')).toBe('13 -1 16 17');
+  });
+
+  it('measures the halves of an NBA floor from its own length', () => {
+    expect(halfCourtViewBox('nba', 'right')).toBe(`${28.65 / 2 - 1} -1 ${28.65 / 2 + 2} ${15.24 + 2}`);
   });
 });
