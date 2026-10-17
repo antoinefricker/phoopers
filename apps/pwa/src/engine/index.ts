@@ -2,6 +2,7 @@ export type {
   BallState,
   Branch,
   BranchId,
+  CourtExtent,
   CubicBezierEasing,
   Easing,
   EasingPreset,
@@ -24,6 +25,7 @@ export type {
   Vec2,
 } from './types';
 export { COURT_DIMENSIONS } from './types';
+export { OUT_OF_BOUNDS_MARGIN, extentOf } from './extent';
 export { pointOnCubic } from './curve';
 export { resolveBranch } from './resolve';
 export { ballCarryAt, ballStateAt, duration, spanKindAt, stateAt, stepsOf } from './sample';
