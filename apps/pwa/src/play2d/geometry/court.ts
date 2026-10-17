@@ -1,4 +1,5 @@
 import { COURT_DIMENSIONS, OUT_OF_BOUNDS_MARGIN } from '../../engine';
+import { TOKEN_REACH } from '../PlayerSymbol';
 
 export type CourtType = 'fiba' | 'nba';
 
@@ -130,12 +131,14 @@ export function courtMarkings(court: CourtType): Marking[] {
 
 export const LINE_WIDTH = 0.1;
 
-// The floor runs a metre past the playing surface, as a hall does. Two things need the room.
+// The floor runs past the playing surface, as a hall does. Two things need the room.
 // The boundary line is centred on the court's edge, so without an apron half the sideline falls
 // outside the frame and draws at half thickness. And a player may be placed a metre out of
-// bounds, which is where a set starts — so the apron IS that metre, shared with the editor's
-// bounds through OUT_OF_BOUNDS_MARGIN. Narrowing it would draw tokens the coach cannot reach.
-export const APRON = OUT_OF_BOUNDS_MARGIN;
+// bounds, which is where a set starts — so the apron is that metre, shared with the editor's
+// bounds through OUT_OF_BOUNDS_MARGIN, PLUS the half-width of the token standing out there.
+// The metre alone would frame that player's centre and cut their symbol in half at the edge,
+// which is the clipping the apron exists to prevent.
+export const APRON = OUT_OF_BOUNDS_MARGIN + TOKEN_REACH;
 
 export const fullCourtViewBox = (court: CourtType): string => {
   const spec = COURT_SPEC[court];

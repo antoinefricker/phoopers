@@ -20,6 +20,24 @@ describe('addPlayer', () => {
     expect(validatePlay(play)).toEqual([]);
   });
 
+  it('drops the player clear of one already standing where it would land', () => {
+    // A three-on-three half-court system puts the ball-handler on the centre of the shown half,
+    // which is exactly where a new player lands. Two tokens on one point means the one
+    // underneath stops answering clicks.
+    const [root] = fixturePlay.branches;
+    if (root === undefined) throw new Error('expected a root branch');
+    const occupied: Play = {
+      ...fixturePlay,
+      extent: 'half',
+      players: [{ id: P1, team: 'offense', number: '1' }],
+      branches: [{ ...root, tracks: { ball: [], [P1]: [{ t: 0, position: { x: 21, y: 7.5 } }] }, screens: [] }],
+    };
+
+    const play = addPlayer(occupied, 'offense', NEW);
+
+    expect(trackOf(play, NEW)).toEqual([{ t: 0, position: { x: 19, y: 7.5 } }]);
+  });
+
   it('leaves the input play untouched', () => {
     const before = JSON.stringify(fixturePlay);
     addPlayer(fixturePlay, 'offense', NEW);

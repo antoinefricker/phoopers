@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CourtChoice } from './bounds';
-import { courtBounds, displayedCentre } from './bounds';
+import { PLAYER_CLEARANCE, courtBounds, displayedCentre, freeSpot } from './bounds';
 
 const fullCourt: CourtChoice = { court: 'fiba', extent: 'full' };
 const halfCourt: CourtChoice = { court: 'fiba', extent: 'half' };
@@ -30,5 +30,33 @@ describe('displayedCentre', () => {
 
   it('is the middle of the shown half on a half court', () => {
     expect(displayedCentre(halfCourt)).toEqual({ x: 21, y: 7.5 });
+  });
+});
+
+describe('freeSpot', () => {
+  const centre = { x: 21, y: 7.5 };
+
+  it('is the point asked for when nobody is standing there', () => {
+    expect(freeSpot(halfCourt, centre, [{ x: 25, y: 3 }], PLAYER_CLEARANCE)).toEqual(centre);
+  });
+
+  it('steps away from the basket when someone is', () => {
+    expect(freeSpot(halfCourt, centre, [centre], PLAYER_CLEARANCE)).toEqual({ x: 19, y: 7.5 });
+  });
+
+  it('keeps stepping while each spot it tries is taken too', () => {
+    const crowd = [centre, { x: 19, y: 7.5 }, { x: 23, y: 7.5 }];
+
+    expect(freeSpot(halfCourt, centre, crowd, PLAYER_CLEARANCE)).toEqual({ x: 17, y: 7.5 });
+  });
+
+  it('never steps outside the bounds', () => {
+    // A half court is 16 m wide with the margin, so the fourth step would leave it.
+    const column = [15, 17, 19, 21, 23, 25, 27].map((x) => ({ x, y: 7.5 }));
+    const spot = freeSpot(halfCourt, centre, column, PLAYER_CLEARANCE);
+    const { minX, maxX } = courtBounds(halfCourt);
+
+    expect(spot.x).toBeGreaterThanOrEqual(minX);
+    expect(spot.x).toBeLessThanOrEqual(maxX);
   });
 });

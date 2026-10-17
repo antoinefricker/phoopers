@@ -3,7 +3,9 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { fixturePlay } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
-import { readProbe, renderEditor } from './testUtils/renderEditor';
+import { fullCourtViewBox, halfCourtViewBox } from '../play2d/geometry/court';
+import { branchMenu, readProbe, renderEditor } from './testUtils/renderEditor';
+import { playheadTime } from '../testUtils/transport';
 
 const renderView = () => renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
 
@@ -81,7 +83,9 @@ describe('the creation dialog', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'FIBA half court' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
 
-    expect(screen.getByRole('img', { name: /Flex/ })).toHaveAttribute('viewBox', '13 -1 16 17');
+    const viewBox = screen.getByRole('img', { name: /Flex/ }).getAttribute('viewBox');
+    expect(viewBox).toBe(halfCourtViewBox('fiba', 'right'));
+    expect(viewBox).not.toBe(fullCourtViewBox('fiba'));
   });
 });
 
@@ -95,6 +99,27 @@ describe('the court view', () => {
   it('draws a play that declares no extent on the whole floor', () => {
     renderView();
 
-    expect(screen.getByRole('img', { name: /Horns entry/ })).toHaveAttribute('viewBox', '-1 -1 30 17');
+    expect(screen.getByRole('img', { name: /Horns entry/ })).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));
+  });
+});
+
+describe('creating while a variant is open and the clock has moved', () => {
+  it('comes up on its own root with the playhead back at zero', async () => {
+    // The guard is `PlayView`'s `key={play.id}` on the playback provider. Without it the clock
+    // and the selected branch outlive the play they pointed into, and the next resolve is handed
+    // a branch id the new system has never heard of.
+    renderView();
+    await userEvent.click((await branchMenu()).getByRole('button', { name: 'Defence switches' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Next step' }));
+    expect(playheadTime()).toBeGreaterThan(0);
+
+    const dialog = await openDialog();
+    await userEvent.type(screen.getByLabelText(/Name/), 'Flex');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+
+    const { play } = readProbe();
+    expect(play.branches).toHaveLength(1);
+    expect(play.rootBranchId).toBe(play.branches[0]?.id);
+    expect(playheadTime()).toBe(0);
   });
 });

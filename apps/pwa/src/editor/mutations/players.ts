@@ -1,6 +1,13 @@
-import type { Branch, Play, Player, PlayerId } from '../../engine';
+import type { Branch, Play, Player, PlayerId, Vec2 } from '../../engine';
 import { resolveBranch, stateAt } from '../../engine';
-import { displayedCentre } from '../bounds';
+import { PLAYER_CLEARANCE, displayedCentre, freeSpot } from '../bounds';
+
+/** Where a player stands at t=0 on the root branch, if anywhere. */
+const startOf = (play: Play, id: PlayerId): Vec2[] => {
+  const position = play.branches.find((b) => b.id === play.rootBranchId)?.tracks[id]?.[0]?.position;
+
+  return position === undefined ? [] : [position];
+};
 
 // Each side is numbered 1..5 on its own, so both teams hold a player called "2"; the court
 // tells them apart by the circle's fill. A number is never reused: the next free integer is one
@@ -55,13 +62,18 @@ const mapRoot = (play: Play, mutate: (branch: Branch) => Branch): Branch[] =>
 // that unreachable by hand.
 export function addPlayer(play: Play, team: 'offense' | 'defense', id: PlayerId): Play {
   const player: Player = { id, team, number: nextNumber(play.players, team) };
+  // Clear of whoever is already standing in the middle of the picture. On a half-court
+  // three-on-three the ball-handler is on that exact point, and two tokens on one point means
+  // the one underneath cannot be clicked again until the other is dragged off.
+  const standing = play.players.flatMap((p) => startOf(play, p.id));
+  const position = freeSpot(play, displayedCentre(play), standing, PLAYER_CLEARANCE);
 
   return {
     ...play,
     players: [...play.players, player],
     branches: mapRoot(play, (branch) => ({
       ...branch,
-      tracks: { ...branch.tracks, [id]: [{ t: 0, position: displayedCentre(play) }] },
+      tracks: { ...branch.tracks, [id]: [{ t: 0, position }] },
     })),
   };
 }

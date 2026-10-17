@@ -140,17 +140,6 @@ rules PDF. All cross-checks are mutually consistent, so the risk is low.
 
 **Fix:** one look at the NBA Rule 1 diagram closes it.
 
-### The attacking half is a heuristic
-
-`attackingSide` picks the half-court viewport from the mean `x` of offense keyframes against
-the half-way line. A play that legitimately straddles half-way — a full-court press, a
-transition play — is a coin flip.
-
-It only ever chooses a **viewport**, never geometry, and degenerate input returns `'left'`
-rather than `NaN`.
-
-**Fix:** let a play declare its attacking basket, which is data the editor should own.
-
 ## Editor
 
 ### The court's colours trade legibility for looks, unresolved

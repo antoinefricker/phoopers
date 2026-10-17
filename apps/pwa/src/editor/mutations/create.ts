@@ -1,19 +1,16 @@
-import type { Branch, BranchId, CourtExtent, Keyframe, Play, PlayId, Player, PlayerId, Vec2 } from '../../engine';
-import type { CourtChoice } from '../bounds';
-import { displayedCentre } from '../bounds';
+import type { Branch, BranchId, CourtExtent, Keyframe, Play, PlayId, Player, PlayerId } from '../../engine';
+import { displayedCentre, freeSpot } from '../bounds';
 import type { LineupKind } from '../lineups';
 import { LINEUPS } from '../lineups';
 
 /**
  * How close a player has to be to the ball's resting place for it to move aside, in metres.
  *
- * The court layer picks a player within 0.7 m of a click, so a ball any nearer than that cannot
- * be picked up: the gesture is ambiguous and the coach can never assign possession.
+ * A ball drawn under a token is invisible: the coach cannot see that it is loose, let alone
+ * decide who picks it up. 0.7 m is the court layer's own player hit radius, so this is the
+ * distance at which a token's reach starts covering the ball.
  */
 export const BALL_CLEARANCE = 0.7;
-
-/** How far the ball steps towards midcourt when its resting place is taken, in metres. */
-const BALL_SIDESTEP = 2;
 
 export interface CreatePlayOptions {
   name: string;
@@ -30,20 +27,6 @@ export interface CreatePlayIds {
   rootBranchId: BranchId;
   offense: PlayerId[];
   defense: PlayerId[];
-}
-
-/**
- * Where the ball starts: loose, in the middle of what is on screen.
- *
- * Loose rather than held, because the coach decides who has it. In the middle, because that is
- * where the eye lands. When a player of the chosen placement already stands there, it steps
- * towards midcourt instead of hiding under them.
- */
-function ballPosition(choice: CourtChoice, players: readonly Vec2[]): Vec2 {
-  const centre = displayedCentre(choice);
-  const taken = players.some((p) => Math.hypot(p.x - centre.x, p.y - centre.y) <= BALL_CLEARANCE);
-
-  return taken ? { x: centre.x - BALL_SIDESTEP, y: centre.y } : centre;
 }
 
 /**
@@ -69,8 +52,12 @@ export function createPlay(options: CreatePlayOptions, ids: CreatePlayIds): Play
     });
   }
 
+  // Loose rather than held, because the coach decides who has it, and in the middle of what is
+  // on screen, because that is where the eye lands — stepped aside when the chosen placement
+  // already stands there, which half-court three-on-three does exactly.
+  const choice = { court, extent };
   const placed = players.flatMap((player) => tracks[player.id]?.[0]?.position ?? []);
-  tracks.ball = [{ t: 0, position: ballPosition({ court, extent }, placed) }];
+  tracks.ball = [{ t: 0, position: freeSpot(choice, displayedCentre(choice), placed, BALL_CLEARANCE) }];
 
   const root: Branch = {
     id: ids.rootBranchId,
