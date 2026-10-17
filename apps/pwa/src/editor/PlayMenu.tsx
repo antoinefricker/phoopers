@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { ActionIcon, Button, Divider, Popover, Stack, Tooltip } from '@mantine/core';
-import { IconEye, IconMenu2, IconPencil } from '@tabler/icons-react';
+import { IconMenu2 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { CreatePlayDialog } from './CreatePlayDialog';
 import { useEditorContext } from './useEditorContext';
 
 /**
  * What a coach does to a system as a whole, rather than to what is on the court.
+ *
+ * Its entries are grey rather than the app's primary: the primary marks the controls that act on
+ * the play — the transport, the add button — and a dropdown of plain choices that reached for it
+ * too would spend the colour on something that is only a list.
  *
  * Shown in both modes, unlike the authoring controls: watching a system and editing one are both
  * things you arrive at from here, and a menu that vanished in play mode would take the way back
@@ -42,31 +46,21 @@ export function PlayMenu() {
         <Popover.Dropdown>
           <Stack gap="xs">
             {/* One entry, never two: the mode you are not in is the only one worth offering, and
-              a pair would ask the coach to read which of them is already true. */}
-            {mode === 'play' ? (
-              <Button
-                variant="subtle"
-                fullWidth
-                justify="flex-start"
-                leftSection={<IconPencil size={16} stroke={1.5} />}
-                onClick={pick(() => setMode('edit'))}
-              >
-                {t('play.menu.editMode', 'Edit mode')}
-              </Button>
-            ) : (
-              <Button
-                variant="subtle"
-                fullWidth
-                justify="flex-start"
-                leftSection={<IconEye size={16} stroke={1.5} />}
-                onClick={pick(() => setMode('play'))}
-              >
-                {t('play.menu.playMode', 'Play mode')}
-              </Button>
-            )}
+              a pair would ask the coach to read which of them is already true. No glyph — an eye
+              and a pencil said no more than the words beside them. */}
+            <Button
+              variant="subtle"
+              color="gray"
+              fullWidth
+              justify="flex-start"
+              onClick={pick(() => setMode(mode === 'play' ? 'edit' : 'play'))}
+            >
+              {mode === 'play' ? t('play.menu.editMode', 'Edit mode') : t('play.menu.playMode', 'Play mode')}
+            </Button>
             <Divider />
             <Button
               variant="subtle"
+              color="gray"
               fullWidth
               justify="flex-start"
               onClick={pick(() => setCreating((c) => ({ opened: true, count: c.count + 1 })))}
@@ -76,7 +70,7 @@ export function PlayMenu() {
             <Tooltip label={t('play.menu.saveSoon', 'Saving arrives with persistence')}>
               {/* Mantine needs the disabled control wrapped for the tooltip to receive events. */}
               <span>
-                <Button variant="subtle" fullWidth justify="flex-start" disabled>
+                <Button variant="subtle" color="gray" fullWidth justify="flex-start" disabled>
                   {t('play.menu.save', 'Save')}
                 </Button>
               </span>
