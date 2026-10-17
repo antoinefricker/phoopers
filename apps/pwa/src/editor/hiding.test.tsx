@@ -4,12 +4,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { P1, P2, fixturePlay } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
-import { renderEditor } from './testUtils/renderEditor';
+import { enterEditMode, leaveEditMode, renderEditor } from './testUtils/renderEditor';
 
 beforeEach(() => stubViewportWidth(1440));
-
-const enterEditMode = () => userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
-const leaveEditMode = () => userEvent.click(screen.getByRole('radio', { name: 'Play' }));
 
 const tokenFor = (container: HTMLElement, entityId: string) =>
   container.querySelector(`[data-testid="token"][data-player-id="${entityId}"]`);

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
-import { branchButton, readProbe, renderEditor } from './testUtils/renderEditor';
+import { branchButton, enterEditMode, leaveEditMode, readProbe, renderEditor } from './testUtils/renderEditor';
 
 // These drive the real PlayView, not the mutations: what they prove is that a coach can REACH
 // screen creation, screen removal and player removal. The mutations have their own unit tests, and
@@ -16,7 +16,6 @@ const HINT = 'Click the player being screened on the court.';
 const rootScreens = () => readProbe().play.branches.find((b) => b.id === ROOT)?.screens ?? [];
 const players = () => readProbe().play.players;
 
-const enterEditMode = () => userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
 const selectOnCourt = (playerId: string) => userEvent.click(screen.getByTestId(`edit-token-${playerId}`));
 
 const renderView = async () => {
@@ -229,7 +228,7 @@ describe('leaving edit mode', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Place a screen' }));
     expect(screen.getByRole('button', { name: 'Cancel screen' })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('radio', { name: 'Play' }));
+    await leaveEditMode();
     await enterEditMode();
 
     // Deliberately NOT re-selecting the player first: `select()` already disarms placement, so

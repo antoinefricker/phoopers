@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import type { BranchId, StepId } from '../engine';
 import { fixturePlay, P1, ROOT, STEP_ENTRY } from '../engine/__fixtures__/play';
 import { EditorContextProvider } from './EditorContextProvider';
-import { EditorToolbar } from './EditorToolbar';
 import { useEditorContext } from './useEditorContext';
 
 function Probe() {
@@ -30,7 +29,6 @@ const renderProbe = () =>
     <MantineProvider>
       <EditorContextProvider initialPlay={fixturePlay}>
         <Probe />
-        <EditorToolbar />
       </EditorContextProvider>
     </MantineProvider>,
   );
@@ -90,38 +88,9 @@ describe('forkBranch', () => {
   });
 });
 
-describe('EditorToolbar', () => {
-  it('no longer offers the two that moved to the transport', async () => {
-    // Adding a player lives in the add menu beside the playhead. Two ways to do it is one more
-    // than anyone needs to learn, so the toolbar's are gone rather than duplicated.
-    renderProbe();
-    await userEvent.click(screen.getByText('Edit'));
-
-    expect(screen.queryByRole('button', { name: 'Add offense' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Add defense' })).not.toBeInTheDocument();
-  });
-});
-
 describe('useEditorContext', () => {
   it('throws outside its provider', () => {
     expect(() => render(<Probe />)).toThrow(/useEditorContext.*EditorContextProvider/s);
-  });
-});
-
-describe('the mode toggle icons', () => {
-  it('adds an icon to each segment without changing its accessible name', () => {
-    // Four test files find these segments by the names "Play" and "Edit". An icon that
-    // replaced the text, or that contributed text of its own, would rename them and break
-    // those silently — so the name is the assertion that matters here, not the icon.
-    renderProbe();
-
-    for (const name of ['Play', 'Edit']) {
-      const radio = screen.getByRole('radio', { name }) as HTMLInputElement;
-      // Mantine renders the input as a SIBLING of its label, so `closest` finds nothing.
-      const label = radio.labels?.[0];
-      expect(label?.querySelector('svg')).toBeInTheDocument();
-      expect(label?.textContent).toBe(name);
-    }
   });
 });
 

@@ -5,7 +5,7 @@ import type { BranchId, Play } from '../engine';
 import { fixturePlay, ROOT, STEP_ENTRY, SWITCH } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
-import { branchButton, readProbe, renderEditor } from './testUtils/renderEditor';
+import { branchButton, enterEditMode, readProbe, renderEditor } from './testUtils/renderEditor';
 
 const DEEPER = 'deeper' as BranchId;
 const SWITCH_NAME = 'Defence switches';
@@ -28,9 +28,6 @@ const withGrandchild: Play = {
 
 beforeEach(() => stubViewportWidth(1440));
 
-const enterEditMode = async () => {
-  await userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
-};
 const askToDelete = async () => userEvent.click(await branchButton(`Delete ${SWITCH_NAME}`));
 /**
  * The confirmation, by name. The branch menu that the delete action was reached through is a

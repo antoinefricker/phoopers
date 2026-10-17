@@ -1,5 +1,4 @@
 import { screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveBranch } from '../engine';
 import { ROOT, fixturePlay } from '../engine/__fixtures__/play';
@@ -7,11 +6,9 @@ import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { SCRUBBER_AXIS_PX, TRANSPORT_ROW_HEIGHT_PX } from '../play2d/transportMath';
 import { gridTicks } from './timelineGeometry';
-import { renderEditor } from './testUtils/renderEditor';
+import { enterEditMode, renderEditor } from './testUtils/renderEditor';
 
 beforeEach(() => stubViewportWidth(1440));
-
-const enterEditMode = () => userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
 
 const px = (value: string) => Number(value.replace('px', ''));
 

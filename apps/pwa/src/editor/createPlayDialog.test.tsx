@@ -10,7 +10,6 @@ import { playheadTime } from '../testUtils/transport';
 const renderView = () => renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
 
 const openMenu = async () => {
-  await userEvent.click(screen.getByText('Edit'));
   await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
 };
 
@@ -29,10 +28,29 @@ describe('the system menu', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
-  it('stays out of the way in play mode', () => {
+  it('is there in play mode too, since it is the way back into editing', async () => {
+    renderView();
+    await openMenu();
+
+    expect(screen.getByRole('button', { name: 'Edit mode' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Play mode' })).not.toBeInTheDocument();
+  });
+
+  it('offers the way out again once editing', async () => {
+    renderView();
+    await openMenu();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit mode' }));
+    await openMenu();
+
+    expect(screen.getByRole('button', { name: 'Play mode' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit mode' })).not.toBeInTheDocument();
+  });
+
+  it('leaves no mode control in the header beside it', () => {
     renderView();
 
-    expect(screen.queryByRole('button', { name: 'System menu' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Play' })).not.toBeInTheDocument();
   });
 });
 

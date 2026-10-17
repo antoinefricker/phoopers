@@ -53,10 +53,6 @@
       "forkTitle": "Créer une variante",
       "hideEntity": "Masquer {{name}}",
       "keyframeAt": "Position à {{t}} s",
-      "mode": {
-        "edit": "Éditer",
-        "play": "Jouer"
-      },
       "noProblems": "Aucun problème",
       "offenseRow": "Attaquant {{number}}",
       "placeScreen": "Poser un écran",
@@ -98,7 +94,9 @@
     },
     "menu": {
       "create": "Créer un nouveau système",
+      "editMode": "Mode édition",
       "label": "Menu du système",
+      "playMode": "Mode lecture",
       "save": "Enregistrer",
       "saveSoon": "L'enregistrement arrivera avec la persistance"
     },

@@ -326,7 +326,8 @@ describe('PlayView assembly', () => {
   it('shows the timeline and the issue panel in edit mode', async () => {
     renderView();
 
-    await userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
+    await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit mode' }));
 
     expect(screen.getByTestId('step-ruler')).toBeInTheDocument();
     expect(screen.getByTestId('issue-count')).toHaveTextContent('0');

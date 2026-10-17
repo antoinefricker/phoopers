@@ -1,15 +1,12 @@
 import { screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import userEvent from '@testing-library/user-event';
 import { fixturePlay } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { SCROLLBAR_GUTTER_PX } from '../play2d/transportMath';
 import { stubViewportWidth } from '../testUtils/viewport';
-import { renderEditor } from './testUtils/renderEditor';
+import { enterEditMode, renderEditor } from './testUtils/renderEditor';
 
 beforeEach(() => stubViewportWidth(1440));
-
-const enterEditMode = () => userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
 
 // The scrubber, the step ruler and the keyframe tracks are one time axis drawn on three
 // surfaces. Only the tracks scroll, so only they used to lose width to the scrollbar — and the

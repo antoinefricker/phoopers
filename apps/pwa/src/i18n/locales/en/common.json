@@ -53,10 +53,6 @@
       "forkTitle": "Create a variant",
       "hideEntity": "Hide {{name}}",
       "keyframeAt": "Keyframe at {{t}}s",
-      "mode": {
-        "edit": "Edit",
-        "play": "Play"
-      },
       "noProblems": "No problems",
       "offenseRow": "Offense {{number}}",
       "placeScreen": "Place a screen",
@@ -94,7 +90,9 @@
     },
     "menu": {
       "create": "Create a new system",
+      "editMode": "Edit mode",
       "label": "System menu",
+      "playMode": "Play mode",
       "save": "Save",
       "saveSoon": "Saving arrives with persistence"
     },
