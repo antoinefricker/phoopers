@@ -150,3 +150,6 @@ vite.config.ts.timestamp-*
 
 # Claude Code: personal, machine-local settings (launch.json is shared)
 .claude/settings.local.json
+
+# superpowers brainstorming mockups
+.superpowers/
