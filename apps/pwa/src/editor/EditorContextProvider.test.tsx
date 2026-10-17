@@ -91,17 +91,6 @@ describe('forkBranch', () => {
 });
 
 describe('EditorToolbar', () => {
-  it('shows the edit actions only in edit mode', async () => {
-    renderProbe();
-
-    expect(screen.queryByRole('button', { name: 'System menu' })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('Edit'));
-
-    expect(screen.getByTestId('mode')).toHaveTextContent('edit');
-    expect(screen.getByRole('button', { name: 'System menu' })).toBeInTheDocument();
-  });
-
   it('no longer offers the two that moved to the transport', async () => {
     // Adding a player lives in the add menu beside the playhead. Two ways to do it is one more
     // than anyone needs to learn, so the toolbar's are gone rather than duplicated.

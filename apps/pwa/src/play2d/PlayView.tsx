@@ -6,6 +6,7 @@ import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 import { SelectionActions } from '../editor/SelectionActions';
 import { IssuePanel } from '../editor/IssuePanel';
 import { EditorToolbar } from '../editor/EditorToolbar';
+import { PlayMenu } from '../editor/PlayMenu';
 import { TimeGrid } from '../editor/TimeGrid';
 import { Timeline } from '../editor/Timeline';
 import { extentOf } from '../engine';
@@ -39,6 +40,10 @@ export function PlayView() {
         <Stack h="100vh" style={{ height: '100dvh' }} p="md" gap="sm">
           <Group justify="space-between" align="center" gap="sm" style={{ flex: '0 0 auto' }}>
             <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+              {/* First in the header, ahead of the variants and the name: what it does is to the
+                system as a whole — create another one, save this one — rather than to anything
+                inside it. Edit mode only, like the rest of the authoring controls. */}
+              {mode === 'edit' && <PlayMenu />}
               {/* The variants live in a menu ahead of the title rather than in a panel beside the
                 court, so the court keeps the full width at every screen size. The trigger is
                 icon-only: Popover gives it `aria-expanded`, and the dropdown repeats the name

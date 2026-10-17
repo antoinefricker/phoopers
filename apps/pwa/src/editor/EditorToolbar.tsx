@@ -1,7 +1,6 @@
 import { Center, Group, SegmentedControl } from '@mantine/core';
 import { IconEye, IconPencil } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { PlayMenu } from './PlayMenu';
 import { useEditorContext } from './useEditorContext';
 
 export function EditorToolbar() {
@@ -38,7 +37,6 @@ export function EditorToolbar() {
           },
         ]}
       />
-      {mode === 'edit' && <PlayMenu />}
     </Group>
   );
 }
