@@ -1,7 +1,6 @@
-import type { Branch, Play, Player, PlayerId, Vec2 } from '../../engine';
+import type { Branch, Play, Player, PlayerId } from '../../engine';
 import { resolveBranch, stateAt } from '../../engine';
 import { displayedCentre } from '../bounds';
-import { FORMATION } from '../formation';
 
 // Each side is numbered 1..5 on its own, so both teams hold a player called "2"; the court
 // tells them apart by the circle's fill. A number is never reused: the next free integer is one
@@ -137,32 +136,4 @@ export function movePlayer(play: Play, playerId: PlayerId, toIndex: number): Pla
   players.splice(to, 0, moved);
 
   return { ...play, players };
-}
-
-export type FormationIds = { offense: PlayerId[]; defense: PlayerId[] };
-
-// Builds the whole roster in one pass rather than calling addPlayer ten times, so the ball
-// can be attached in the same immutable step and the result is valid at once.
-export function applyFormation(play: Play, ids: FormationIds): Play {
-  const players: Player[] = [];
-  const tracks: Record<string, { t: number; position?: Vec2; attachedTo?: PlayerId }[]> = {};
-
-  for (const team of ['offense', 'defense'] as const) {
-    const positions = FORMATION[team];
-    ids[team].forEach((id, index) => {
-      const position = positions[index];
-      if (position === undefined) return;
-      players.push({ id, team, number: nextNumber([...play.players, ...players], team) });
-      tracks[id] = [{ t: 0, position }];
-    });
-  }
-
-  const pointGuard = ids.offense[0];
-  if (pointGuard !== undefined) tracks.ball = [{ t: 0, attachedTo: pointGuard }];
-
-  return {
-    ...play,
-    players: [...play.players, ...players],
-    branches: mapRoot(play, (branch) => ({ ...branch, tracks: { ...branch.tracks, ...tracks } })),
-  };
 }

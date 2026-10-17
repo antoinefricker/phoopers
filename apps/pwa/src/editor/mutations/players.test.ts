@@ -3,8 +3,7 @@ import type { Play, PlayerId } from '../../engine';
 import { resolveBranch, stateAt, validatePlay } from '../../engine';
 import { distance } from '../../engine/vec2';
 import { fixturePlay, P1, P2, ROOT } from '../../engine/__fixtures__/play';
-import { FORMATION } from '../formation';
-import { addPlayer, applyFormation, movePlayer, nextNumber, removePlayer, renamePlayer } from './players';
+import { addPlayer, movePlayer, nextNumber, removePlayer, renamePlayer } from './players';
 
 const NEW = 'p-new' as PlayerId;
 const trackOf = (play: Play, id: PlayerId) => play.branches.find((b) => b.id === ROOT)?.tracks[id];
@@ -119,25 +118,6 @@ describe('removePlayer', () => {
     expect(removePlayer(fixturePlay, unknown)).toEqual(fixturePlay);
   });
 });
-
-describe('applyFormation', () => {
-  it('places five against five with the ball attached to the point guard', () => {
-    const empty: Play = { ...fixturePlay, players: [], branches: [{ ...root, tracks: { ball: [] }, screens: [] }] };
-    const ids = {
-      offense: ['o1', 'o2', 'o3', 'o4', 'o5'] as PlayerId[],
-      defense: ['d1', 'd2', 'd3', 'd4', 'd5'] as PlayerId[],
-    };
-
-    const play = applyFormation(empty, ids);
-
-    expect(play.players).toHaveLength(10);
-    expect(FORMATION.offense).toHaveLength(5);
-    const ball = play.branches[0]?.tracks.ball;
-    expect(ball).toEqual([{ t: 0, attachedTo: ids.offense[0] }]);
-    expect(validatePlay(play)).toEqual([]);
-  });
-});
-
 describe('movePlayer', () => {
   const ids = (play: Play) => play.players.map((p) => p.id);
   const three = {

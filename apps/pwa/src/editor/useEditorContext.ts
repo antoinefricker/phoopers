@@ -20,7 +20,6 @@ export interface EditorContextValue {
   setPlacingScreen: (placing: boolean) => void;
   issues: Issue[];
   addPlayer: (team: 'offense' | 'defense') => void;
-  applyFormation: () => void;
   removePlayer: (playerId: PlayerId) => void;
   /** The coach's own name for a player. An empty one takes the name back rather than storing it. */
   renamePlayer: (playerId: PlayerId, label: string) => void;

@@ -94,12 +94,11 @@ describe('EditorToolbar', () => {
   it('shows the edit actions only in edit mode', async () => {
     renderProbe();
 
-    expect(screen.queryByRole('button', { name: 'Starting formation' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'New play' })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Edit'));
 
     expect(screen.getByTestId('mode')).toHaveTextContent('edit');
-    expect(screen.getByRole('button', { name: 'Starting formation' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'New play' })).toBeInTheDocument();
   });
 
@@ -111,17 +110,6 @@ describe('EditorToolbar', () => {
 
     expect(screen.queryByRole('button', { name: 'Add offense' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add defense' })).not.toBeInTheDocument();
-  });
-
-  it('applies the starting formation from the toolbar', async () => {
-    // What "the toolbar writes through the context" is now tested with: the player count still
-    // has to move when a toolbar action fires.
-    renderProbe();
-    await userEvent.click(screen.getByText('Edit'));
-    await userEvent.click(screen.getByRole('button', { name: 'Starting formation' }));
-
-    // The formation adds a full roster rather than replacing one, so the fixture's two remain.
-    expect(screen.getByTestId('count')).toHaveTextContent(String(fixturePlay.players.length + 10));
   });
 });
 

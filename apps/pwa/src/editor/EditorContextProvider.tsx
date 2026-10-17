@@ -33,14 +33,6 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
   const addPlayer = useCallback<EditorContextValue['addPlayer']>((team) => {
     setPlay((current) => mutations.addPlayer(current, team, newId<PlayerId>()));
   }, []);
-  const applyFormation = useCallback<EditorContextValue['applyFormation']>(() => {
-    setPlay((current) =>
-      mutations.applyFormation(current, {
-        offense: Array.from({ length: 5 }, () => newId<PlayerId>()),
-        defense: Array.from({ length: 5 }, () => newId<PlayerId>()),
-      }),
-    );
-  }, []);
   const removePlayer = useCallback<EditorContextValue['removePlayer']>((playerId) => {
     setPlay((current) => mutations.removePlayer(current, playerId));
   }, []);
@@ -147,7 +139,6 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       setPlacingScreen,
       issues,
       addPlayer,
-      applyFormation,
       removePlayer,
       renamePlayer,
       movePlayer,
@@ -177,7 +168,6 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       placingScreen,
       issues,
       addPlayer,
-      applyFormation,
       removePlayer,
       renamePlayer,
       movePlayer,

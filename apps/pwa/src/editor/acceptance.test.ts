@@ -5,8 +5,8 @@ import {
   addPlayer,
   addScreen,
   addStep,
-  applyFormation,
   attachBall,
+  createPlay,
   forkBranch,
   releaseBall,
   setKeyframe,
@@ -16,17 +16,12 @@ const ROOT = 'root' as BranchId;
 const VARIANT = 'variant' as BranchId;
 const ENTRY = 'step-entry' as StepId;
 
-// `tracks` is `{ ball: [] }`, never `{}`: `ball` is a required key of the tracks record.
-const emptyPlay: Play = {
-  id: 'built' as PlayId,
-  name: 'Built in the editor',
-  court: 'fiba',
-  players: [],
-  rootBranchId: ROOT,
-  branches: [
-    { id: ROOT, parentId: null, forkStepId: null, name: 'Base', tracks: { ball: [] }, steps: [], screens: [] },
-  ],
-};
+// A system as the creation dialog would hand it over: five against five, ball loose at centre.
+const fiveOnFive = (): Play =>
+  createPlay(
+    { name: 'Built in the editor', court: 'fiba', extent: 'full', lineup: 'fiveOnFive', duration: 0 },
+    { playId: 'built' as PlayId, rootBranchId: ROOT, offense, defense },
+  );
 
 const o1 = 'o1' as PlayerId;
 const o2 = 'o2' as PlayerId;
@@ -44,14 +39,14 @@ const branchOf = (play: Play, id: BranchId) => {
 // each mutation is proved in selectionActions.test.tsx.
 describe('building a play from an empty court', () => {
   it('produces a valid, watchable play with players, motion, a ball, a step, a screen and a fork', () => {
-    let play = applyFormation(emptyPlay, { offense, defense });
+    let play = fiveOnFive();
     expect(play.players).toHaveLength(10);
 
     // Motion: 1 moves to the wing by t = 2, 2 lifts from the corner by t = 3.
     play = setKeyframe(play, ROOT, o1, 2, { x: 20, y: 9.5 });
     play = setKeyframe(play, ROOT, o2, 3, { x: 23, y: 2.5 });
 
-    // The ball: held by 1 from the formation, passed to 2 at t = 3, shot at t = 5.
+    // The ball: loose at kick-off, taken by 1, passed to 2 at t = 3, shot at t = 5.
     play = attachBall(play, ROOT, 0, o1);
     play = attachBall(play, ROOT, 3, o2);
     play = releaseBall(play, ROOT, 5, { x: 26.4, y: 7.5 });
@@ -115,7 +110,7 @@ describe('building a play from an empty court', () => {
   });
 
   it('refuses a keyframe on the variant before its fork', () => {
-    let play = applyFormation(emptyPlay, { offense, defense });
+    let play = fiveOnFive();
     play = addStep(play, ROOT, 2, 'Entry pass', ENTRY);
     play = forkBranch(play, ROOT, ENTRY, 'Switch', VARIANT);
 
@@ -126,7 +121,7 @@ describe('building a play from an empty court', () => {
   });
 
   it('adds a player beyond the formation without breaking validity', () => {
-    const play = addPlayer(applyFormation(emptyPlay, { offense, defense }), 'offense', 'o6' as PlayerId);
+    const play = addPlayer(fiveOnFive(), 'offense', 'o6' as PlayerId);
 
     expect(play.players).toHaveLength(11);
     expect(play.players.at(-1)?.number).toBe('6');

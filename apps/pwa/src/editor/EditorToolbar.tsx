@@ -7,7 +7,7 @@ import { useEditorContext } from './useEditorContext';
 
 export function EditorToolbar() {
   const { t } = useTranslation();
-  const { mode, setMode, applyFormation, newPlay } = useEditorContext();
+  const { mode, setMode, newPlay } = useEditorContext();
   // The dialog stays mounted. The `key` is a guard for the future: ConfirmDelete is stateless today,
   // so removing it changes nothing, but it makes any state added later reset per open without an effect.
   const [asking, setAsking] = useState({ opened: false, count: 0 });
@@ -43,18 +43,9 @@ export function EditorToolbar() {
         ]}
       />
       {mode === 'edit' && (
-        <>
-          <Button variant="default" onClick={applyFormation}>
-            {t('play.editor.formation', 'Starting formation')}
-          </Button>
-          <Button
-            variant="default"
-            color="red"
-            onClick={() => setAsking((a) => ({ opened: true, count: a.count + 1 }))}
-          >
-            {t('play.editor.newPlay', 'New play')}
-          </Button>
-        </>
+        <Button variant="default" color="red" onClick={() => setAsking((a) => ({ opened: true, count: a.count + 1 }))}>
+          {t('play.editor.newPlay', 'New play')}
+        </Button>
       )}
       <ConfirmDelete
         key={asking.count}
