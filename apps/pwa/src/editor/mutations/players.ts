@@ -1,5 +1,6 @@
 import type { Branch, Play, Player, PlayerId, Vec2 } from '../../engine';
-import { COURT_DIMENSIONS, resolveBranch, stateAt } from '../../engine';
+import { resolveBranch, stateAt } from '../../engine';
+import { displayedCentre } from '../bounds';
 import { FORMATION } from '../formation';
 
 // Each side is numbered 1..5 on its own, so both teams hold a player called "2"; the court
@@ -47,12 +48,6 @@ export function renamePlayer(play: Play, playerId: PlayerId, label: string): Pla
   };
 }
 
-const centre = (play: Play): Vec2 => {
-  const { length, width } = COURT_DIMENSIONS[play.court];
-
-  return { x: length / 2, y: width / 2 };
-};
-
 const mapRoot = (play: Play, mutate: (branch: Branch) => Branch): Branch[] =>
   play.branches.map((b) => (b.id === play.rootBranchId ? mutate(b) : b));
 
@@ -67,7 +62,7 @@ export function addPlayer(play: Play, team: 'offense' | 'defense', id: PlayerId)
     players: [...play.players, player],
     branches: mapRoot(play, (branch) => ({
       ...branch,
-      tracks: { ...branch.tracks, [id]: [{ t: 0, position: centre(play) }] },
+      tracks: { ...branch.tracks, [id]: [{ t: 0, position: displayedCentre(play) }] },
     })),
   };
 }

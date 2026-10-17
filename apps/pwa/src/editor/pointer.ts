@@ -1,29 +1,33 @@
-import type { Play, PlayerId, ResolvedTimeline, Vec2 } from '../engine';
-import { COURT_DIMENSIONS, stateAt } from '../engine';
+import type { PlayerId, ResolvedTimeline, Vec2 } from '../engine';
+import { stateAt } from '../engine';
+import type { CourtChoice } from './bounds';
+import { courtBounds, displayedCentre } from './bounds';
 
-export function clampToCourt(point: Vec2, court: Play['court']): Vec2 {
-  const { length, width } = COURT_DIMENSIONS[court];
+export function clampToCourt(point: Vec2, play: CourtChoice): Vec2 {
   if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
-    return { x: length / 2, y: width / 2 };
+    return displayedCentre(play);
   }
 
+  const { minX, maxX, minY, maxY } = courtBounds(play);
+
   return {
-    x: Math.min(Math.max(point.x, 0), length),
-    y: Math.min(Math.max(point.y, 0), width),
+    x: Math.min(Math.max(point.x, minX), maxX),
+    y: Math.min(Math.max(point.y, minY), maxY),
   };
 }
 
 // The SVG viewBox is in court metres, so the inverse screen CTM maps a client point straight
 // into court space with no scale factor of our own. Without layout (jsdom, or a hidden
-// canvas) there is no CTM, and clampToCourt turns the resulting NaN into the court centre.
+// canvas) there is no CTM, and clampToCourt turns the resulting NaN into the centre of what
+// is shown.
 export function courtPointFromEvent(
   event: { clientX: number; clientY: number },
   svg: SVGSVGElement | null,
-  court: Play['court'],
+  play: CourtChoice,
 ): Vec2 {
   const ctm = svg?.getScreenCTM?.()?.inverse();
   if (svg === null || ctm === undefined || ctm === null) {
-    return clampToCourt({ x: Number.NaN, y: Number.NaN }, court);
+    return clampToCourt({ x: Number.NaN, y: Number.NaN }, play);
   }
 
   const origin = svg.createSVGPoint();
@@ -31,7 +35,7 @@ export function courtPointFromEvent(
   origin.y = event.clientY;
   const mapped = origin.matrixTransform(ctm);
 
-  return clampToCourt({ x: mapped.x, y: mapped.y }, court);
+  return clampToCourt({ x: mapped.x, y: mapped.y }, play);
 }
 
 // Which player is under the drop point at this instant. Asking the engine rather than reading
