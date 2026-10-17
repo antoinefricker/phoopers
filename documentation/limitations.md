@@ -391,6 +391,27 @@ measures 12.17:1 against the yellow bar. The hue stays, the perceivability comes
 and it is one place in `TimelineBar` covering both bars. The destructive control additionally
 wants something other than colour to mark it — a confirmation it already has, or a glyph weight.
 
+### A system's name, court and duration are fixed once it is created
+
+The creation dialog is the only place any of them is written. Nothing in the editor renames a
+system, moves it from a full court to a half, or changes its eight-second floor, and the only
+way to get a different one is to create another system — which discards everything drawn, since
+`createPlay` replaces the whole play.
+
+Measured on the shipped build: creating a half-court system, placing three against three and
+drawing one movement path, then deciding the set belongs on a full court, costs **every
+keyframe, step, screen and branch** of that system. There is no partial recovery and no undo.
+
+All three are plain fields on `Play` — `name`, `court` + `extent`, `duration` — so the model is
+already able to hold a change; only the controls are missing. It was left because
+[spec 005](specs/005-17-10-2026-system-creation.md#non-goals) names editing after creation a
+non-goal, and because persistence (part B of 1d) will want a rename control of its own.
+
+**Fix:** three mutations that set the fields on the existing play, reached from the system menu
+— a rename inline in the header, and a court or duration change behind a small form. None of
+them touches `createPlay`; a court change additionally wants the existing keyframes clamped to
+the new bounds, which `clampToCourt` already computes.
+
 ## Test coverage gaps
 
 ### The animation loop is not unit-testable
