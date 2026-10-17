@@ -1,4 +1,5 @@
 import { useContext } from 'react';
+import type { CourtExtent } from '../engine';
 import { useTranslation } from 'react-i18next';
 import { CourtEditLayer } from '../editor/CourtEditLayer';
 import { EditorContext } from '../editor/useEditorContext';
@@ -7,15 +8,18 @@ import { Court } from './Court';
 import { PathLayer } from './PathLayer';
 import { TokenLayer } from './TokenLayer';
 import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
-import { attackingSide } from './geometry/attackingSide';
 
 interface Props {
-  halfCourt: boolean;
+  /**
+   * How much of the floor to draw. Comes from the play rather than from a control of its own:
+   * a system declares its court, and nothing on screen may disagree with it.
+   */
+  extent: CourtExtent;
   /** The play's own name: data, so it is interpolated into the label, never translated. */
   playName: string;
 }
 
-export function PlayCanvas({ halfCourt, playName }: Props) {
+export function PlayCanvas({ extent, playName }: Props) {
   const { t } = useTranslation();
   const { timeline } = usePlaybackContext();
   const court = timeline.court;
@@ -29,7 +33,9 @@ export function PlayCanvas({ halfCourt, playName }: Props) {
     <svg
       role="img"
       aria-label={t('play.canvas.label', 'Court diagram: {{name}}', { name: playName })}
-      viewBox={halfCourt ? halfCourtViewBox(court, attackingSide(timeline)) : fullCourtViewBox(court)}
+      // Always the right-hand half: the attacked basket is on the right by convention, and
+      // inferring the side from where the offense stands opens an empty system on the wrong one.
+      viewBox={extent === 'half' ? halfCourtViewBox(court, 'right') : fullCourtViewBox(court)}
       // block: an inline svg sits on the text baseline and leaves a descender gap below it.
       // It fills a panel whose height its container decides, and keeps its own aspect ratio
       // inside it — a court wider or taller than the drawing shows the floor's colour either

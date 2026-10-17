@@ -80,6 +80,18 @@ export function LivePlayback({ children }: { children: ReactNode }) {
 }
 
 /**
+ * Switch mode through the system menu in the header, which is where the control lives: the
+ * dropdown offers only the mode you are NOT in, so each of these is a single named entry.
+ */
+const pickFromMenu = async (name: string) => {
+  await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
+  await userEvent.click(await screen.findByRole('button', { name }));
+};
+
+export const enterEditMode = () => pickFromMenu('Edit mode');
+export const leaveEditMode = () => pickFromMenu('Play mode');
+
+/**
  * The branch tree lives behind the header's menu, so a test that touches a branch opens it
  * first. Idempotent: picking a branch closes the menu, and the next call reopens it, so a test
  * can keep asking for the tree without tracking that. `PlayView` must be what was rendered.

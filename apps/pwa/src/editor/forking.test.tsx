@@ -7,7 +7,15 @@ import { fixturePlay, P1, P2, ROOT, SWITCH } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { setKeyframe } from './mutations';
-import { branchButton, branchMenu, dragElement, readProbe, renderEditor, trackOf } from './testUtils/renderEditor';
+import {
+  branchButton,
+  branchMenu,
+  dragElement,
+  enterEditMode,
+  readProbe,
+  renderEditor,
+  trackOf,
+} from './testUtils/renderEditor';
 import { playheadTime } from '../testUtils/transport';
 
 const STEP_LATE = 'step-late' as StepId;
@@ -26,10 +34,6 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 afterEach(() => vi.restoreAllMocks());
-
-const enterEditMode = async () => {
-  await userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
-};
 
 describe('forking a branch', () => {
   it('creates a variant with empty tracks from the chosen step, and selects it', async () => {

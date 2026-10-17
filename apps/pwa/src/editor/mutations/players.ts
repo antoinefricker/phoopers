@@ -1,6 +1,13 @@
 import type { Branch, Play, Player, PlayerId, Vec2 } from '../../engine';
-import { COURT_DIMENSIONS, resolveBranch, stateAt } from '../../engine';
-import { FORMATION } from '../formation';
+import { resolveBranch, stateAt } from '../../engine';
+import { PLAYER_CLEARANCE, displayedCentre, freeSpot } from '../bounds';
+
+/** Where a player stands at t=0 on the root branch, if anywhere. */
+const startOf = (play: Play, id: PlayerId): Vec2[] => {
+  const position = play.branches.find((b) => b.id === play.rootBranchId)?.tracks[id]?.[0]?.position;
+
+  return position === undefined ? [] : [position];
+};
 
 // Each side is numbered 1..5 on its own, so both teams hold a player called "2"; the court
 // tells them apart by the circle's fill. A number is never reused: the next free integer is one
@@ -47,12 +54,6 @@ export function renamePlayer(play: Play, playerId: PlayerId, label: string): Pla
   };
 }
 
-const centre = (play: Play): Vec2 => {
-  const { length, width } = COURT_DIMENSIONS[play.court];
-
-  return { x: length / 2, y: width / 2 };
-};
-
 const mapRoot = (play: Play, mutate: (branch: Branch) => Branch): Branch[] =>
   play.branches.map((b) => (b.id === play.rootBranchId ? mutate(b) : b));
 
@@ -61,13 +62,18 @@ const mapRoot = (play: Play, mutate: (branch: Branch) => Branch): Branch[] =>
 // that unreachable by hand.
 export function addPlayer(play: Play, team: 'offense' | 'defense', id: PlayerId): Play {
   const player: Player = { id, team, number: nextNumber(play.players, team) };
+  // Clear of whoever is already standing in the middle of the picture. On a half-court
+  // three-on-three the ball-handler is on that exact point, and two tokens on one point means
+  // the one underneath cannot be clicked again until the other is dragged off.
+  const standing = play.players.flatMap((p) => startOf(play, p.id));
+  const position = freeSpot(play, displayedCentre(play), standing, PLAYER_CLEARANCE);
 
   return {
     ...play,
     players: [...play.players, player],
     branches: mapRoot(play, (branch) => ({
       ...branch,
-      tracks: { ...branch.tracks, [id]: [{ t: 0, position: centre(play) }] },
+      tracks: { ...branch.tracks, [id]: [{ t: 0, position }] },
     })),
   };
 }
@@ -142,32 +148,4 @@ export function movePlayer(play: Play, playerId: PlayerId, toIndex: number): Pla
   players.splice(to, 0, moved);
 
   return { ...play, players };
-}
-
-export type FormationIds = { offense: PlayerId[]; defense: PlayerId[] };
-
-// Builds the whole roster in one pass rather than calling addPlayer ten times, so the ball
-// can be attached in the same immutable step and the result is valid at once.
-export function applyFormation(play: Play, ids: FormationIds): Play {
-  const players: Player[] = [];
-  const tracks: Record<string, { t: number; position?: Vec2; attachedTo?: PlayerId }[]> = {};
-
-  for (const team of ['offense', 'defense'] as const) {
-    const positions = FORMATION[team];
-    ids[team].forEach((id, index) => {
-      const position = positions[index];
-      if (position === undefined) return;
-      players.push({ id, team, number: nextNumber([...play.players, ...players], team) });
-      tracks[id] = [{ t: 0, position }];
-    });
-  }
-
-  const pointGuard = ids.offense[0];
-  if (pointGuard !== undefined) tracks.ball = [{ t: 0, attachedTo: pointGuard }];
-
-  return {
-    ...play,
-    players: [...play.players, ...players],
-    branches: mapRoot(play, (branch) => ({ ...branch, tracks: { ...branch.tracks, ...tracks } })),
-  };
 }

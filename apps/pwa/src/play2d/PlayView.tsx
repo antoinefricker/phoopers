@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { ActionIcon, Box, Group, Paper, Popover, ScrollArea, SegmentedControl, Stack, Title } from '@mantine/core';
+import { ActionIcon, Box, Group, Paper, Popover, ScrollArea, Stack, Title } from '@mantine/core';
 import { IconGitBranch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 import { SelectionActions } from '../editor/SelectionActions';
 import { IssuePanel } from '../editor/IssuePanel';
-import { EditorToolbar } from '../editor/EditorToolbar';
+import { PlayMenu } from '../editor/PlayMenu';
 import { TimeGrid } from '../editor/TimeGrid';
 import { Timeline } from '../editor/Timeline';
+import { extentOf } from '../engine';
 import { useEditorContext } from '../editor/useEditorContext';
 import { BranchTree } from './BranchTree';
 import { PlayCanvas } from './PlayCanvas';
@@ -17,13 +18,12 @@ import { HiddenEntitiesContextProvider } from './HiddenEntitiesContextProvider';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
 
-// Court (centre), transport (beneath) and the branch menu in the header. The half/full toggle is local
-// view state: it picks a viewBox and nothing else, so it never reaches the playback context or
-// the play data. Switching FIBA/NBA is deliberately absent; that edits `Play.court` (later work).
+// Court (centre), transport (beneath) and the branch menu in the header. Which court is drawn is
+// the play's own business — `court` and `extent` — so there is no view control for it: one that
+// disagreed with the system would draw a half-court set on a full floor.
 export function PlayView() {
   const { t } = useTranslation();
   const { play, mode } = useEditorContext();
-  const [halfCourt, setHalfCourt] = useState(false);
   // Controlled rather than left to Mantine: picking a variant closes the menu, which the
   // uncontrolled popover has no way to do.
   const [branchesOpen, setBranchesOpen] = useState(false);
@@ -39,6 +39,10 @@ export function PlayView() {
         <Stack h="100vh" style={{ height: '100dvh' }} p="md" gap="sm">
           <Group justify="space-between" align="center" gap="sm" style={{ flex: '0 0 auto' }}>
             <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+              {/* First in the header, ahead of the variants and the name: what it does is to the
+                system as a whole — switch between watching and authoring it, create another one,
+                save this one — rather than to anything inside it. */}
+              <PlayMenu />
               {/* The variants live in a menu ahead of the title rather than in a panel beside the
                 court, so the court keeps the full width at every screen size. The trigger is
                 icon-only: Popover gives it `aria-expanded`, and the dropdown repeats the name
@@ -78,20 +82,8 @@ export function PlayView() {
               <Title order={2}>{play.name}</Title>
             </Group>
             <Group gap="sm" wrap="nowrap">
-              <EditorToolbar />
-              {/* No size override: this control shares a row with the mode toggle and the toolbar
-                buttons, which all sit at Mantine's default. */}
-              <SegmentedControl
-                aria-label={t('play.court.view', 'Court view')}
-                value={halfCourt ? 'half' : 'full'}
-                onChange={(value) => setHalfCourt(value === 'half')}
-                data={[
-                  { value: 'full', label: t('play.court.full', 'Full court') },
-                  { value: 'half', label: t('play.court.half', 'Half court') },
-                ]}
-              />
-              {/* After the court view, at the far end of the header's controls: it is set once
-                  and left alone, unlike its neighbours. */}
+              {/* At the far end of the header's controls: it is set once and left alone,
+                  unlike its neighbours. */}
               <LanguageSwitcher />
             </Group>
           </Group>
@@ -157,7 +149,7 @@ export function PlayView() {
             // window, the page scrolls rather than the court giving it up.
             style={{ minWidth: 0, position: 'relative', flex: '0 0 60%', minHeight: 400 }}
           >
-            <PlayCanvas halfCourt={halfCourt} playName={play.name} />
+            <PlayCanvas extent={extentOf(play)} playName={play.name} />
             {/* Outside the svg on purpose: the court carries `role="img"`, whose descendants are
               presentational, so a caption drawn inside it would be invisible to assistive
               technology. Out here it is read, and it keeps its size when the half-court toggle

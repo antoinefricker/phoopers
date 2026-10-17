@@ -4,12 +4,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { fixturePlay, ROOT, SWITCH } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
-import { branchButton, readProbe, renderEditor } from './testUtils/renderEditor';
+import { branchButton, enterEditMode, leaveEditMode, readProbe, renderEditor } from './testUtils/renderEditor';
 
 beforeEach(() => stubViewportWidth(1440));
 
-const enterEditMode = () => userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
-const leaveEditMode = () => userEvent.click(screen.getByRole('radio', { name: 'Play' }));
 const openAddMenu = async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Add' }));
 

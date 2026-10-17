@@ -211,7 +211,7 @@ describe('PlayCanvas', () => {
     renderEditor(
       fixturePlay,
       <>
-        <PlayCanvas halfCourt={false} playName="Test" />
+        <PlayCanvas extent="full" playName="Test" />
         <EditModeButton />
       </>,
     );

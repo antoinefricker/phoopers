@@ -13,3 +13,4 @@ filename, so the components are separated by dashes.)
 | 003 | 09/10/2026 | [2D view and playback](003-09-10-2026-2d-view-playback.md) — implements [spec 002](../specs/002-09-10-2026-2d-view-playback.md)                   | Implemented |
 | 004 | 10/10/2026 | [Editor](004-10-10-2026-editor.md) — implements [spec 003](../specs/003-10-10-2026-editor.md)                                                     | Implemented |
 | 005 | 14/10/2026 | [Step label display](005-14-10-2026-step-label-display.md) — implements [spec 004](../specs/004-14-10-2026-step-label-display.md)                 | Implemented |
+| 006 | 17/10/2026 | [Creating a system](006-17-10-2026-system-creation.md) — implements [spec 005](../specs/005-17-10-2026-system-creation.md)                        | Implemented |

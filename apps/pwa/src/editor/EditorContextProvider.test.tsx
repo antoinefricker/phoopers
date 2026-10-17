@@ -3,9 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import { describe, expect, it } from 'vitest';
 import type { BranchId, StepId } from '../engine';
-import { fixturePlay, ROOT, STEP_ENTRY } from '../engine/__fixtures__/play';
+import { fixturePlay, P1, ROOT, STEP_ENTRY } from '../engine/__fixtures__/play';
 import { EditorContextProvider } from './EditorContextProvider';
-import { EditorToolbar } from './EditorToolbar';
 import { useEditorContext } from './useEditorContext';
 
 function Probe() {
@@ -30,7 +29,6 @@ const renderProbe = () =>
     <MantineProvider>
       <EditorContextProvider initialPlay={fixturePlay}>
         <Probe />
-        <EditorToolbar />
       </EditorContextProvider>
     </MantineProvider>,
   );
@@ -90,60 +88,83 @@ describe('forkBranch', () => {
   });
 });
 
-describe('EditorToolbar', () => {
-  it('shows the edit actions only in edit mode', async () => {
-    renderProbe();
-
-    expect(screen.queryByRole('button', { name: 'Starting formation' })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('Edit'));
-
-    expect(screen.getByTestId('mode')).toHaveTextContent('edit');
-    expect(screen.getByRole('button', { name: 'Starting formation' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'New play' })).toBeInTheDocument();
-  });
-
-  it('no longer offers the two that moved to the transport', async () => {
-    // Adding a player lives in the add menu beside the playhead. Two ways to do it is one more
-    // than anyone needs to learn, so the toolbar's are gone rather than duplicated.
-    renderProbe();
-    await userEvent.click(screen.getByText('Edit'));
-
-    expect(screen.queryByRole('button', { name: 'Add offense' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Add defense' })).not.toBeInTheDocument();
-  });
-
-  it('applies the starting formation from the toolbar', async () => {
-    // What "the toolbar writes through the context" is now tested with: the player count still
-    // has to move when a toolbar action fires.
-    renderProbe();
-    await userEvent.click(screen.getByText('Edit'));
-    await userEvent.click(screen.getByRole('button', { name: 'Starting formation' }));
-
-    // The formation adds a full roster rather than replacing one, so the fixture's two remain.
-    expect(screen.getByTestId('count')).toHaveTextContent(String(fixturePlay.players.length + 10));
-  });
-});
-
 describe('useEditorContext', () => {
   it('throws outside its provider', () => {
     expect(() => render(<Probe />)).toThrow(/useEditorContext.*EditorContextProvider/s);
   });
 });
 
-describe('the mode toggle icons', () => {
-  it('adds an icon to each segment without changing its accessible name', () => {
-    // Four test files find these segments by the names "Play" and "Edit". An icon that
-    // replaced the text, or that contributed text of its own, would rename them and break
-    // those silently — so the name is the assertion that matters here, not the icon.
-    renderProbe();
+describe('createPlay', () => {
+  function Creator() {
+    const { play, selection, select, createPlay, forkBranch } = useEditorContext();
 
-    for (const name of ['Play', 'Edit']) {
-      const radio = screen.getByRole('radio', { name }) as HTMLInputElement;
-      // Mantine renders the input as a SIBLING of its label, so `closest` finds nothing.
-      const label = radio.labels?.[0];
-      expect(label?.querySelector('svg')).toBeInTheDocument();
-      expect(label?.textContent).toBe(name);
-    }
+    return (
+      <>
+        <output data-testid="branches">{play.branches.length}</output>
+        <output data-testid="duration">{play.duration}</output>
+        <output data-testid="extent">{play.extent}</output>
+        <output data-testid="players">{play.players.length}</output>
+        <output data-testid="id">{play.id}</output>
+        <output data-testid="selected">{selection === null ? 'none' : 'some'}</output>
+        <button type="button" onClick={() => select({ kind: 'entity', entityId: P1 })}>
+          select
+        </button>
+        <button type="button" onClick={() => forkBranch(ROOT, STEP_ENTRY, 'Switch')}>
+          fork
+        </button>
+        <button
+          type="button"
+          onClick={() => createPlay({ name: 'Flex', court: 'fiba', extent: 'half', lineup: 'threeOnThree' })}
+        >
+          create
+        </button>
+      </>
+    );
+  }
+
+  const renderCreator = () =>
+    render(
+      <MantineProvider>
+        <EditorContextProvider initialPlay={fixturePlay}>
+          <Creator />
+        </EditorContextProvider>
+      </MantineProvider>,
+    );
+
+  it('replaces the play with a fresh one on its own root branch', async () => {
+    renderCreator();
+    await userEvent.click(screen.getByRole('button', { name: 'create' }));
+
+    expect(screen.getByTestId('id')).not.toHaveTextContent(fixturePlay.id);
+    expect(screen.getByTestId('branches')).toHaveTextContent('1');
+    expect(screen.getByTestId('players')).toHaveTextContent('6');
+    expect(screen.getByTestId('extent')).toHaveTextContent('half');
+  });
+
+  it('gives a new system eight seconds of timeline', async () => {
+    renderCreator();
+    await userEvent.click(screen.getByRole('button', { name: 'create' }));
+
+    expect(screen.getByTestId('duration')).toHaveTextContent('8');
+  });
+
+  it('clears the selection', async () => {
+    renderCreator();
+    await userEvent.click(screen.getByRole('button', { name: 'select' }));
+    expect(screen.getByTestId('selected')).toHaveTextContent('some');
+
+    await userEvent.click(screen.getByRole('button', { name: 'create' }));
+
+    expect(screen.getByTestId('selected')).toHaveTextContent('none');
+  });
+
+  it('leaves no trace of the variants the old system carried', async () => {
+    renderCreator();
+    await userEvent.click(screen.getByRole('button', { name: 'fork' }));
+    expect(screen.getByTestId('branches')).toHaveTextContent('3');
+
+    await userEvent.click(screen.getByRole('button', { name: 'create' }));
+
+    expect(screen.getByTestId('branches')).toHaveTextContent('1');
   });
 });

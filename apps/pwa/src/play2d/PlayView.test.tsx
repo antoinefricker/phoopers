@@ -10,7 +10,7 @@ import i18n from '../i18n/i18n';
 import { EditorContextProvider } from '../editor/EditorContextProvider';
 import { PlayView } from './PlayView';
 import { HELD_BALL_OFFSET } from './PlayerSymbol';
-import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
+import { fullCourtViewBox } from './geometry/court';
 import { playheadTime } from '../testUtils/transport';
 
 function renderView(widthPx = 1440) {
@@ -118,11 +118,13 @@ describe('PlayView', () => {
     expect(screen.getByRole('heading', { name: hornsPlay.name })).toBeInTheDocument();
   });
 
-  it('starts on the full court', () => {
+  it('draws the court the play declares, with no control to disagree', () => {
+    // The sample declares no extent, which is a full court. A half-court system is drawn as one
+    // in createPlayDialog.test.tsx; that the two differ only in the viewBox is PlayCanvas's test.
     renderView();
 
-    expect(screen.getByRole('radio', { name: 'Full court' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Half court' })).not.toBeChecked();
+    expect(screen.getByRole('img')).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));
+    expect(screen.queryByRole('radiogroup', { name: 'Court view' })).not.toBeInTheDocument();
   });
 
   describe('branch menu', () => {
@@ -190,11 +192,10 @@ describe('PlayView', () => {
   });
 
   describe('accessible names', () => {
-    it('names the court image after the play, and the court toggle group', () => {
+    it('names the court image after the play', () => {
       renderView();
 
       expect(screen.getByRole('img', { name: `Court diagram: ${hornsPlay.name}` })).toBeInTheDocument();
-      expect(screen.getByRole('radiogroup', { name: 'Court view' })).toBeInTheDocument();
     });
 
     it('translates the labels but leaves the play name alone', async () => {
@@ -202,47 +203,6 @@ describe('PlayView', () => {
       renderView();
 
       expect(screen.getByRole('img', { name: `Schéma du terrain : ${hornsPlay.name}` })).toBeInTheDocument();
-      expect(screen.getByRole('radiogroup', { name: 'Vue du terrain' })).toBeInTheDocument();
-    });
-  });
-
-  describe('court toggle', () => {
-    it('toggles between full and half court and back', async () => {
-      const user = userEvent.setup();
-      renderView();
-
-      await user.click(screen.getByRole('radio', { name: 'Half court' }));
-      expect(screen.getByRole('img')).toHaveAttribute('viewBox', halfCourtViewBox('fiba', 'right'));
-
-      await user.click(screen.getByRole('radio', { name: 'Full court' }));
-      expect(screen.getByRole('img')).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));
-    });
-
-    it('changes the viewBox only: the drawn markup, token positions, branch and playhead are untouched', async () => {
-      const user = userEvent.setup();
-      const { container } = renderView();
-      // Put the view in a non-initial state so a toggle that reset anything would show.
-      await user.click((await openBranchMenu(user)).getByRole('button', { name: SWITCH_NAME }));
-      await user.click(screen.getByRole('button', { name: 'Next step' }));
-      await user.click(screen.getByRole('button', { name: 'Next step' }));
-      const svg = screen.getByRole('img');
-      const before = {
-        markup: svg.innerHTML,
-        viewBox: svg.getAttribute('viewBox'),
-        positions: drawnPositions(container),
-        time: playheadTime(),
-        current: await currentBranchFlag(user, SWITCH_NAME),
-      };
-
-      await user.click(screen.getByRole('radio', { name: 'Half court' }));
-
-      expect(svg.getAttribute('viewBox')).not.toBe(before.viewBox);
-      expect(svg.innerHTML).toBe(before.markup);
-      expect(drawnPositions(container)).toEqual(before.positions);
-      expect(playheadTime()).toBe(before.time);
-      expect(await currentBranchFlag(user, SWITCH_NAME)).toBe(before.current);
-      expect(before.time).toBe(4);
-      expect(before.current).toBe('true');
     });
   });
 
@@ -366,7 +326,8 @@ describe('PlayView assembly', () => {
   it('shows the timeline and the issue panel in edit mode', async () => {
     renderView();
 
-    await userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
+    await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit mode' }));
 
     expect(screen.getByTestId('step-ruler')).toBeInTheDocument();
     expect(screen.getByTestId('issue-count')).toHaveTextContent('0');

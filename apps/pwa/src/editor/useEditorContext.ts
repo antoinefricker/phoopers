@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { BranchId, EntityId, Issue, Play, PlayerId, ScreenId, StepId, Vec2 } from '../engine';
+import type { CreatePlayOptions } from './mutations';
 
 export type Selection =
   { kind: 'entity'; entityId: EntityId } | { kind: 'keyframe'; entityId: EntityId; t: number } | null;
@@ -20,7 +21,6 @@ export interface EditorContextValue {
   setPlacingScreen: (placing: boolean) => void;
   issues: Issue[];
   addPlayer: (team: 'offense' | 'defense') => void;
-  applyFormation: () => void;
   removePlayer: (playerId: PlayerId) => void;
   /** The coach's own name for a player. An empty one takes the name back rather than storing it. */
   renamePlayer: (playerId: PlayerId, label: string) => void;
@@ -43,8 +43,11 @@ export interface EditorContextValue {
   /** Returns the new branch's id, or `null` when the fork was refused (nothing was written). */
   forkBranch: (parentBranchId: BranchId, forkStepId: StepId, name: string) => BranchId | null;
   removeBranch: (branchId: BranchId) => void;
-  /** Replaces the whole play with an empty one: new ids, one root branch, nothing selected. */
-  newPlay: (name: string) => void;
+  /**
+   * Replaces the whole play with a newly created one: new ids, one root branch holding the
+   * chosen starting placement, the default duration, and nothing selected.
+   */
+  createPlay: (options: Omit<CreatePlayOptions, 'duration'>) => void;
 }
 
 export const EditorContext = createContext<EditorContextValue | null>(null);

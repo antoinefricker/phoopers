@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { APRON, COURT_SPEC, courtMarkings, fullCourtViewBox, halfCourtViewBox } from './court';
+import { courtBounds } from '../../editor/bounds';
+import { TOKEN_REACH } from '../PlayerSymbol';
 import type { CourtType, Marking } from './court';
 
 const COURTS: CourtType[] = ['fiba', 'nba'];
@@ -186,14 +188,36 @@ describe('courtMarkings', () => {
 });
 
 describe('viewBoxes', () => {
-  it('full court spans the floor and the apron around it', () => {
-    expect(fullCourtViewBox('fiba')).toBe(`${-APRON} ${-APRON} ${28 + APRON * 2} ${15 + APRON * 2}`);
+  // The apron is the out-of-bounds metre a player may stand in, plus the half-width of the token
+  // standing there. Pinned as a number rather than as `APRON`, since an expectation phrased with
+  // the constant would follow it wherever it went.
+  it('is a metre of floor plus the token standing on it', () => {
+    expect(APRON).toBeCloseTo(1.564, 3);
   });
 
-  it('half court carries the apron on its outer sides only', () => {
-    // The halfway cut runs through the floor: there is no edge there, so no apron.
-    expect(halfCourtViewBox('fiba', 'left')).toBe(`${-APRON} ${-APRON} ${14 + APRON} ${15 + APRON * 2}`);
-    expect(halfCourtViewBox('fiba', 'right')).toBe(`14 ${-APRON} ${14 + APRON} ${15 + APRON * 2}`);
-    expect(halfCourtViewBox('nba', 'right')).toBe(`${28.65 / 2} ${-APRON} ${28.65 / 2 + APRON} ${15.24 + APRON * 2}`);
+  // The property the apron exists for. Walking the bounds the editor clamps to, rather than
+  // repeating the arithmetic, is what makes this fail if either side moves without the other.
+  it('shows every token that editing is allowed to place, whole', () => {
+    for (const court of COURTS) {
+      for (const extent of ['full', 'half'] as const) {
+        const bounds = courtBounds({ court, extent });
+        const box = extent === 'half' ? halfCourtViewBox(court, 'right') : fullCourtViewBox(court);
+        const [x, y, w, h] = box.split(' ').map(Number);
+        if (x === undefined || y === undefined || w === undefined || h === undefined) {
+          throw new Error(`bad viewBox ${box}`);
+        }
+
+        expect(bounds.minX - TOKEN_REACH).toBeGreaterThanOrEqual(x - EPSILON);
+        expect(bounds.maxX + TOKEN_REACH).toBeLessThanOrEqual(x + w + EPSILON);
+        expect(bounds.minY - TOKEN_REACH).toBeGreaterThanOrEqual(y - EPSILON);
+        expect(bounds.maxY + TOKEN_REACH).toBeLessThanOrEqual(y + h + EPSILON);
+      }
+    }
+  });
+
+  it('measures the halves of an NBA floor from its own length', () => {
+    expect(halfCourtViewBox('nba', 'right')).toBe(
+      `${28.65 / 2 - APRON} ${-APRON} ${28.65 / 2 + APRON * 2} ${15.24 + APRON * 2}`,
+    );
   });
 });

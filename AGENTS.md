@@ -4,12 +4,15 @@ Web app for creating, saving, and replaying animated basketball plays (2D coach'
 
 ## Status
 
-Phases 1a, 1b and 1c are implemented. `apps/pwa/src/engine/` is a headless animation engine
-answering "where is every player and the ball at time `t`, on a given branch?", and
-`apps/pwa/src/play2d/` draws it as a coach's whiteboard: court, paths in their conventional
-symbols, animated tokens, a transport with snapping step markers, and a branch tree. `apps/pwa/src/editor/` is the
-editor on top of it: players, keyframes, steps, screens and branches, all with validation. The
-app renders the sample play in `apps/pwa/src/samples/`. Next is 1d, persistence.
+Phases 1a, 1b, 1c and the first half of 1d are implemented. `apps/pwa/src/engine/` is a headless
+animation engine answering "where is every player and the ball at time `t`, on a given branch?",
+and `apps/pwa/src/play2d/` draws it as a coach's whiteboard: court, paths in their conventional
+symbols, animated tokens, a transport with snapping step markers, and a branch tree.
+`apps/pwa/src/editor/` is the editor on top of it: players, keyframes, steps, screens and
+branches, all with validation, plus a system menu whose dialog creates a named system on a chosen
+court from a starting placement. The app still boots on the sample play in
+`apps/pwa/src/samples/`, because nothing is saved yet: next is part B of 1d — Supabase accounts
+and persistence — which gets its own spec and plan.
 
 The product vision, locked-in design decisions and phase plan live in
 `documentation/roadmap.md`; the validated designs are in `documentation/specs/` and the

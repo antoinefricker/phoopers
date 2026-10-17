@@ -16,6 +16,43 @@ describe('resolveBranch', () => {
     expect(timeline.duration).toBe(4);
   });
 
+  it('runs at least as long as the play duration when nothing moves past it', () => {
+    const play: Play = { ...fixturePlay, duration: 8 };
+
+    expect(resolveBranch(play, ROOT).duration).toBe(8);
+  });
+
+  it('runs to the last keyframe when the animation passes the play duration', () => {
+    const play: Play = { ...fixturePlay, duration: 3 };
+
+    expect(resolveBranch(play, ROOT).duration).toBe(4);
+  });
+
+  it('runs the play duration on a branch holding no keyframe at all', () => {
+    const [root] = fixturePlay.branches;
+    if (root === undefined) throw new Error('expected a root branch');
+    const play: Play = {
+      ...fixturePlay,
+      duration: 8,
+      players: [],
+      branches: [{ ...root, tracks: { ball: [] }, steps: [], screens: [] }],
+    };
+
+    expect(resolveBranch(play, ROOT).duration).toBe(8);
+  });
+
+  it('has no length at all when the play carries no duration and nothing leaves zero', () => {
+    const [root] = fixturePlay.branches;
+    if (root === undefined) throw new Error('expected a root branch');
+    const play: Play = {
+      ...fixturePlay,
+      players: [],
+      branches: [{ ...root, tracks: { ball: [{ t: 0, position: { x: 14, y: 7.5 } }] }, steps: [], screens: [] }],
+    };
+
+    expect(resolveBranch(play, ROOT).duration).toBe(0);
+  });
+
   it('prepares each span with resolved handles, easing and a table', () => {
     const [span] = resolveBranch(fixturePlay, ROOT).spans[P1] ?? [];
     if (span === undefined) throw new Error('expected a span');

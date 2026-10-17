@@ -5,12 +5,10 @@ import type { Play } from '../engine';
 import { P1, P2, SCREEN_1, SWITCH, fixturePlay } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
-import { renderEditor, SelectBranch } from './testUtils/renderEditor';
+import { SelectBranch, enterEditMode, renderEditor } from './testUtils/renderEditor';
 import { Timeline } from './Timeline';
 
 beforeEach(() => stubViewportWidth(1440));
-
-const enterEditMode = () => userEvent.click(screen.getByRole('radio', { name: 'Edit' }));
 
 const named = (label: string): Play => ({
   ...fixturePlay,

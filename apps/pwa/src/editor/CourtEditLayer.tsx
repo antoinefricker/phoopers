@@ -62,7 +62,7 @@ export function CourtEditLayer() {
   }, [timeline, subscribe, currentTimeRef]);
 
   const pointOf = (event: React.PointerEvent) =>
-    courtPointFromEvent(event, layerRef.current?.ownerSVGElement ?? null, play.court);
+    courtPointFromEvent(event, layerRef.current?.ownerSVGElement ?? null, play);
 
   const hideGhost = () => ghostRef.current?.setAttribute('visibility', 'hidden');
 

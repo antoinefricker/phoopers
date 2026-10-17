@@ -290,10 +290,13 @@ export function resolveBranch(play: Play, branchId: BranchId): ResolvedTimeline 
     screens.push(...branch.screens.filter((s) => s.t >= from && s.t <= until));
   }
 
+  // Seeded with the play's own duration rather than 0: it is a floor, so a system whose
+  // animation is shorter — or which has no animation yet — still resolves to a timeline of
+  // that length, and one that runs past it is as long as it actually runs.
   const duration = Object.values(anchors).reduce((longest, track) => {
     const last = track[track.length - 1];
     return last === undefined ? longest : Math.max(longest, last.t);
-  }, 0);
+  }, play.duration ?? 0);
 
   return {
     branchId,

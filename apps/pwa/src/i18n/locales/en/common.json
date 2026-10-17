@@ -10,10 +10,21 @@
     "canvas": {
       "label": "Court diagram: {{name}}"
     },
-    "court": {
-      "full": "Full court",
-      "half": "Half court",
-      "view": "Court view"
+    "court": {},
+    "create": {
+      "cancel": "Cancel",
+      "court": "Court",
+      "courtFull": "FIBA full court",
+      "courtHalf": "FIBA half court",
+      "discard": "The system you have open, and all its variants, will be discarded.",
+      "lineup": "Starting placement",
+      "lineupEmpty": "Empty, ball only",
+      "lineupFive": "5 on 5",
+      "lineupThree": "3 on 3",
+      "name": "Name",
+      "namePlaceholder": "Horns, Flex, 1-4 high…",
+      "submit": "Create",
+      "title": "New system"
     },
     "editor": {
       "addDefense": "Add defense",
@@ -40,18 +51,8 @@
       "forkNoSteps": "This branch has no step to fork from. Add a step on the timeline first.",
       "forkStep": "Fork from step",
       "forkTitle": "Create a variant",
-      "formation": "Starting formation",
       "hideEntity": "Hide {{name}}",
       "keyframeAt": "Keyframe at {{t}}s",
-      "mode": {
-        "edit": "Edit",
-        "play": "Play"
-      },
-      "newPlay": "New play",
-      "newPlayBody": "The current play, with all its branches, will be discarded.",
-      "newPlayConfirm": "Start over",
-      "newPlayName": "Untitled play",
-      "newPlayTitle": "Start a new play?",
       "noProblems": "No problems",
       "offenseRow": "Offense {{number}}",
       "placeScreen": "Place a screen",
@@ -86,6 +87,14 @@
       "stepDuration": "Label duration",
       "stepName": "Step name",
       "variantName": "Variant name"
+    },
+    "menu": {
+      "create": "Create a new system",
+      "editMode": "Edit mode",
+      "label": "System menu",
+      "playMode": "Play mode",
+      "save": "Save",
+      "saveSoon": "Saving arrives with persistence"
     },
     "timeline": {
       "pass": "Pass",

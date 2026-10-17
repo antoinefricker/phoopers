@@ -1,5 +1,8 @@
 export type Vec2 = { x: number; y: number };
 
+/** How much of the floor a system uses. A property of the system, never of the viewer. */
+export type CourtExtent = 'full' | 'half';
+
 export type PlayId = string & { readonly __brand: 'PlayId' };
 export type PlayerId = string & { readonly __brand: 'PlayerId' };
 export type BranchId = string & { readonly __brand: 'BranchId' };
@@ -71,6 +74,18 @@ export interface Play {
   id: PlayId;
   name: string;
   court: 'fiba' | 'nba';
+  /**
+   * How much of the floor this system uses. Persisted with the system rather than chosen by
+   * whoever is looking at it, so a half-court set is drawn as one wherever it is opened.
+   * Absent means the whole floor, which is how a play written before this field reads.
+   */
+  extent?: CourtExtent;
+  /**
+   * The floor for the system's length, in seconds. The resolved timeline runs for this long or
+   * for as long as the animation, whichever is more — so a system with nothing moving yet still
+   * has a timeline wide enough to drop a keyframe on. Absent means no floor.
+   */
+  duration?: number;
   players: Player[];
   branches: Branch[];
   rootBranchId: BranchId;
