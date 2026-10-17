@@ -10,11 +10,7 @@
     "canvas": {
       "label": "Court diagram: {{name}}"
     },
-    "court": {
-      "full": "Full court",
-      "half": "Half court",
-      "view": "Court view"
-    },
+    "court": {},
     "create": {
       "cancel": "Cancel",
       "court": "Court",
@@ -55,18 +51,12 @@
       "forkNoSteps": "This branch has no step to fork from. Add a step on the timeline first.",
       "forkStep": "Fork from step",
       "forkTitle": "Create a variant",
-      "formation": "Starting formation",
       "hideEntity": "Hide {{name}}",
       "keyframeAt": "Keyframe at {{t}}s",
       "mode": {
         "edit": "Edit",
         "play": "Play"
       },
-      "newPlay": "New play",
-      "newPlayBody": "The current play, with all its branches, will be discarded.",
-      "newPlayConfirm": "Start over",
-      "newPlayName": "Untitled play",
-      "newPlayTitle": "Start a new play?",
       "noProblems": "No problems",
       "offenseRow": "Offense {{number}}",
       "placeScreen": "Place a screen",

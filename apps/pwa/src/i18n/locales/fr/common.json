@@ -4,31 +4,27 @@
   },
   "play": {
     "branches": {
-      "label": "Variantes du schéma",
+      "label": "Variantes du système",
       "title": "Variantes"
     },
     "canvas": {
       "label": "Schéma du terrain : {{name}}"
     },
-    "court": {
-      "full": "Terrain complet",
-      "half": "Demi-terrain",
-      "view": "Vue du terrain"
-    },
+    "court": {},
     "create": {
-      "cancel": "",
-      "court": "",
-      "courtFull": "",
-      "courtHalf": "",
-      "discard": "",
-      "lineup": "",
-      "lineupEmpty": "",
-      "lineupFive": "",
-      "lineupThree": "",
-      "name": "",
-      "namePlaceholder": "",
-      "submit": "",
-      "title": ""
+      "cancel": "Annuler",
+      "court": "Terrain",
+      "courtFull": "Terrain FIBA entier",
+      "courtHalf": "Demi-terrain FIBA",
+      "discard": "Le système ouvert, et toutes ses variantes, seront abandonnés.",
+      "lineup": "Placement de départ",
+      "lineupEmpty": "Vide, ballon seul",
+      "lineupFive": "5 contre 5",
+      "lineupThree": "3 contre 3",
+      "name": "Nom",
+      "namePlaceholder": "Horns, Flex, 1-4 high…",
+      "submit": "Créer",
+      "title": "Nouveau système"
     },
     "editor": {
       "addDefense": "Ajouter un défenseur",
@@ -55,18 +51,12 @@
       "forkNoSteps": "Cette branche n'a aucune étape à partir de laquelle se diviser. Ajoutez d'abord une étape sur la ligne de temps.",
       "forkStep": "Diverger à partir de l'étape",
       "forkTitle": "Créer une variante",
-      "formation": "Placement de départ",
       "hideEntity": "Masquer {{name}}",
       "keyframeAt": "Position à {{t}} s",
       "mode": {
         "edit": "Éditer",
         "play": "Jouer"
       },
-      "newPlay": "Nouveau jeu",
-      "newPlayBody": "Le jeu actuel, avec toutes ses branches, sera abandonné.",
-      "newPlayConfirm": "Recommencer",
-      "newPlayName": "Jeu sans titre",
-      "newPlayTitle": "Commencer un nouveau jeu ?",
       "noProblems": "Aucun problème",
       "offenseRow": "Attaquant {{number}}",
       "placeScreen": "Poser un écran",
@@ -86,14 +76,14 @@
       "renamePlayerTitle": "Nommer ce joueur",
       "reorderCancelled": "Ligne {{name}} laissée où elle était.",
       "reorderEnd": "Ligne {{name}} déposée en position {{position}} sur {{count}}.",
-      "reorderEnd_one": "",
       "reorderEnd_many": "",
+      "reorderEnd_one": "",
       "reorderEnd_other": "",
       "reorderInstructions": "Appuyez sur espace pour saisir la ligne, les flèches pour la déplacer, espace à nouveau pour la déposer, échap pour annuler.",
       "reorderRow": "Réordonner {{label}}",
       "reorderStart": "Ligne {{name}} saisie, position {{position}} sur {{count}}.",
-      "reorderStart_one": "",
       "reorderStart_many": "",
+      "reorderStart_one": "",
       "reorderStart_other": "",
       "rowActions": "Actions pour {{label}}",
       "save": "Enregistrer",
@@ -107,10 +97,10 @@
       "variantName": "Nom de la variante"
     },
     "menu": {
-      "create": "",
-      "label": "",
-      "save": "",
-      "saveSoon": ""
+      "create": "Créer un nouveau système",
+      "label": "Menu du système",
+      "save": "Enregistrer",
+      "saveSoon": "L'enregistrement arrivera avec la persistance"
     },
     "timeline": {
       "pass": "Passe",
