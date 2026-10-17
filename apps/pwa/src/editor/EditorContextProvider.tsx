@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import type { BranchId, Play, PlayId, PlayerId, ScreenId, StepId } from '../engine';
-import { COURT_DIMENSIONS, validatePlay } from '../engine';
+import { validatePlay } from '../engine';
+import { LINEUPS } from './lineups';
 import * as mutations from './mutations';
 import { EditorContext, type EditorContextValue, type Selection } from './useEditorContext';
 
@@ -10,6 +11,14 @@ interface Props {
 }
 
 const newId = <T extends string>(): T => crypto.randomUUID() as T;
+
+/**
+ * How long a brand-new system is, in seconds.
+ *
+ * A floor, not a cap. Without it the timeline of a system nobody has animated yet has no width
+ * at all, and there is nowhere to drop the first keyframe.
+ */
+export const NEW_PLAY_DURATION = 8;
 
 // Not split by update rate, unlike playback: an edit lands once per gesture, never per frame.
 // Ids are minted here so every mutation stays a pure function of its arguments.
@@ -101,28 +110,20 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
 
   // A fresh play id is what makes `PlayView` remount its playback provider, so the clock and the
   // selected branch cannot outlive the play they pointed into.
-  const newPlay = useCallback<EditorContextValue['newPlay']>(
-    (name) => {
-      const rootBranchId = newId<BranchId>();
-      setPlay((current) => {
-        // The ball starts on the centre circle rather than on an empty floor: it is the one
-        // thing every play has, and a court with nothing on it gives a coach nothing to drag.
-        // It is loose, there being no one yet to hold it, and taken from the play's own court
-        // so it is not off-centre on an NBA floor.
-        const { length, width } = COURT_DIMENSIONS[current.court];
-        const ball = [{ t: 0, position: { x: length / 2, y: width / 2 } }];
-
-        return {
-          id: newId<PlayId>(),
-          name,
-          court: current.court,
-          players: [],
-          rootBranchId,
-          branches: [
-            { id: rootBranchId, parentId: null, forkStepId: null, name, tracks: { ball }, steps: [], screens: [] },
-          ],
-        };
-      });
+  const createPlay = useCallback<EditorContextValue['createPlay']>(
+    (options) => {
+      const seats = LINEUPS[options.lineup];
+      setPlay(() =>
+        mutations.createPlay(
+          { ...options, duration: NEW_PLAY_DURATION },
+          {
+            playId: newId<PlayId>(),
+            rootBranchId: newId<BranchId>(),
+            offense: seats.offense.map(() => newId<PlayerId>()),
+            defense: seats.defense.map(() => newId<PlayerId>()),
+          },
+        ),
+      );
       select(null);
     },
     [select],
@@ -157,7 +158,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       removeScreen,
       forkBranch,
       removeBranch,
-      newPlay,
+      createPlay,
     }),
     [
       play,
@@ -186,7 +187,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       removeScreen,
       forkBranch,
       removeBranch,
-      newPlay,
+      createPlay,
     ],
   );
 

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import { describe, expect, it } from 'vitest';
 import type { BranchId, StepId } from '../engine';
-import { fixturePlay, ROOT, STEP_ENTRY } from '../engine/__fixtures__/play';
+import { fixturePlay, P1, ROOT, STEP_ENTRY } from '../engine/__fixtures__/play';
 import { EditorContextProvider } from './EditorContextProvider';
 import { EditorToolbar } from './EditorToolbar';
 import { useEditorContext } from './useEditorContext';
@@ -133,5 +133,80 @@ describe('the mode toggle icons', () => {
       expect(label?.querySelector('svg')).toBeInTheDocument();
       expect(label?.textContent).toBe(name);
     }
+  });
+});
+
+describe('createPlay', () => {
+  function Creator() {
+    const { play, selection, select, createPlay, forkBranch } = useEditorContext();
+
+    return (
+      <>
+        <output data-testid="branches">{play.branches.length}</output>
+        <output data-testid="duration">{play.duration}</output>
+        <output data-testid="extent">{play.extent}</output>
+        <output data-testid="players">{play.players.length}</output>
+        <output data-testid="id">{play.id}</output>
+        <output data-testid="selected">{selection === null ? 'none' : 'some'}</output>
+        <button type="button" onClick={() => select({ kind: 'entity', entityId: P1 })}>
+          select
+        </button>
+        <button type="button" onClick={() => forkBranch(ROOT, STEP_ENTRY, 'Switch')}>
+          fork
+        </button>
+        <button
+          type="button"
+          onClick={() => createPlay({ name: 'Flex', court: 'fiba', extent: 'half', lineup: 'threeOnThree' })}
+        >
+          create
+        </button>
+      </>
+    );
+  }
+
+  const renderCreator = () =>
+    render(
+      <MantineProvider>
+        <EditorContextProvider initialPlay={fixturePlay}>
+          <Creator />
+        </EditorContextProvider>
+      </MantineProvider>,
+    );
+
+  it('replaces the play with a fresh one on its own root branch', async () => {
+    renderCreator();
+    await userEvent.click(screen.getByRole('button', { name: 'create' }));
+
+    expect(screen.getByTestId('id')).not.toHaveTextContent(fixturePlay.id);
+    expect(screen.getByTestId('branches')).toHaveTextContent('1');
+    expect(screen.getByTestId('players')).toHaveTextContent('6');
+    expect(screen.getByTestId('extent')).toHaveTextContent('half');
+  });
+
+  it('gives a new system eight seconds of timeline', async () => {
+    renderCreator();
+    await userEvent.click(screen.getByRole('button', { name: 'create' }));
+
+    expect(screen.getByTestId('duration')).toHaveTextContent('8');
+  });
+
+  it('clears the selection', async () => {
+    renderCreator();
+    await userEvent.click(screen.getByRole('button', { name: 'select' }));
+    expect(screen.getByTestId('selected')).toHaveTextContent('some');
+
+    await userEvent.click(screen.getByRole('button', { name: 'create' }));
+
+    expect(screen.getByTestId('selected')).toHaveTextContent('none');
+  });
+
+  it('leaves no trace of the variants the old system carried', async () => {
+    renderCreator();
+    await userEvent.click(screen.getByRole('button', { name: 'fork' }));
+    expect(screen.getByTestId('branches')).toHaveTextContent('3');
+
+    await userEvent.click(screen.getByRole('button', { name: 'create' }));
+
+    expect(screen.getByTestId('branches')).toHaveTextContent('1');
   });
 });
