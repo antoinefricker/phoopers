@@ -8,11 +8,34 @@ type Row = Record<string, unknown>;
 /** One call made against the double. Every entry names the table it was made on. */
 export type RecordedCall = { from: string } & Record<string, unknown>;
 
+export interface FakeSession {
+  user: { id: string };
+}
+
+export type FakeAuthListener = (event: string, session: FakeSession | null) => void;
+
+/** The auth surface the double offers: the session, its subscribers, sign-in and sign-out. */
+export interface FakeAuth {
+  getSession: () => Promise<{ data: { session: FakeSession | null }; error: { message: string } | null }>;
+  onAuthStateChange: (listener: FakeAuthListener) => { data: { subscription: { unsubscribe: () => void } } };
+  signInWithOAuth: (credentials: { provider: string; options: { redirectTo: string } }) => Promise<{
+    data: unknown;
+    error: { message: string } | null;
+  }>;
+  signOut: () => Promise<{ error: { message: string } | null }>;
+  /** What the double was asked, in order, per method. */
+  calls: { signInWithOAuth: Array<{ provider: string; options: { redirectTo: string } }>; signOut: number };
+  /** Changes the session and tells every subscriber, as a real sign-in or sign-out would. */
+  setSession: (userId: string | null) => void;
+  /** How many subscribers are listening right now. */
+  listenerCount: () => number;
+}
+
 export interface FakeSupabase {
   /** What the double was asked, in order. Assert on it with `toContainEqual`. */
   calls: RecordedCall[];
   /** The object to hand out as the Supabase client. */
-  client: { from: (table: string) => unknown; auth: Record<string, unknown> };
+  client: { from: (table: string) => unknown; auth: FakeAuth };
   /** Makes every terminal call resolve with this error instead of data. */
   failWith: (message: string) => void;
 }
@@ -36,7 +59,7 @@ function likeToRegExp(pattern: string): RegExp {
  * A chainable double of the Supabase client that records the calls made against it. It holds rows
  * per table, applies `eq` and `ilike` to them, and resolves a terminal call with `{ data, error }`.
  * It does not enforce Row Level Security: that lives in the database, and the API relies on it.
- * `auth` holds only what a test has needed so far; more surfaces and tables are added alongside it.
+ * `auth` holds a mutable session, its subscribers, and the sign-in and sign-out calls.
  */
 export function fakeSupabaseClient(
   rows: PlayRow[],
@@ -46,17 +69,43 @@ export function fakeSupabaseClient(
   const tables: Record<string, Row[]> = { plays: [...rows] as unknown as Row[], ...extraTables };
   const calls: RecordedCall[] = [];
   let failure: { message: string } | null = null;
+  let sessionUserId = userId;
+  const listeners = new Set<FakeAuthListener>();
+  const currentSession = (): FakeSession | null => (sessionUserId ? { user: { id: sessionUserId } } : null);
+  const auth: FakeAuth = {
+    getSession: () => Promise.resolve({ data: { session: currentSession() }, error: null }),
+    onAuthStateChange: (listener) => {
+      listeners.add(listener);
+      return { data: { subscription: { unsubscribe: () => listeners.delete(listener) } } };
+    },
+    signInWithOAuth: (credentials) => {
+      auth.calls.signInWithOAuth.push(credentials);
+      return Promise.resolve({ data: {}, error: null });
+    },
+    signOut: () => {
+      auth.calls.signOut += 1;
+      auth.setSession(null);
+      return Promise.resolve({ error: null });
+    },
+    calls: { signInWithOAuth: [], signOut: 0 },
+    setSession: (next) => {
+      sessionUserId = next;
+      const session = currentSession();
+      listeners.forEach((listener) => listener(session ? 'SIGNED_IN' : 'SIGNED_OUT', session));
+    },
+    listenerCount: () => listeners.size,
+  };
 
   function builder(table: string) {
     const filters: Array<(row: Row) => boolean> = [];
-    let write: { kind: 'insert' | 'update' | 'delete'; payload?: Row } | null = null;
+    let write: { kind: 'insert' | 'upsert' | 'update' | 'delete'; payload?: Row } | null = null;
 
     const matching = () => (tables[table] ?? []).filter((row) => filters.every((keep) => keep(row)));
     const settle = (data: unknown) => (failure ? { data: null, error: failure } : { data, error: null });
 
     /** What a write returns when `.select()` follows it: the rows as they would then stand. */
     const written = (): Row[] => {
-      if (write?.kind === 'insert') return [write.payload as Row];
+      if (write?.kind === 'insert' || write?.kind === 'upsert') return [write.payload as Row];
       if (write?.kind === 'update') return matching().map((row) => ({ ...row, ...write?.payload }));
       return matching();
     };
@@ -70,6 +119,18 @@ export function fakeSupabaseClient(
       insert(payload: Row) {
         calls.push({ from: table, insert: payload });
         write = { kind: 'insert', payload };
+        return self;
+      },
+      upsert(payload: Row) {
+        calls.push({ from: table, upsert: payload });
+        write = { kind: 'upsert', payload };
+        // Persist, keyed on `id`: replace the row holding that key, append otherwise.
+        if (!failure) {
+          const rowsOfTable = (tables[table] ??= []);
+          const index = rowsOfTable.findIndex((row) => row.id === payload.id);
+          if (index >= 0) rowsOfTable[index] = { ...rowsOfTable[index], ...payload };
+          else rowsOfTable.push(payload);
+        }
         return self;
       },
       update(payload: Row) {
@@ -117,14 +178,7 @@ export function fakeSupabaseClient(
     calls,
     client: {
       from: (table: string) => builder(table),
-      // The auth surface grows with the tests that need it: today only the session's user.
-      auth: {
-        getSession: () =>
-          Promise.resolve({
-            data: { session: userId ? { user: { id: userId } } : null },
-            error: null,
-          }),
-      },
+      auth,
     },
     failWith: (message) => {
       failure = { message };
