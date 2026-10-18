@@ -12,3 +12,4 @@ Naming: `<index>-<DD-MM-YYYY>-<topic>.md`, matching the plans convention.
 | 003 | 10/10/2026 | [Editor](003-10-10-2026-editor.md)                                          | 1c    | Implemented |
 | 004 | 14/10/2026 | [Step label display](004-14-10-2026-step-label-display.md)                  | 1c    | Implemented |
 | 005 | 17/10/2026 | [Creating a system](005-17-10-2026-system-creation.md)                      | 1d    | Implemented |
+| 006 | 18/10/2026 | [Accounts and persistence](006-18-10-2026-accounts-and-persistence.md)      | 1d    | In progress |
