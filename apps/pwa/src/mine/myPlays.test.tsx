@@ -9,7 +9,6 @@ import * as api from '../plays/playsApi';
 import * as hooks from '../plays/usePlays';
 import type { PlaySummary } from '../types/PlaySummary';
 import { MyPlaysScreen } from './MyPlaysScreen';
-import { PlayCard } from './PlayCard';
 
 vi.mock('../plays/usePlays');
 vi.mock('../plays/playsApi');
@@ -185,22 +184,5 @@ describe('MyPlaysScreen', () => {
     renderScreen(auth({ configured: false, status: 'signedOut', userId: null }));
     expect(screen.getByText(/not configured/i)).toBeInTheDocument();
     expect(hooks.useMyPlays).not.toHaveBeenCalled();
-  });
-});
-
-describe('PlayCard', () => {
-  it('draws the visibility badge only when asked to', () => {
-    const { rerender } = render(
-      <MantineProvider env="test">
-        <PlayCard summary={horns} onOpen={() => {}} />
-      </MantineProvider>,
-    );
-    expect(screen.queryByText('Public')).not.toBeInTheDocument();
-    rerender(
-      <MantineProvider env="test">
-        <PlayCard summary={horns} onOpen={() => {}} showVisibility />
-      </MantineProvider>,
-    );
-    expect(screen.getByText('Public')).toBeInTheDocument();
   });
 });

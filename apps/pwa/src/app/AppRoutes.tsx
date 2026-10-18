@@ -7,6 +7,7 @@ import { DraftContextProvider } from '../draft/DraftContextProvider';
 import { readDraft } from '../draft/draftStorage';
 import { EditorContextProvider } from '../editor/EditorContextProvider';
 import { HomeScreen } from '../home/HomeScreen';
+import { LibraryScreen } from '../library/LibraryScreen';
 import { MyPlaysScreen } from '../mine/MyPlaysScreen';
 import { PlayView } from '../play2d/PlayView';
 import { AppShell } from './AppShell';
@@ -51,7 +52,7 @@ export function AppRoutes() {
     <Routes>
       <Route element={<AppShell />}>
         <Route index element={<HomeScreen />} />
-        <Route path="library" element={<PendingScreen title={t('home.public.title', 'Public systems')} />} />
+        <Route path="library" element={<LibraryScreen />} />
         <Route path="mine" element={<MyPlaysScreen />} />
         <Route path="signin" element={<PendingScreen title={t('app.signIn', 'Sign in')} />} />
         <Route path="auth/callback" element={<PendingScreen title={t('app.signIn', 'Sign in')} />} />

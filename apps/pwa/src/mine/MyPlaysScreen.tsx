@@ -9,7 +9,7 @@ import type { PlayId } from '../engine';
 import { fetchPlay } from '../plays/playsApi';
 import { useDeletePlay, useMyPlays, useRenamePlay, useSavePlay, useSetVisibility } from '../plays/usePlays';
 import type { PlaySummary } from '../types/PlaySummary';
-import { PlayCard } from './PlayCard';
+import { PlayCard } from '../plays/PlayCard';
 import { RenamePlayDialog } from './RenamePlayDialog';
 
 const SEARCH_DELAY_MS = 300;

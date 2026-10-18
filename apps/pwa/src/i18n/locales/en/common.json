@@ -32,6 +32,12 @@
       "title": "A system is in progress"
     }
   },
+  "library": {
+    "empty": "No system has been made public yet.",
+    "error": "Something went wrong. Please try again.",
+    "noMatch": "No system matches this search.",
+    "search": "Search public systems"
+  },
   "mine": {
     "actions": {
       "delete": "Delete",

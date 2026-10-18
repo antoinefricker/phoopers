@@ -32,6 +32,12 @@
       "title": "Un système est en cours"
     }
   },
+  "library": {
+    "empty": "Aucun système n’a encore été rendu public.",
+    "error": "Une erreur s’est produite. Veuillez réessayer.",
+    "noMatch": "Aucun système ne correspond à cette recherche.",
+    "search": "Rechercher parmi les systèmes publics"
+  },
   "mine": {
     "actions": {
       "delete": "Supprimer",
