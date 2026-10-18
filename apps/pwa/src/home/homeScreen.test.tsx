@@ -1,12 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { QueryProvider } from '../app/QueryProvider';
 import { AuthContext, type AuthContextValue } from '../auth/useAuthContext';
-import { writeDraft } from '../draft/draftStorage';
-import { hornsPlay } from '../samples/horns';
 import { HomeScreen } from './HomeScreen';
 
 const auth = (overrides: Partial<AuthContextValue> = {}): AuthContextValue => ({
@@ -60,16 +57,7 @@ describe('HomeScreen', () => {
   it('says the app is not configured, and still offers New system, with no Supabase project', () => {
     renderHome(auth({ configured: false }));
     expect(screen.getAllByText(/not configured/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'New system' })).toHaveAttribute('href', '/play');
+    expect(screen.getByRole('button', { name: 'New system' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Open my systems' })).not.toBeInTheDocument();
-  });
-
-  it('offers to continue a stored draft, or to start over', async () => {
-    writeDraft({ play: hornsPlay, origin: null });
-    const user = userEvent.setup();
-    renderHome();
-    expect(screen.getByRole('link', { name: 'Continue the draft' })).toHaveAttribute('href', '/play');
-    await user.click(screen.getByRole('button', { name: 'Start a new system' }));
-    expect(localStorage.getItem('phoopers.draft.v1')).toBeNull();
   });
 });

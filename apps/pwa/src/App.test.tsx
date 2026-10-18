@@ -36,11 +36,19 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'phoopers' })).toBeInTheDocument();
   });
 
-  it('reaches the editor from New system when there is no draft', async () => {
+  it('reaches the editor by creating a system from New system', async () => {
     const user = userEvent.setup();
     renderApp();
-    await user.click(screen.getByRole('link', { name: 'New system' }));
+    await user.click(screen.getByRole('button', { name: 'New system' }));
+    await user.type(await screen.findByRole('textbox', { name: /Name/ }), 'Flex');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
     expect(window.location.pathname).toBe('/play');
     expect(await screen.findByRole('button', { name: 'Next step' })).toBeInTheDocument();
+  });
+
+  it('does not open, nor store, an untouched blank system at /play', () => {
+    renderApp('/play');
+    expect(window.location.pathname).toBe('/');
+    expect(localStorage.getItem('phoopers.draft.v1')).toBeNull();
   });
 });

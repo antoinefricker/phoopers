@@ -5,9 +5,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { useAuthContext } from '../auth/useAuthContext';
 import { DraftContextProvider } from '../draft/DraftContextProvider';
 import { readDraft } from '../draft/draftStorage';
-import type { BranchId, Play, PlayId, PlayerId } from '../engine';
-import { EditorContextProvider, NEW_PLAY_DURATION } from '../editor/EditorContextProvider';
-import { createPlay } from '../editor/mutations';
+import { EditorContextProvider } from '../editor/EditorContextProvider';
 import { HomeScreen } from '../home/HomeScreen';
 import { PlayView } from '../play2d/PlayView';
 import { AppShell } from './AppShell';
@@ -28,26 +26,14 @@ function PendingScreen({ title }: { title: string }) {
   );
 }
 
-const blankPlay = (): Play =>
-  createPlay(
-    { name: 'New system', court: 'fiba', extent: 'full', lineup: 'empty', duration: NEW_PLAY_DURATION },
-    {
-      playId: crypto.randomUUID() as PlayId,
-      rootBranchId: crypto.randomUUID() as BranchId,
-      offense: [] as PlayerId[],
-      defense: [] as PlayerId[],
-    },
-  );
-
 /**
- * The editor on the stored draft, or on a blank system. Task 13 replaces this with the real
- * `/play` and `/play/:id` screens; it exists so New system has somewhere to go.
+ * The editor on the stored draft. Task 13 replaces this with the real `/play` and `/play/:id`
+ * screens. With no draft there is nothing to open — a blank system is made by the creation
+ * dialog, never here — so the way back is the home screen.
  */
 function DraftPlayRoute() {
-  const [start] = useState(() => {
-    const draft = readDraft();
-    return draft ?? { play: blankPlay(), origin: null };
-  });
+  const [start] = useState(readDraft);
+  if (start === null) return <Navigate to="/" replace />;
   // Both providers read their initial value once, so each is keyed by the system's id.
   return (
     <EditorContextProvider key={start.play.id} initialPlay={start.play}>

@@ -16,9 +16,7 @@
       "title": "My systems"
     },
     "new": {
-      "continue": "Continue the draft",
       "description": "Draw a system from a blank court. Nothing is saved until you sign in.",
-      "startOver": "Start a new system",
       "title": "New system"
     },
     "notConfigured": "This app is not configured with a Supabase project, so public and saved systems are unavailable. You can still draw a system.",
@@ -26,6 +24,12 @@
       "description": "Browse the systems other coaches have shared.",
       "open": "Browse public systems",
       "title": "Public systems"
+    },
+    "resume": {
+      "body": "You were working on <b>{{name}}</b>. Resume it, or start a new system and discard it?",
+      "resume": "Resume",
+      "startNew": "Start a new one",
+      "title": "A system is in progress"
     }
   },
   "play": {

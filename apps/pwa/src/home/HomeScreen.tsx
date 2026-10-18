@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { Button, Card, Container, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { useAuthContext } from '../auth/useAuthContext';
-import { clearDraft, readDraft } from '../draft/draftStorage';
+import { readDraft } from '../draft/draftStorage';
+import { CreateSystemDialog } from './CreateSystemDialog';
+import { ResumeDraftDialog } from './ResumeDraftDialog';
 
 interface DoorProps {
   title: string;
@@ -31,12 +34,26 @@ export function HomeScreen() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { status, configured } = useAuthContext();
-  // Read at render: the home screen is remounted on every visit, and a draft only changes in the editor.
-  const hasDraft = readDraft() !== null;
+  // Both dialogs stay mounted so Mantine's transitions survive; each `key` changes on every open
+  // so their fields reset on a fresh instance rather than through an effect.
+  const [resume, setResume] = useState({ opened: false, count: 0, name: '' });
+  const [creating, setCreating] = useState({ opened: false, count: 0 });
 
-  const startOver = () => {
-    clearDraft();
-    void navigate('/play');
+  const openCreating = () => setCreating((c) => ({ opened: true, count: c.count + 1 }));
+
+  // The draft is read when asked, not at render: it changes in the editor, not on this screen.
+  const startSystem = () => {
+    const draft = readDraft();
+    if (draft === null) {
+      openCreating();
+      return;
+    }
+    setResume((r) => ({ opened: true, count: r.count + 1, name: draft.play.name }));
+  };
+
+  const startNew = () => {
+    setResume((r) => ({ ...r, opened: false }));
+    openCreating();
   };
 
   return (
@@ -50,20 +67,9 @@ export function HomeScreen() {
               'Draw a system from a blank court. Nothing is saved until you sign in.',
             )}
           >
-            {hasDraft ? (
-              <Stack gap="xs">
-                <Button component={Link} to="/play" variant="light">
-                  {t('home.new.continue', 'Continue the draft')}
-                </Button>
-                <Button variant="default" onClick={startOver}>
-                  {t('home.new.startOver', 'Start a new system')}
-                </Button>
-              </Stack>
-            ) : (
-              <Button component={Link} to="/play" variant="light">
-                {t('home.new.title', 'New system')}
-              </Button>
-            )}
+            <Button variant="light" onClick={startSystem}>
+              {t('home.new.title', 'New system')}
+            </Button>
           </Door>
           <Door
             title={t('home.public.title', 'Public systems')}
@@ -105,6 +111,19 @@ export function HomeScreen() {
           </Text>
         )}
       </Stack>
+      <ResumeDraftDialog
+        key={`resume-${resume.count}`}
+        opened={resume.opened}
+        name={resume.name}
+        onResume={() => void navigate('/play')}
+        onStartNew={startNew}
+        onClose={() => setResume((r) => ({ ...r, opened: false }))}
+      />
+      <CreateSystemDialog
+        key={`create-${creating.count}`}
+        opened={creating.opened}
+        onClose={() => setCreating((c) => ({ ...c, opened: false }))}
+      />
     </Container>
   );
 }

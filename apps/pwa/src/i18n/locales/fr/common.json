@@ -16,9 +16,7 @@
       "title": "Mes systèmes"
     },
     "new": {
-      "continue": "Reprendre le brouillon",
       "description": "Dessinez un système sur un terrain vierge. Rien n'est enregistré tant que vous n'êtes pas connecté.",
-      "startOver": "Commencer un nouveau système",
       "title": "Nouveau système"
     },
     "notConfigured": "Cette application n'est reliée à aucun projet Supabase : les systèmes publics et enregistrés sont indisponibles. Vous pouvez tout de même dessiner un système.",
@@ -26,6 +24,12 @@
       "description": "Parcourez les systèmes partagés par d'autres entraîneurs.",
       "open": "Parcourir les systèmes publics",
       "title": "Systèmes publics"
+    },
+    "resume": {
+      "body": "Vous travailliez sur <b>{{name}}</b>. Reprenez-le, ou commencez un nouveau système et abandonnez celui-ci ?",
+      "resume": "Reprendre",
+      "startNew": "En commencer un nouveau",
+      "title": "Un système est en cours"
     }
   },
   "play": {
