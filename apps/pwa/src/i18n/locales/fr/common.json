@@ -8,6 +8,26 @@
     "signOut": "Se déconnecter",
     "system": "Système"
   },
+  "auth": {
+    "callback": {
+      "error": "Votre compte n'a pas pu être chargé.",
+      "retry": "Réessayer"
+    },
+    "displayName": {
+      "change": "Changer mon nom d'affichage",
+      "confirm": "Continuer",
+      "error": "Le nom n'a pas pu être enregistré. Réessayez.",
+      "hint": "C'est le nom affiché sur les systèmes publics. Vous pourrez le changer plus tard.",
+      "label": "Nom d'affichage",
+      "title": "Comment doit-on vous appeler ?"
+    },
+    "signIn": {
+      "error": "La connexion a échoué. Réessayez dans un instant.",
+      "google": "Continuer avec Google",
+      "purpose": "Pour enregistrer vos systèmes et les retrouver partout",
+      "reassurance": "Aucun mot de passe à retenir, et rien n'est publié sans votre accord."
+    }
+  },
   "home": {
     "mine": {
       "description": "Les systèmes que vous avez enregistrés, publics ou privés.",

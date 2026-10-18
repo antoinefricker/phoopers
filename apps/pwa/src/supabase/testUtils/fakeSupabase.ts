@@ -36,8 +36,8 @@ export interface FakeSupabase {
   calls: RecordedCall[];
   /** The object to hand out as the Supabase client. */
   client: { from: (table: string) => unknown; auth: FakeAuth };
-  /** Makes every terminal call resolve with this error instead of data. */
-  failWith: (message: string) => void;
+  /** Makes every terminal call resolve with this error instead of data; `null` stops failing. */
+  failWith: (message: string | null) => void;
 }
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -181,7 +181,7 @@ export function fakeSupabaseClient(
       auth,
     },
     failWith: (message) => {
-      failure = { message };
+      failure = message === null ? null : { message };
     },
   };
   return fake;

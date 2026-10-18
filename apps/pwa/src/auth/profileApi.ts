@@ -32,12 +32,10 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  * owner references the profile, so a coach cannot save anything until this has run once.
  */
 export async function saveDisplayName(userId: string, displayName: string): Promise<Profile> {
+  const name = displayName.trim();
+  if (name === '') throw new Error('blank-display-name');
   const row = unwrap(
-    await client()
-      .from('profiles')
-      .upsert({ id: userId, display_name: displayName })
-      .select('id, display_name')
-      .single(),
+    await client().from('profiles').upsert({ id: userId, display_name: name }).select('id, display_name').single(),
   );
   return fromRow(row as ProfileRow);
 }

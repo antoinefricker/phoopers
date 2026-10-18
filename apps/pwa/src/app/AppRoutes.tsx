@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Container, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes } from 'react-router';
+import { AuthCallbackScreen } from '../auth/AuthCallbackScreen';
+import { SignInScreen } from '../auth/SignInScreen';
 import { useAuthContext } from '../auth/useAuthContext';
 import { DraftContextProvider } from '../draft/DraftContextProvider';
 import { readDraft } from '../draft/draftStorage';
@@ -54,8 +56,8 @@ export function AppRoutes() {
         <Route index element={<HomeScreen />} />
         <Route path="library" element={<LibraryScreen />} />
         <Route path="mine" element={<MyPlaysScreen />} />
-        <Route path="signin" element={<PendingScreen title={t('app.signIn', 'Sign in')} />} />
-        <Route path="auth/callback" element={<PendingScreen title={t('app.signIn', 'Sign in')} />} />
+        <Route path="signin" element={<SignInScreen />} />
+        <Route path="auth/callback" element={<AuthCallbackScreen />} />
       </Route>
       {/* Outside the shell: the editor draws its own header and fills the window. */}
       <Route path="play" element={<DraftPlayRoute />} />

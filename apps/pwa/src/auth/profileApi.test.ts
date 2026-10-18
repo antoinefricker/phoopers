@@ -62,3 +62,12 @@ describe('profileApi', () => {
     await expect(fetchProfile(USER)).rejects.toThrow('supabase-not-configured');
   });
 });
+
+describe('saveDisplayName with a blank name', () => {
+  it('refuses a name of nothing but spaces, before reaching Supabase', async () => {
+    const fake = fakeSupabaseClient([], { userId: USER, extraTables: { profiles: [] } });
+    installFakeSupabase(fake);
+    await expect(saveDisplayName(USER, '   ')).rejects.toThrow('blank-display-name');
+    expect(fake.calls).toEqual([]);
+  });
+});

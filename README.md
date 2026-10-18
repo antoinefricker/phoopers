@@ -91,8 +91,11 @@ draft only), so this setup is only needed to sign in and save.
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. Under Authentication > Providers, enable Google.
-3. In the SQL editor, run `supabase/migrations/0001_plays_and_profiles.sql`.
-4. Copy `apps/pwa/.env.example` to `apps/pwa/.env.local` and fill in `VITE_SUPABASE_URL` and
+3. Under Authentication > URL Configuration, set the Site URL to where the app is served
+   (`http://localhost:5173` in development) and add `<that origin>/auth/callback` to the
+   Redirect URLs. Without both, the Google round trip fails.
+4. In the SQL editor, run `supabase/migrations/0001_plays_and_profiles.sql`.
+5. Copy `apps/pwa/.env.example` to `apps/pwa/.env.local` and fill in `VITE_SUPABASE_URL` and
    `VITE_SUPABASE_ANON_KEY` from the project's API settings. `.env.local` is git-ignored.
 
 ## Workspace layout

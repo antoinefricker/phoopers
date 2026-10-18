@@ -8,6 +8,26 @@
     "signOut": "Sign out",
     "system": "System"
   },
+  "auth": {
+    "callback": {
+      "error": "Your account could not be loaded.",
+      "retry": "Try again"
+    },
+    "displayName": {
+      "change": "Change my display name",
+      "confirm": "Continue",
+      "error": "The name could not be saved. Try again.",
+      "hint": "This is the name shown on public systems. You can change it later.",
+      "label": "Display name",
+      "title": "What should we call you?"
+    },
+    "signIn": {
+      "error": "Signing in failed. Try again in a moment.",
+      "google": "Continue with Google",
+      "purpose": "To save your systems and find them again anywhere",
+      "reassurance": "No password to remember, and nothing is published without your consent."
+    }
+  },
   "home": {
     "mine": {
       "description": "The systems you have saved, public or private.",
