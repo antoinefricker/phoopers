@@ -5,7 +5,12 @@ import { DRAFT_KEY, clearDraft, fingerprint, readDraft, writeDraft, type Draft }
 
 const draft: Draft = {
   play: hornsPlay,
-  origin: { ownerId: '11111111-1111-1111-8111-111111111111', isPublic: false, fingerprint: 'abc' },
+  origin: {
+    playId: hornsPlay.id,
+    ownerId: '11111111-1111-1111-8111-111111111111',
+    isPublic: false,
+    fingerprint: 'abc',
+  },
 };
 
 /** The same content with every object's keys inserted in reverse order; arrays keep their order. */

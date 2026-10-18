@@ -1,8 +1,8 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createQueryClient } from '../app/queryClient';
 import { AuthContext, type AuthContextValue } from '../auth/useAuthContext';
@@ -47,12 +47,18 @@ const auth = (overrides: Partial<AuthContextValue> = {}): AuthContextValue => ({
 
 const client = createQueryClient();
 
+/** The address as the router sees it, so a test can reopen the app where the app actually is. */
+function Address() {
+  return <output data-testid="address">{useLocation().pathname}</output>;
+}
+
 function tree(path: string, value: AuthContextValue = auth()) {
   return (
     <MantineProvider env="test">
       <QueryClientProvider client={client}>
         <AuthContext value={value}>
           <MemoryRouter initialEntries={[path]}>
+            <Address />
             <Routes>
               <Route path="/" element={<LibraryScreen />} />
               <Route path="/play" element={<DraftEditorRoute />} />
@@ -75,7 +81,7 @@ const fetched = (data: StoredPlay | null) =>
 
 const savedDraft = (): Draft => ({
   play: stored.play,
-  origin: { ownerId: OWNER, isPublic: true, fingerprint: fingerprint(stored.play) },
+  origin: { playId: stored.play.id, ownerId: OWNER, isPublic: true, fingerprint: fingerprint(stored.play) },
 });
 
 beforeEach(() => {
@@ -157,6 +163,31 @@ describe('editor routes', () => {
     expect(screen.getByRole('heading', { name: 'Newer on server' })).toBeInTheDocument();
   });
 
+  // Creating a new system swaps the play under the editor's providers: the draft must stop
+  // claiming the old system's origin, and the address must stop naming it, or a reload throws
+  // the new system away in favour of the server's copy of the old one.
+  it('keeps a new system created inside a stored one across a reload', async () => {
+    const user = userEvent.setup();
+    fetched(stored);
+    const { unmount } = renderAt('/play/p1');
+
+    await user.click(screen.getByRole('button', { name: 'System menu' }));
+    await user.click(screen.getByRole('button', { name: 'Create a new system' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText(/Name/), 'Brand new');
+    await user.click(within(dialog).getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => expect(readDraft()?.play.name).toBe('Brand new'));
+    expect(readDraft()?.origin).toBeNull();
+    const address = screen.getByTestId('address').textContent;
+    expect(address).toBe('/play');
+
+    // The reload: the app comes back up at whatever address the bar holds.
+    unmount();
+    render(tree(address as string));
+    expect(await screen.findByRole('heading', { name: 'Brand new' })).toBeInTheDocument();
+  });
+
   it('warns before replacing a draft with unsaved changes, and only then opens', async () => {
     const user = userEvent.setup();
     fetched(stored);
@@ -184,7 +215,10 @@ describe('editor routes', () => {
   it('switches without a word when the draft is clean', async () => {
     const user = userEvent.setup();
     fetched(stored);
-    writeDraft({ play: hornsPlay, origin: { ownerId: OWNER, isPublic: false, fingerprint: fingerprint(hornsPlay) } });
+    writeDraft({
+      play: hornsPlay,
+      origin: { playId: hornsPlay.id, ownerId: OWNER, isPublic: false, fingerprint: fingerprint(hornsPlay) },
+    });
     renderAt('/');
     await user.click(screen.getByRole('button', { name: /open/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

@@ -87,8 +87,21 @@ export async function updatePlay(play: Play): Promise<StoredPlay> {
   return fromRow(row as PlayRow);
 }
 
+/**
+ * The document is authoritative, so a rename rewrites `data->name` as well as the column: writing
+ * the column alone would leave the two disagreeing until the next save from the editor put the
+ * old name back. Read then write, since the row is only ever written by its owner.
+ */
 export async function renamePlay(id: PlayId, name: string): Promise<void> {
-  unwrap(await client().from('plays').update({ name }).eq('id', id));
+  const row = unwrap(await client().from('plays').select('data').eq('id', id).maybeSingle());
+  if (!row) throw new Error('play-not-found');
+  const data = (row as { data: Play }).data;
+  unwrap(
+    await client()
+      .from('plays')
+      .update({ name, data: { ...data, name } })
+      .eq('id', id),
+  );
 }
 
 export async function setPlayVisibility(id: PlayId, isPublic: boolean): Promise<void> {

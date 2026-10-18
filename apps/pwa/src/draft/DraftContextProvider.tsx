@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useEditorContext } from '../editor/useEditorContext';
 import { DraftContext } from './useDraftContext';
-import { clearDraft, fingerprint, readDraft, writeDraft, type DraftOrigin } from './draftStorage';
+import { clearDraft, fingerprint, originOf, readDraft, writeDraft, type DraftOrigin } from './draftStorage';
 
 interface Props {
   initialOrigin: DraftOrigin | null;
@@ -18,7 +18,10 @@ const draftKey = (playFingerprint: string, origin: DraftOrigin | null) =>
  */
 export function DraftContextProvider({ initialOrigin, children }: Props) {
   const { play } = useEditorContext();
-  const [origin, setOrigin] = useState<DraftOrigin | null>(initialOrigin);
+  const [marked, setMarked] = useState<DraftOrigin | null>(initialOrigin);
+  // Creating a new system swaps `play` under this very provider; the previous system's origin
+  // then describes nothing that is open, and the new one has never been stored.
+  const origin = originOf(play, marked);
   const playFingerprint = useMemo(() => fingerprint(play), [play]);
 
   // The key of what storage holds, so an unchanged draft is not serialized and written again.
@@ -27,7 +30,7 @@ export function DraftContextProvider({ initialOrigin, children }: Props) {
   useEffect(() => {
     if (written.current === undefined) {
       const stored = readDraft();
-      written.current = stored ? draftKey(fingerprint(stored.play), stored.origin) : null;
+      written.current = stored ? draftKey(fingerprint(stored.play), originOf(stored.play, stored.origin)) : null;
     }
     const key = draftKey(playFingerprint, origin);
     if (written.current === key) return;
@@ -35,7 +38,7 @@ export function DraftContextProvider({ initialOrigin, children }: Props) {
     written.current = key;
   }, [play, playFingerprint, origin]);
 
-  const markSaved = useCallback((saved: DraftOrigin) => setOrigin(saved), []);
+  const markSaved = useCallback((saved: DraftOrigin) => setMarked(saved), []);
   const discard = useCallback(() => {
     clearDraft();
     written.current = null;

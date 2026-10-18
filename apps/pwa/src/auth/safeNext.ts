@@ -5,7 +5,14 @@
  */
 export function safeNext(next: string | null): string {
   if (next === null) return '/';
-  const resolved = new URL(next, window.location.origin);
+  // A candidate the parser refuses (`https://[`) is not a path either: it is called during
+  // render, and a thrown TypeError would take the whole screen down with it.
+  let resolved: URL;
+  try {
+    resolved = new URL(next, window.location.origin);
+  } catch {
+    return '/';
+  }
   if (resolved.origin !== window.location.origin) return '/';
   const path = `${resolved.pathname}${resolved.search}${resolved.hash}`;
   // A normalised path such as `//host` would be read by the router as an absolute address.

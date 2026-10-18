@@ -1,7 +1,12 @@
-import type { Play } from '../engine';
+import type { Play, PlayId } from '../engine';
 
 /** Where a draft came from, so reopening it can tell whether it is a copy of a saved system. */
 export interface DraftOrigin {
+  /**
+   * Which system this origin describes. A system keeps one identity everywhere, so an origin
+   * naming another play id says nothing about the open one: it is then no origin at all.
+   */
+  playId: PlayId;
   ownerId: string;
   isPublic: boolean;
   /** `fingerprint` of the play as it was saved, to tell whether the draft has moved on since. */
@@ -108,6 +113,15 @@ export function clearDraft(): void {
   }
 }
 
+/**
+ * The origin when it describes the given play, and null otherwise — the play was replaced by a
+ * new system under the same provider, and where the previous one came from no longer applies.
+ */
+export const originOf = (play: Play, origin: DraftOrigin | null): DraftOrigin | null =>
+  origin !== null && origin.playId === play.id ? origin : null;
+
 /** Whether the draft holds changes that no stored copy has: never stored, or moved on since. */
-export const isUnsaved = (draft: Draft): boolean =>
-  draft.origin === null || draft.origin.fingerprint !== fingerprint(draft.play);
+export const isUnsaved = (draft: Draft): boolean => {
+  const origin = originOf(draft.play, draft.origin);
+  return origin === null || origin.fingerprint !== fingerprint(draft.play);
+};

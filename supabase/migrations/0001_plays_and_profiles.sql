@@ -39,9 +39,8 @@ create policy "profiles are updated by their owner"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
-create policy "profiles are deleted by their owner"
-  on public.profiles for delete
-  using (auth.uid() = id);
+-- No delete policy on profiles: deleting an account is not a feature of this product, and
+-- `plays.owner_id` cascades, so one delete would take every system the coach owns with it.
 
 -- Plays: readable when public or owned, written by their owner alone.
 create policy "plays are readable when public or owned"

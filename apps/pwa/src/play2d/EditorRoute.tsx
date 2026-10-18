@@ -1,20 +1,42 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Center, Container, Loader } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useParams } from 'react-router';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { DraftContextProvider } from '../draft/DraftContextProvider';
 import { fingerprint, isUnsaved, readDraft, type Draft } from '../draft/draftStorage';
 import { EditorContextProvider } from '../editor/EditorContextProvider';
+import { useEditorContext } from '../editor/useEditorContext';
 import type { PlayId } from '../engine';
 import { useStoredPlay } from '../plays/usePlays';
 import { NoSuchPlayScreen } from './NoSuchPlayScreen';
 import { PlayView } from './PlayView';
+
+/**
+ * Keeps the address naming the system that is open. Creating a new system inside the editor
+ * replaces the play under the providers; `/play/:id` would then name a system nobody is editing,
+ * and a reload there would throw the new one away. `/play` names whatever the draft holds.
+ */
+function AddressFollowsPlay({ openedId }: { openedId: PlayId }) {
+  const { play } = useEditorContext();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const followed = useRef(openedId);
+
+  useEffect(() => {
+    if (play.id === followed.current) return;
+    followed.current = play.id;
+    if (pathname !== '/play') void navigate('/play', { replace: true });
+  }, [play.id, pathname, navigate]);
+
+  return null;
+}
 
 /** Both providers read their initial value once, so each is keyed by the system's id. */
 function Editor({ start }: { start: Draft }) {
   return (
     <EditorContextProvider key={start.play.id} initialPlay={start.play}>
       <DraftContextProvider key={start.play.id} initialOrigin={start.origin}>
+        <AddressFollowsPlay openedId={start.play.id} />
         <PlayView />
       </DraftContextProvider>
     </EditorContextProvider>
@@ -52,7 +74,7 @@ function StoredEditor({ id }: { id: PlayId }) {
     if (held !== null && held.play.id === id && isUnsaved(held)) start = held;
     else if (stored.data) {
       const { play, ownerId, isPublic } = stored.data;
-      start = { play, origin: { ownerId, isPublic, fingerprint: fingerprint(play) } };
+      start = { play, origin: { playId: play.id, ownerId, isPublic, fingerprint: fingerprint(play) } };
     }
     if (start !== null) setLatched(start);
   }

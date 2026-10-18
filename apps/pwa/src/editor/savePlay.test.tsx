@@ -21,6 +21,7 @@ const signedIn: Partial<AuthContextValue> = { status: 'signedIn', userId: ME, co
 const signedOut: Partial<AuthContextValue> = { status: 'signedOut', userId: null, configured: true };
 
 const storedAs = (ownerId: string): DraftOrigin => ({
+  playId: fixturePlay.id,
   ownerId,
   isPublic: false,
   fingerprint: fingerprint(fixturePlay),

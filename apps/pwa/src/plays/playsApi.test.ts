@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PlayId } from '../engine';
+import type { Play, PlayId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import {
   deletePlay,
@@ -119,9 +119,32 @@ describe('playsApi', () => {
     expect(fake.calls).toContainEqual({ from: 'plays', eq: ['id', hornsPlay.id] });
   });
 
-  it('renames through the name column alone', async () => {
+  it('renames the document as well as the column', async () => {
     await renamePlay(hornsPlay.id, 'Renamed');
-    expect(fake.calls).toContainEqual({ from: 'plays', update: { name: 'Renamed' } });
+    const written = fake.calls.find((call) => 'update' in call)?.update as { name: string; data: Play };
+    expect(written.name).toBe('Renamed');
+    expect(written.data.name).toBe('Renamed');
+  });
+
+  // The column is copied from the document on every save, so a rename that touched the column
+  // alone would be undone by the first overwrite from the editor.
+  it('keeps the new name when the editor later overwrites the system', async () => {
+    await renamePlay(hornsPlay.id, 'Renamed');
+    const written = fake.calls.find((call) => 'update' in call)?.update as { name: string; data: Play };
+
+    fake = fakeSupabaseClient([{ ...storedRow, name: written.name, data: written.data }], { userId: OWNER });
+    installFakeSupabase(fake);
+    const reopened = await fetchPlay(hornsPlay.id);
+    await updatePlay(reopened!.play);
+
+    expect(fake.calls).toContainEqual({
+      from: 'plays',
+      update: expect.objectContaining({ name: 'Renamed', data: expect.objectContaining({ name: 'Renamed' }) }),
+    });
+  });
+
+  it('refuses to rename a row it cannot read', async () => {
+    await expect(renamePlay('missing' as PlayId, 'Renamed')).rejects.toThrow('play-not-found');
   });
 
   it('changes visibility through its column alone', async () => {

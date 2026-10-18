@@ -80,7 +80,7 @@ export function useSaveSystem() {
     setOverwriting(true);
     try {
       await writer.mutateAsync({ play });
-      markSaved({ ownerId: userId, isPublic: origin.isPublic, fingerprint: fingerprint(play) });
+      markSaved({ playId: play.id, ownerId: userId, isPublic: origin.isPublic, fingerprint: fingerprint(play) });
     } catch {
       let gone = false;
       try {
@@ -160,7 +160,7 @@ export function useSaveSystem() {
       const named = { ...play, name };
       await writer.mutateAsync({ play: named, insert: { ownerId: userId, isPublic } });
       renamePlay(name);
-      markSaved({ ownerId: userId, isPublic, fingerprint: fingerprint(named) });
+      markSaved({ playId: named.id, ownerId: userId, isPublic, fingerprint: fingerprint(named) });
       close();
     } catch {
       // `writer.isError` carries it to the dialog; nothing to undo.

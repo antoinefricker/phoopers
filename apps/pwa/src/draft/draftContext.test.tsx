@@ -10,6 +10,7 @@ import { fingerprint, readDraft, type DraftOrigin } from './draftStorage';
 import { useDraftContext } from './useDraftContext';
 
 const stored: DraftOrigin = {
+  playId: hornsPlay.id,
   ownerId: '11111111-1111-1111-8111-111111111111',
   isPublic: false,
   fingerprint: fingerprint(hornsPlay),
