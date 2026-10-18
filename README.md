@@ -101,12 +101,36 @@ draft only), so this setup is only needed to sign in and save.
 5. Copy `apps/pwa/.env.example` to `apps/pwa/.env.local` and fill in `VITE_SUPABASE_URL` and
    `VITE_SUPABASE_ANON_KEY` from the project's API settings. `.env.local` is git-ignored.
 
+## Deployment
+
+The front end is a static bundle, hosted on Vercel. `vercel.json` at the repository root
+carries everything that is a property of the project rather than of one person's dashboard:
+the install and build commands, the output directory, and the rewrite that serves
+`index.html` for every path. That rewrite is not a detail — without it, an address the
+router owns (`/mine`, `/play/<id>`, and the `/auth/callback` Google returns to) is a 404 on
+reload, because the host looks for a file that was never built.
+
+What has to be set in Vercel itself, once:
+
+1. Import the repository. The settings in `vercel.json` win, so leave the framework preset
+   alone.
+2. Set the Node version to 24, to match `.nvmrc`.
+3. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as environment variables, for
+   Production and Preview. Vite reads them **at build time**, so changing one means
+   redeploying — editing it alone changes nothing.
+
+And once per environment, back in Supabase, under Authentication > URL Configuration:
+add the deployed origin as the Site URL, and `<origin>/auth/callback` to the Redirect URLs.
+Preview deployments get a fresh URL each time, so they need a wildcard entry such as
+`https://phoopers-*.vercel.app/auth/callback` to sign in at all.
+
 ## Workspace layout
 
 ```
 apps/pwa        @phoopers/pwa — Vite + React 19 + Mantine front end
 documentation   roadmap and implementation plans
 supabase        database migrations
+vercel.json     build and SPA-rewrite configuration for the host
 ```
 
 ## Quality gates

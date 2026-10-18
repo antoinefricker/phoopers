@@ -450,11 +450,14 @@ a copy.
 A public system has its own address, `/play/:id`, but it exists only on `localhost`, so sharing
 a link to one does not work yet: nobody but the author's machine can open it.
 
-It was left because hosting is a later lot; the roadmap still lists it as ahead.
+What the repository could carry is now carried: `vercel.json` holds the install and build
+commands, the output directory, and the rewrite that serves `index.html` for every path, so a
+shared address survives a reload rather than 404ing. What is left is not code — importing the
+repository into Vercel, setting `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` there, and
+adding the deployed origin to Supabase's Site URL and Redirect URLs. The README's Deployment
+section lists the steps.
 
-**Fix:** host the front end (Vercel or Netlify, per the roadmap), set the Supabase Site URL and
-Redirect URLs to the deployed origin, and configure the host to serve `index.html` for every
-path so a shared address survives a reload.
+**Fix:** do those three things once. Delete this entry when a deployment answers.
 
 ### Leaving a dirty draft is guarded only on the Open buttons
 
