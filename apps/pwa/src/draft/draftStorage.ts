@@ -107,3 +107,7 @@ export function clearDraft(): void {
     // Same as writeDraft: a storage failure must not break the editor.
   }
 }
+
+/** Whether the draft holds changes that no stored copy has: never stored, or moved on since. */
+export const isUnsaved = (draft: Draft): boolean =>
+  draft.origin === null || draft.origin.fingerprint !== fingerprint(draft.play);

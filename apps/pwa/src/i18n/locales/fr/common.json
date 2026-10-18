@@ -5,8 +5,7 @@
     "name": "phoopers",
     "notConfigured": "Cette application n'est reliée à aucun projet Supabase : cet écran est indisponible.",
     "signIn": "Se connecter",
-    "signOut": "Se déconnecter",
-    "system": "Système"
+    "signOut": "Se déconnecter"
   },
   "auth": {
     "callback": {
@@ -26,6 +25,14 @@
       "google": "Continuer avec Google",
       "purpose": "Pour enregistrer vos systèmes et les retrouver partout",
       "reassurance": "Aucun mot de passe à retenir, et rien n'est publié sans votre accord."
+    }
+  },
+  "draft": {
+    "leave": {
+      "body": "L'ouverture d'un autre système remplace {{name}}, et ses modifications non enregistrées seront perdues.",
+      "confirm": "Ouvrir quand même",
+      "stay": "Continuer à modifier",
+      "title": "Quitter vos modifications non enregistrées ?"
     }
   },
   "home": {
@@ -175,6 +182,8 @@
       "stepName": "Nom de l'étape",
       "variantName": "Nom de la variante"
     },
+    "loadError": "Une erreur s'est produite. Veuillez réessayer.",
+    "loading": "Chargement du système",
     "menu": {
       "create": "Créer un nouveau système",
       "editMode": "Mode édition",
@@ -182,6 +191,12 @@
       "playMode": "Mode lecture",
       "save": "Enregistrer",
       "saveSoon": "L'enregistrement arrivera avec la persistance"
+    },
+    "missing": {
+      "body": "Ce système n'existe pas ou est privé.",
+      "home": "Retour à l'accueil",
+      "invite": "S'il est à vous, connectez-vous pour l'ouvrir.",
+      "title": "Aucun système à cette adresse"
     },
     "timeline": {
       "pass": "Passe",

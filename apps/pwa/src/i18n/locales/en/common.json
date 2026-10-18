@@ -5,8 +5,7 @@
     "name": "phoopers",
     "notConfigured": "This app is not configured with a Supabase project, so this screen is unavailable.",
     "signIn": "Sign in",
-    "signOut": "Sign out",
-    "system": "System"
+    "signOut": "Sign out"
   },
   "auth": {
     "callback": {
@@ -26,6 +25,14 @@
       "google": "Continue with Google",
       "purpose": "To save your systems and find them again anywhere",
       "reassurance": "No password to remember, and nothing is published without your consent."
+    }
+  },
+  "draft": {
+    "leave": {
+      "body": "Opening another system replaces {{name}}, and its unsaved changes will be lost.",
+      "confirm": "Open anyway",
+      "stay": "Keep editing",
+      "title": "Leave your unsaved changes?"
     }
   },
   "home": {
@@ -171,6 +178,8 @@
       "stepName": "Step name",
       "variantName": "Variant name"
     },
+    "loadError": "Something went wrong. Please try again.",
+    "loading": "Loading the system",
     "menu": {
       "create": "Create a new system",
       "editMode": "Edit mode",
@@ -178,6 +187,12 @@
       "playMode": "Play mode",
       "save": "Save",
       "saveSoon": "Saving arrives with persistence"
+    },
+    "missing": {
+      "body": "This system either does not exist or is private.",
+      "home": "Back to home",
+      "invite": "If it is yours, sign in to open it.",
+      "title": "No system at this address"
     },
     "timeline": {
       "pass": "Pass",

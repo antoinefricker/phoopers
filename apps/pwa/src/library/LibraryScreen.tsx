@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, Container, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useOpenSystem } from '../draft/useOpenSystem';
 import { useAuthContext } from '../auth/useAuthContext';
 import { PlayCard } from '../plays/PlayCard';
 import { usePublicPlays } from '../plays/usePlays';
@@ -28,7 +28,7 @@ export function LibraryScreen() {
 
 function Library() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { open, dialog: leaveDialog } = useOpenSystem();
   const [search, setSearch] = useState('');
   const [debounced] = useDebouncedValue(search.trim(), SEARCH_DELAY_MS);
   const plays = usePublicPlays(debounced);
@@ -54,10 +54,11 @@ function Library() {
         )}
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
           {list.map((summary) => (
-            <PlayCard key={summary.id} summary={summary} onOpen={() => void navigate(`/play/${summary.id}`)} />
+            <PlayCard key={summary.id} summary={summary} onOpen={() => open(summary.id)} />
           ))}
         </SimpleGrid>
       </Stack>
+      {leaveDialog}
     </Container>
   );
 }

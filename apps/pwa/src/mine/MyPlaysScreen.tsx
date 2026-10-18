@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Alert, Button, Container, Group, Menu, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
+import { useOpenSystem } from '../draft/useOpenSystem';
 import { useAuthContext } from '../auth/useAuthContext';
 import { ConfirmDelete } from '../editor/ConfirmDelete';
 import type { PlayId } from '../engine';
@@ -53,7 +54,7 @@ export function MyPlaysScreen() {
 
 function SignedInScreen() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { open, dialog: leaveDialog } = useOpenSystem();
   const { userId } = useAuthContext();
   const [search, setSearch] = useState('');
   const [debounced] = useDebouncedValue(search.trim(), SEARCH_DELAY_MS);
@@ -131,7 +132,7 @@ function SignedInScreen() {
               key={summary.id}
               summary={summary}
               showVisibility
-              onOpen={() => void navigate(`/play/${summary.id}`)}
+              onOpen={() => open(summary.id)}
               actions={
                 <Menu position="bottom-end">
                   <Menu.Target>
@@ -169,6 +170,7 @@ function SignedInScreen() {
           ))}
         </SimpleGrid>
       </Stack>
+      {leaveDialog}
       <RenamePlayDialog
         key={`rename-${renaming.count}`}
         opened={renaming.opened}
