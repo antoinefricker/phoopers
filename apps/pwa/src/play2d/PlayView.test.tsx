@@ -2,6 +2,11 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { UserEvent } from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router';
+import { createQueryClient } from '../app/queryClient';
+import { AuthContext } from '../auth/useAuthContext';
+import { DraftContextProvider } from '../draft/DraftContextProvider';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ballCarryAt, resolveBranch, stateAt, type ResolvedTimeline, type Vec2 } from '../engine';
 import { HORNS_SWITCH, hornsPlay } from '../samples/horns';
@@ -17,9 +22,25 @@ function renderView(widthPx = 1440) {
   stubViewportWidth(widthPx);
   return render(
     <MantineProvider env="test">
-      <EditorContextProvider initialPlay={hornsPlay}>
-        <PlayView />
-      </EditorContextProvider>
+      <QueryClientProvider client={createQueryClient()}>
+        <AuthContext
+          value={{
+            status: 'signedOut',
+            userId: null,
+            configured: false,
+            signInWithGoogle: async () => {},
+            signOut: async () => {},
+          }}
+        >
+          <MemoryRouter>
+            <EditorContextProvider initialPlay={hornsPlay}>
+              <DraftContextProvider initialOrigin={null}>
+                <PlayView />
+              </DraftContextProvider>
+            </EditorContextProvider>
+          </MemoryRouter>
+        </AuthContext>
+      </QueryClientProvider>
     </MantineProvider>,
   );
 }

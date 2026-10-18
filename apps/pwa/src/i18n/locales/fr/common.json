@@ -189,14 +189,29 @@
       "editMode": "Mode édition",
       "label": "Menu du système",
       "playMode": "Mode lecture",
-      "save": "Enregistrer",
-      "saveSoon": "L'enregistrement arrivera avec la persistance"
+      "save": "Enregistrer"
     },
     "missing": {
       "body": "Ce système n'existe pas ou est privé.",
       "home": "Retour à l'accueil",
       "invite": "S'il est à vous, connectez-vous pour l'ouvrir.",
       "title": "Aucun système à cette adresse"
+    },
+    "save": {
+      "anotherCoach": "un autre entraîneur",
+      "cancel": "Annuler",
+      "copyNotice": "Ce système appartient à {{author}}. L'enregistrer en créera une copie qui sera la vôtre.",
+      "copyTitle": "Enregistrer une copie",
+      "error": "Le système n'a pas pu être enregistré. Votre travail est conservé ici ; réessayez.",
+      "name": "Nom",
+      "private": "Privé : vous seul pouvez le voir",
+      "public": "Public : visible de tous dans la bibliothèque",
+      "restoreNotice": "Ce système n'existe plus dans votre compte. L'enregistrer le stockera à nouveau.",
+      "submit": "Enregistrer",
+      "title": "Enregistrer le système",
+      "unavailable": "L'enregistrement nécessite un compte, que cette application n'a pas configuré",
+      "unsaved": "Modifications non enregistrées",
+      "visibility": "Qui peut le voir"
     },
     "timeline": {
       "pass": "Passe",

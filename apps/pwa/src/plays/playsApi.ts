@@ -98,3 +98,12 @@ export async function setPlayVisibility(id: PlayId, isPublic: boolean): Promise<
 export async function deletePlay(id: PlayId): Promise<void> {
   unwrap(await client().from('plays').delete().eq('id', id));
 }
+
+/**
+ * Whether there is still a signed-in session. Row Level Security hides a coach's own private rows
+ * from an expired one, so "the row is not there" means nothing until this is true.
+ */
+export async function hasActiveSession(): Promise<boolean> {
+  const { data, error } = await client().auth.getSession();
+  return !error && data.session !== null;
+}

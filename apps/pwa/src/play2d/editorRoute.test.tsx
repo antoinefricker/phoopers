@@ -1,8 +1,10 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createQueryClient } from '../app/queryClient';
 import { AuthContext, type AuthContextValue } from '../auth/useAuthContext';
 import { fingerprint, readDraft, writeDraft, type Draft } from '../draft/draftStorage';
 import type { PlayId } from '../engine';
@@ -43,18 +45,22 @@ const auth = (overrides: Partial<AuthContextValue> = {}): AuthContextValue => ({
   ...overrides,
 });
 
+const client = createQueryClient();
+
 function tree(path: string, value: AuthContextValue = auth()) {
   return (
     <MantineProvider env="test">
-      <AuthContext value={value}>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/" element={<LibraryScreen />} />
-            <Route path="/play" element={<DraftEditorRoute />} />
-            <Route path="/play/:id" element={<StoredEditorRoute />} />
-          </Routes>
-        </MemoryRouter>
-      </AuthContext>
+      <QueryClientProvider client={client}>
+        <AuthContext value={value}>
+          <MemoryRouter initialEntries={[path]}>
+            <Routes>
+              <Route path="/" element={<LibraryScreen />} />
+              <Route path="/play" element={<DraftEditorRoute />} />
+              <Route path="/play/:id" element={<StoredEditorRoute />} />
+            </Routes>
+          </MemoryRouter>
+        </AuthContext>
+      </QueryClientProvider>
     </MantineProvider>
   );
 }
@@ -75,6 +81,8 @@ const savedDraft = (): Draft => ({
 beforeEach(() => {
   vi.resetAllMocks();
   localStorage.clear();
+  // The editor's menu reads the writer's state; nothing here saves.
+  vi.mocked(hooks.useSavePlay).mockReturnValue({ isPending: false, isError: false, reset: vi.fn() } as never);
   vi.mocked(hooks.usePublicPlays).mockReturnValue({ data: [summary], isSuccess: true, isError: false } as never);
 });
 

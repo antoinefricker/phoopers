@@ -21,13 +21,6 @@ const openDialog = async () => {
 };
 
 describe('the system menu', () => {
-  it('offers saving but cannot do it yet', async () => {
-    renderView();
-    await openMenu();
-
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-  });
-
   it('is there in play mode too, since it is the way back into editing', async () => {
     renderView();
     await openMenu();

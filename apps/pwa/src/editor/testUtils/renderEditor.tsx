@@ -3,6 +3,12 @@ import type { ReactNode } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router';
+import { createQueryClient } from '../../app/queryClient';
+import { AuthContext, type AuthContextValue } from '../../auth/useAuthContext';
+import { DraftContextProvider } from '../../draft/DraftContextProvider';
+import type { DraftOrigin } from '../../draft/draftStorage';
 import type { BranchId, Play } from '../../engine';
 import { HiddenEntitiesContextProvider } from '../../play2d/HiddenEntitiesContextProvider';
 import { PlaybackContextProvider } from '../../play2d/PlaybackContextProvider';
@@ -43,26 +49,54 @@ interface Options {
    * own (`PlayView` does): a nested provider would silently shadow the outer clock.
    */
   wrapPlayback?: boolean;
+  /** Who is signed in; defaults to nobody, on an app with no Supabase project. */
+  auth?: Partial<AuthContextValue>;
+  /** Where the open system was stored; defaults to never. */
+  origin?: DraftOrigin | null;
+  /** The address the router starts at. */
+  path?: string;
 }
 
-export function renderEditor(initialPlay: Play, children: ReactNode, { wrapPlayback = true }: Options = {}) {
+const SIGNED_OUT: AuthContextValue = {
+  status: 'signedOut',
+  userId: null,
+  configured: false,
+  signInWithGoogle: async () => {},
+  signOut: async () => {},
+};
+
+export function renderEditor(
+  initialPlay: Play,
+  children: ReactNode,
+  { wrapPlayback = true, auth = {}, origin = null, path = '/play' }: Options = {},
+) {
+  const client = createQueryClient();
+
   return render(
     <MantineProvider env="test">
-      <EditorContextProvider initialPlay={initialPlay}>
-        <HiddenEntitiesContextProvider>
-          {wrapPlayback ? (
-            <PlaybackContextProvider play={initialPlay}>
-              {children}
-              <PlayProbe />
-            </PlaybackContextProvider>
-          ) : (
-            <>
-              {children}
-              <PlayProbe />
-            </>
-          )}
-        </HiddenEntitiesContextProvider>
-      </EditorContextProvider>
+      <QueryClientProvider client={client}>
+        <AuthContext value={{ ...SIGNED_OUT, ...auth }}>
+          <MemoryRouter initialEntries={[path]}>
+            <EditorContextProvider initialPlay={initialPlay}>
+              <DraftContextProvider initialOrigin={origin}>
+                <HiddenEntitiesContextProvider>
+                  {wrapPlayback ? (
+                    <PlaybackContextProvider play={initialPlay}>
+                      {children}
+                      <PlayProbe />
+                    </PlaybackContextProvider>
+                  ) : (
+                    <>
+                      {children}
+                      <PlayProbe />
+                    </>
+                  )}
+                </HiddenEntitiesContextProvider>
+              </DraftContextProvider>
+            </EditorContextProvider>
+          </MemoryRouter>
+        </AuthContext>
+      </QueryClientProvider>
     </MantineProvider>,
   );
 }

@@ -185,14 +185,29 @@
       "editMode": "Edit mode",
       "label": "System menu",
       "playMode": "Play mode",
-      "save": "Save",
-      "saveSoon": "Saving arrives with persistence"
+      "save": "Save"
     },
     "missing": {
       "body": "This system either does not exist or is private.",
       "home": "Back to home",
       "invite": "If it is yours, sign in to open it.",
       "title": "No system at this address"
+    },
+    "save": {
+      "anotherCoach": "another coach",
+      "cancel": "Cancel",
+      "copyNotice": "This system belongs to {{author}}. Saving it will make a copy that is yours.",
+      "copyTitle": "Save a copy",
+      "error": "The system could not be saved. Your work is kept here; try again.",
+      "name": "Name",
+      "private": "Private: only you can see it",
+      "public": "Public: visible to everyone in the library",
+      "restoreNotice": "This system no longer exists in your account. Saving will store it again.",
+      "submit": "Save",
+      "title": "Save the system",
+      "unavailable": "Saving needs an account, which this app is not set up for",
+      "unsaved": "Unsaved changes",
+      "visibility": "Who can see it"
     },
     "timeline": {
       "pass": "Pass",

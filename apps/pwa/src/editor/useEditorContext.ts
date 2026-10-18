@@ -20,6 +20,8 @@ export interface EditorContextValue {
   placingScreen: boolean;
   setPlacingScreen: (placing: boolean) => void;
   issues: Issue[];
+  /** The system's own name, as saved. Trimmed; a name of nothing but spaces changes nothing. */
+  renamePlay: (name: string) => void;
   addPlayer: (team: 'offense' | 'defense') => void;
   removePlayer: (playerId: PlayerId) => void;
   /** The coach's own name for a player. An empty one takes the name back rather than storing it. */
