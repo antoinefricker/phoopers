@@ -1,14 +1,13 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { hornsPlay } from './samples/horns';
 import { stubViewportWidth } from './testUtils/viewport';
-import { playheadTime } from './testUtils/transport';
 
-function renderApp() {
+function renderApp(path = '/') {
   stubViewportWidth(1440);
+  window.history.pushState({}, '', path);
   return render(
     <MantineProvider env="test">
       <App />
@@ -16,27 +15,32 @@ function renderApp() {
   );
 }
 
+beforeEach(() => {
+  localStorage.clear();
+});
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe('App', () => {
-  it('shows the sample play as a working view, not a placeholder', async () => {
+  it('opens on the home screen, not on the sample play', () => {
+    renderApp();
+    expect(screen.getByRole('heading', { name: 'phoopers' })).toBeInTheDocument();
+    expect(screen.queryByTestId('token')).not.toBeInTheDocument();
+  });
+
+  it('sends an unknown address to the home screen', () => {
+    renderApp('/nowhere');
+    expect(window.location.pathname).toBe('/');
+    expect(screen.getByRole('heading', { name: 'phoopers' })).toBeInTheDocument();
+  });
+
+  it('reaches the editor from New system when there is no draft', async () => {
     const user = userEvent.setup();
-    const { container } = renderApp();
-
-    expect(screen.getByRole('heading', { name: hornsPlay.name })).toBeInTheDocument();
-    expect(screen.queryByText('Design and replay basketball plays')).not.toBeInTheDocument();
-    expect(container.querySelectorAll('[data-testid="token"]')).toHaveLength(10);
-    // The branch tree is behind the header's menu now, so the count is read with it open.
-    await user.click(screen.getByRole('button', { name: 'Branches' }));
-    expect(
-      within(await screen.findByRole('navigation', { name: 'Play branches' })).getAllByRole('button'),
-    ).toHaveLength(hornsPlay.branches.length);
-    await user.keyboard('{Escape}');
-
-    // Wired for real: a transport press reaches the clock the court draws from.
-    await user.click(screen.getByRole('button', { name: 'Next step' }));
-    expect(playheadTime()).toBeCloseTo(2.0, 5);
+    renderApp();
+    await user.click(screen.getByRole('link', { name: 'New system' }));
+    expect(window.location.pathname).toBe('/play');
+    expect(await screen.findByRole('button', { name: 'Next step' })).toBeInTheDocument();
   });
 });

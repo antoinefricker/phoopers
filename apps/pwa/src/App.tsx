@@ -1,11 +1,16 @@
-import { EditorContextProvider } from './editor/EditorContextProvider';
-import { PlayView } from './play2d/PlayView';
-import { hornsPlay } from './samples/horns';
+import { BrowserRouter } from 'react-router';
+import { AuthContextProvider } from './auth/AuthContextProvider';
+import { AppRoutes } from './app/AppRoutes';
+import { QueryProvider } from './app/QueryProvider';
 
 export default function App() {
   return (
-    <EditorContextProvider initialPlay={hornsPlay}>
-      <PlayView />
-    </EditorContextProvider>
+    <QueryProvider>
+      <AuthContextProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthContextProvider>
+    </QueryProvider>
   );
 }

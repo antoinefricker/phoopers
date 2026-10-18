@@ -1,6 +1,32 @@
 {
   "app": {
-    "language": "Langue"
+    "account": "Compte",
+    "language": "Langue",
+    "name": "phoopers",
+    "notConfigured": "Cette application n'est reliée à aucun projet Supabase : cet écran est indisponible.",
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "system": "Système"
+  },
+  "home": {
+    "mine": {
+      "description": "Les systèmes que vous avez enregistrés, publics ou privés.",
+      "open": "Ouvrir mes systèmes",
+      "signIn": "Connectez-vous pour voir vos systèmes",
+      "title": "Mes systèmes"
+    },
+    "new": {
+      "continue": "Reprendre le brouillon",
+      "description": "Dessinez un système sur un terrain vierge. Rien n'est enregistré tant que vous n'êtes pas connecté.",
+      "startOver": "Commencer un nouveau système",
+      "title": "Nouveau système"
+    },
+    "notConfigured": "Cette application n'est reliée à aucun projet Supabase : les systèmes publics et enregistrés sont indisponibles. Vous pouvez tout de même dessiner un système.",
+    "public": {
+      "description": "Parcourez les systèmes partagés par d'autres entraîneurs.",
+      "open": "Parcourir les systèmes publics",
+      "title": "Systèmes publics"
+    }
   },
   "play": {
     "branches": {

@@ -1,6 +1,32 @@
 {
   "app": {
-    "language": "Language"
+    "account": "Account",
+    "language": "Language",
+    "name": "phoopers",
+    "notConfigured": "This app is not configured with a Supabase project, so this screen is unavailable.",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "system": "System"
+  },
+  "home": {
+    "mine": {
+      "description": "The systems you have saved, public or private.",
+      "open": "Open my systems",
+      "signIn": "Sign in to see your systems",
+      "title": "My systems"
+    },
+    "new": {
+      "continue": "Continue the draft",
+      "description": "Draw a system from a blank court. Nothing is saved until you sign in.",
+      "startOver": "Start a new system",
+      "title": "New system"
+    },
+    "notConfigured": "This app is not configured with a Supabase project, so public and saved systems are unavailable. You can still draw a system.",
+    "public": {
+      "description": "Browse the systems other coaches have shared.",
+      "open": "Browse public systems",
+      "title": "Public systems"
+    }
   },
   "play": {
     "branches": {
