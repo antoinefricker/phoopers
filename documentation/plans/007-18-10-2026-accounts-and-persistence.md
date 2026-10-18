@@ -609,7 +609,7 @@ it('keeps the draft and says so when the save fails', async () => { … });
 - [ ] **Step 2: Update the Status paragraph in `AGENTS.md`** — 1d is complete; phase 2 (3D) is next and needs its own spec.
 
 - [ ] **Step 3: Rewrite the limitation**
-      [A system's name, court and duration are fixed](../limitations.md#a-systems-name-court-and-duration-are-fixed-once-it-is-created): the name is now editable; the court, extent and duration are not.
+      [A system's court, extent and duration are fixed](../limitations.md#a-systems-court-extent-and-duration-are-fixed-once-it-is-created): the name is now editable; the court, extent and duration are not.
 
 - [ ] **Step 4: Record the new limitations this lot knowingly leaves** — no automated test covers the RLS policies, the lists have a fixed ceiling and no pagination, two tabs holding one system overwrite each other, and the app is not deployed so a public address is shareable only on localhost. Each with what it costs and how it would be fixed.
 

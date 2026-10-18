@@ -46,7 +46,7 @@ French catalogue says « système ». Two terms join it:
   machinery here is what a later autosave would build on.)
 - Editing a system's court, extent or duration after creation. The **name** becomes
   editable in this lot; the rest stays as
-  [limitations.md](../limitations.md#a-systems-name-court-and-duration-are-fixed-once-it-is-created)
+  [limitations.md](../limitations.md#a-systems-court-extent-and-duration-are-fixed-once-it-is-created)
   records it.
 - A visual preview of a system in the lists. Deliberately deferred: drawing one costs the
   whole system document where the list needs only its metadata.

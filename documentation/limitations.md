@@ -380,26 +380,120 @@ measures 12.17:1 against the yellow bar. The hue stays, the perceivability comes
 and it is one place in `TimelineBar` covering both bars. The destructive control additionally
 wants something other than colour to mark it — a confirmation it already has, or a glyph weight.
 
-### A system's name, court and duration are fixed once it is created
+### A system's court, extent and duration are fixed once it is created
 
-The creation dialog is the only place any of them is written. Nothing in the editor renames a
-system, moves it from a full court to a half, or changes its eight-second floor, and the only
-way to get a different one is to create another system — which discards everything drawn, since
-`createPlay` replaces the whole play.
+The creation dialog is the only place any of them is written. The name is editable — from the
+save dialog and from the rename action in My systems — but nothing moves a system from a full
+court to a half, or changes its eight-second floor, and the only way to get a different one is
+to create another system, which discards everything drawn, since `createPlay` replaces the whole
+play.
 
 Measured on the shipped build: creating a half-court system, placing three against three and
 drawing one movement path, then deciding the set belongs on a full court, costs **every
 keyframe, step, screen and branch** of that system. There is no partial recovery and no undo.
 
-All three are plain fields on `Play` — `name`, `court` + `extent`, `duration` — so the model is
-already able to hold a change; only the controls are missing. It was left because
-[spec 005](specs/005-17-10-2026-system-creation.md#non-goals) names editing after creation a
-non-goal, and because persistence (part B of 1d) will want a rename control of its own.
+The court + `extent` and the `duration` are plain fields on `Play`, so the model is already able
+to hold a change; only the controls are missing. It was left because
+[spec 005](specs/005-17-10-2026-system-creation.md#non-goals) and
+[spec 006](specs/006-18-10-2026-accounts-and-persistence.md) both name editing them after
+creation a non-goal.
 
-**Fix:** three mutations that set the fields on the existing play, reached from the system menu
-— a rename inline in the header, and a court or duration change behind a small form. None of
-them touches `createPlay`; a court change additionally wants the existing keyframes clamped to
-the new bounds, which `clampToCourt` already computes.
+**Fix:** two mutations that set the fields on the existing play, reached from the system menu
+behind a small form. None of them touches `createPlay`; a court change additionally wants the
+existing keyframes clamped to the new bounds, which `clampToCourt` already computes.
+
+## Accounts and persistence
+
+### No automated test covers the Row Level Security policies
+
+The whole guarantee that a private system is unreadable by anyone but its owner rests on a
+reviewer reading `supabase/migrations/0001_plays_and_profiles.sql`. No test in the repository
+reaches a database: the plays API is tested against a mocked client, which proves the calls are
+well formed and says nothing about what Postgres lets through. A policy that is too loose, or
+dropped by a later migration, fails no build.
+
+It was left because a database test needs a Postgres with the migration applied, which CI does
+not have and the project has not yet decided how to provide.
+
+**Fix:** run the migrations against a local Supabase (the CLI's Docker stack) in CI and add tests
+that sign in as two users and an anonymous visitor, then assert who can select, update and
+delete a private and a public system.
+
+### The lists have a fixed ceiling and no pagination
+
+`LIST_LIMIT = 100` in `apps/pwa/src/plays/playsApi.ts` caps both My systems and the public
+library, newest first. Beyond the hundredth, systems simply do not appear, and nothing on screen
+says so: a coach with a hundred and one systems sees a hundred and cannot reach the oldest from
+the lists, and the library gives no hint that it is truncated.
+
+It was left because no one is near the ceiling yet, and pagination is a design decision (pages,
+infinite scroll, search) rather than a correction.
+
+**Fix:** cursor pagination on `updated_at` with a "Load more" control, using TanStack Query's
+infinite queries; at the same time, search, which the library will need first.
+
+### Two tabs holding the same system overwrite each other
+
+A save writes the whole document with no version check, so when the same system is open in two
+tabs, or on two devices, the last save wins silently and the other's changes are lost with no
+warning to either coach.
+
+It was left because the roadmap's v1 has one author per system and the check needs a column
+the schema does not have.
+
+**Fix:** a version (or compare against `updated_at`) sent with the update and matched in its
+`where` clause; a save that matches no row reports a conflict and offers to reload or to save
+a copy.
+
+### The app is not deployed
+
+A public system has its own address, `/play/:id`, but it exists only on `localhost`, so sharing
+a link to one does not work yet: nobody but the author's machine can open it.
+
+It was left because hosting is a later lot; the roadmap still lists it as ahead.
+
+**Fix:** host the front end (Vercel or Netlify, per the roadmap), set the Supabase Site URL and
+Redirect URLs to the deployed origin, and configure the host to serve `index.html` for every
+path so a shared address survives a reload.
+
+### Leaving a dirty draft is guarded only on the Open buttons
+
+The Open buttons in My systems and the library ask for confirmation before replacing a draft
+with unsaved changes. Nothing else does: a typed address, a shared link, a reload on another
+`/play/:id` or the browser's back button all replace the draft without the confirmation the
+guard promises elsewhere, and the unsaved work is gone.
+
+It was left because the guard sits in the click handlers; covering navigation as a whole means
+moving it into the router.
+
+**Fix:** a router-level blocker (React Router's `useBlocker`) plus a `beforeunload` handler for
+reloads and tab closes, both reading the same dirty flag the Open buttons use.
+
+### A failed save is announced only inside the system menu
+
+The alert for a failed save lives in the system menu's popover. A coach who closes the popover
+sees nothing but the unsaved mark, and no message says the save did not happen. This is also
+what a resumed overwrite looks like when it fails after signing in: the save is retried with
+nothing on screen announcing its outcome.
+
+It was left because a notification is a placement decision across the app, not just a save
+concern.
+
+**Fix:** report the failure with a Mantine notification, outside the popover, and keep the
+inline alert for the dialog that triggered it.
+
+### A system deleted elsewhere can still be open
+
+A resumed dirty draft skips the existence check that opening from the lists performs. If the
+system was deleted in another tab or device in the meantime, saving does not report it gone: it
+offers to store the draft again under the same id, so the coach's work is kept but the deletion
+is silently undone.
+
+It was left because the check costs a request on every resume, and keeping the work was judged
+the safer failure.
+
+**Fix:** check the row's existence when a resumed draft carries an id, and say so in the resume
+dialog when it is gone, offering to save it as a new system.
 
 ## Test coverage gaps
 
