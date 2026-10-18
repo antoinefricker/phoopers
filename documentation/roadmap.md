@@ -80,12 +80,14 @@ The parts this stack needed for 1a and 1b were validated in
 [spec 001](specs/001-09-10-2026-model-animation-engine.md) and
 [spec 002](specs/002-09-10-2026-2d-view-playback.md), and are in use: React 19,
 TypeScript, Vite, Mantine, SVG rendering, Vitest, GitHub Actions, Husky and
-lint-staged. The rest — TanStack Query, PWA packaging, Playwright, Supabase and
-hosting — is still a recommendation awaiting the phase that needs it.
+lint-staged. Phase 1d then brought in TanStack Query, React Router and Supabase
+([spec 006](specs/006-18-10-2026-accounts-and-persistence.md)), which are in use too. The rest —
+PWA packaging, Playwright and hosting — is still a recommendation awaiting the phase that needs
+it.
 
 ## Phasing (sub-projects)
 
-### Phase 1 — Data model, editor, 2D view (in progress)
+### Phase 1 — Data model, editor, 2D view (complete)
 
 Too large for one spec, so split into four sub-projects:
 
@@ -117,11 +119,13 @@ Which of these have shipped is recorded in the [spec](specs/index.md) and
 
 ## Next steps
 
-1. Finish **Phase 1** — the sub-project that validates the functional core before
-   investing in 3D and community features. 1a, 1b and 1c (the editor) are implemented;
-   1d (persistence) is next, and gets brainstorming, a spec and a plan before any code.
-2. Once Phase 1 is implemented and validated, scope **Phase 2** (3D view + cameras).
-3. Finally, scope **Phase 3** (community features).
+1. **Phase 1** is complete: 1a, 1b, 1c and 1d (system creation, accounts and persistence) are
+   implemented.
+2. Scope **Phase 2** (3D view + cameras) next: it gets brainstorming, a spec and a plan before
+   any code.
+3. Finally, scope **Phase 3** (community features). Accounts, saved systems and a public
+   library already exist from 1d, so what remains there is search/tags, moderation and the
+   rest of the list above.
 
 ## Verification
 

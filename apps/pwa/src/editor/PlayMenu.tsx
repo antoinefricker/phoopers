@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { ActionIcon, Button, Divider, Popover, Stack, Tooltip } from '@mantine/core';
+import { ActionIcon, Alert, Box, Button, Divider, Popover, Stack, Tooltip } from '@mantine/core';
 import { IconMenu2 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { CreatePlayDialog } from './CreatePlayDialog';
+import { SavePlayDialog } from './SavePlayDialog';
 import { useEditorContext } from './useEditorContext';
+import { useSaveSystem } from './useSaveSystem';
 
 /**
  * What a coach does to a system as a whole, rather than to what is on the court.
@@ -21,6 +23,7 @@ export function PlayMenu() {
   const { t } = useTranslation();
   const { mode, setMode } = useEditorContext();
   const [opened, setOpened] = useState(false);
+  const saving = useSaveSystem();
   // The dialog stays mounted so Mantine's transitions survive, and its `key` changes on each
   // open so its fields reset on a fresh instance rather than through an effect.
   const [creating, setCreating] = useState({ opened: false, count: 0 });
@@ -67,17 +70,50 @@ export function PlayMenu() {
             >
               {t('play.menu.create', 'Create a new system')}
             </Button>
-            <Tooltip label={t('play.menu.saveSoon', 'Saving arrives with persistence')}>
+            <Tooltip
+              label={t('play.save.unavailable', 'Saving needs an account, which this app is not set up for')}
+              disabled={!saving.disabled}
+            >
               {/* Mantine needs the disabled control wrapped for the tooltip to receive events. */}
               <span>
-                <Button variant="subtle" color="gray" fullWidth justify="flex-start" disabled>
+                <Button
+                  variant="subtle"
+                  color="gray"
+                  fullWidth
+                  justify="flex-start"
+                  disabled={saving.disabled}
+                  loading={saving.busy}
+                  onClick={() => {
+                    // An overwrite has no dialog to report in, so the menu stays open to say how it went.
+                    if (saving.start()) setOpened(false);
+                  }}
+                  rightSection={
+                    saving.isDirty ? (
+                      <Box
+                        component="span"
+                        role="img"
+                        aria-label={t('play.save.unsaved', 'Unsaved changes')}
+                        w={8}
+                        h={8}
+                        bg="orange"
+                        style={{ borderRadius: '50%' }}
+                      />
+                    ) : null
+                  }
+                >
                   {t('play.menu.save', 'Save')}
                 </Button>
               </span>
             </Tooltip>
+            {saving.overwriteFailed && (
+              <Alert color="red" p="xs">
+                {t('play.save.error', 'The system could not be saved. Your work is kept here; try again.')}
+              </Alert>
+            )}
           </Stack>
         </Popover.Dropdown>
       </Popover>
+      <SavePlayDialog key={saving.dialogKey} {...saving.dialogProps} />
       <CreatePlayDialog
         key={creating.count}
         opened={creating.opened}

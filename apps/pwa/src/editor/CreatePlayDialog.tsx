@@ -9,6 +9,8 @@ import { useEditorContext } from './useEditorContext';
 interface Props {
   opened: boolean;
   onClose: () => void;
+  /** Hides the warning about discarding the open system, for callers where none is open. */
+  hideDiscardWarning?: boolean;
 }
 
 /**
@@ -29,7 +31,7 @@ const COURTS: Record<string, { court: Play['court']; extent: CourtExtent }> = {
  * It is also the confirmation for discarding whatever is open — opening this and submitting it
  * is a deliberate enough act that a second dialog in front of it would only be in the way.
  */
-export function CreatePlayDialog({ opened, onClose }: Props) {
+export function CreatePlayDialog({ opened, onClose, hideDiscardWarning = false }: Props) {
   const { t } = useTranslation();
   const { createPlay } = useEditorContext();
   const [name, setName] = useState('');
@@ -72,10 +74,12 @@ export function CreatePlayDialog({ opened, onClose }: Props) {
             <Radio value="threeOnThree" label={t('play.create.lineupThree', '3 on 3')} />
           </Stack>
         </Radio.Group>
-        {/* The app always has a system open, so this is unconditional rather than guarded. */}
-        <Alert color="yellow" icon={<IconAlertTriangle size={18} stroke={1.5} />}>
-          {t('play.create.discard', 'The system you have open, and all its variants, will be discarded.')}
-        </Alert>
+        {/* The editor always has a system open; the home screen has none, and says so by hiding this. */}
+        {!hideDiscardWarning && (
+          <Alert color="yellow" icon={<IconAlertTriangle size={18} stroke={1.5} />}>
+            {t('play.create.discard', 'The system you have open, and all its variants, will be discarded.')}
+          </Alert>
+        )}
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose}>
             {t('play.create.cancel', 'Cancel')}

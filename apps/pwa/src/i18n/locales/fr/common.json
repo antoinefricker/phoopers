@@ -1,6 +1,96 @@
 {
   "app": {
-    "language": "Langue"
+    "account": "Compte",
+    "language": "Langue",
+    "name": "phoopers",
+    "notConfigured": "Cette application n'est reliée à aucun projet Supabase : cet écran est indisponible.",
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter"
+  },
+  "auth": {
+    "callback": {
+      "error": "Votre compte n'a pas pu être chargé.",
+      "retry": "Réessayer"
+    },
+    "displayName": {
+      "change": "Changer mon nom d'affichage",
+      "confirm": "Continuer",
+      "error": "Le nom n'a pas pu être enregistré. Réessayez.",
+      "hint": "C'est le nom affiché sur les systèmes publics. Vous pourrez le changer plus tard.",
+      "label": "Nom d'affichage",
+      "title": "Comment doit-on vous appeler ?"
+    },
+    "signIn": {
+      "error": "La connexion a échoué. Réessayez dans un instant.",
+      "google": "Continuer avec Google",
+      "purpose": "Pour enregistrer vos systèmes et les retrouver partout",
+      "reassurance": "Aucun mot de passe à retenir, et rien n'est publié sans votre accord."
+    }
+  },
+  "draft": {
+    "leave": {
+      "body": "L'ouverture d'un autre système remplace {{name}}, et ses modifications non enregistrées seront perdues.",
+      "confirm": "Ouvrir quand même",
+      "stay": "Continuer à modifier",
+      "title": "Quitter vos modifications non enregistrées ?"
+    }
+  },
+  "home": {
+    "mine": {
+      "description": "Les systèmes que vous avez enregistrés, publics ou privés.",
+      "open": "Ouvrir mes systèmes",
+      "signIn": "Connectez-vous pour voir vos systèmes",
+      "title": "Mes systèmes"
+    },
+    "new": {
+      "description": "Dessinez un système sur un terrain vierge. Rien n'est enregistré tant que vous n'êtes pas connecté.",
+      "title": "Nouveau système"
+    },
+    "notConfigured": "Cette application n'est reliée à aucun projet Supabase : les systèmes publics et enregistrés sont indisponibles. Vous pouvez tout de même dessiner un système.",
+    "public": {
+      "description": "Parcourez les systèmes partagés par d'autres entraîneurs.",
+      "open": "Parcourir les systèmes publics",
+      "title": "Systèmes publics"
+    },
+    "resume": {
+      "body": "Vous travailliez sur <b>{{name}}</b>. Reprenez-le, ou commencez un nouveau système et abandonnez celui-ci ?",
+      "resume": "Reprendre",
+      "startNew": "En commencer un nouveau",
+      "title": "Un système est en cours"
+    }
+  },
+  "library": {
+    "empty": "Aucun système n’a encore été rendu public.",
+    "error": "Une erreur s’est produite. Veuillez réessayer.",
+    "noMatch": "Aucun système ne correspond à cette recherche.",
+    "search": "Rechercher parmi les systèmes publics"
+  },
+  "mine": {
+    "actions": {
+      "delete": "Supprimer",
+      "duplicate": "Dupliquer",
+      "makePrivate": "Rendre privé",
+      "makePublic": "Rendre public",
+      "rename": "Renommer"
+    },
+    "copyName": "{{name}} (copie)",
+    "delete": {
+      "body": "Supprimer {{name}} ? Cette action est irréversible.",
+      "confirm": "Supprimer",
+      "title": "Supprimer le système"
+    },
+    "empty": "Vous n'avez encore enregistré aucun système.",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "moreActions": "Autres actions pour {{name}}",
+    "new": "Nouveau",
+    "noMatch": "Aucun système ne correspond à cette recherche.",
+    "rename": {
+      "confirm": "Renommer",
+      "name": "Nom",
+      "title": "Renommer le système"
+    },
+    "search": "Rechercher dans mes systèmes",
+    "signedOut": "Connectez-vous pour voir les systèmes que vous avez enregistrés."
   },
   "play": {
     "branches": {
@@ -92,13 +182,36 @@
       "stepName": "Nom de l'étape",
       "variantName": "Nom de la variante"
     },
+    "loadError": "Une erreur s'est produite. Veuillez réessayer.",
+    "loading": "Chargement du système",
     "menu": {
       "create": "Créer un nouveau système",
       "editMode": "Mode édition",
       "label": "Menu du système",
       "playMode": "Mode lecture",
-      "save": "Enregistrer",
-      "saveSoon": "L'enregistrement arrivera avec la persistance"
+      "save": "Enregistrer"
+    },
+    "missing": {
+      "body": "Ce système n'existe pas ou est privé.",
+      "home": "Retour à l'accueil",
+      "invite": "S'il est à vous, connectez-vous pour l'ouvrir.",
+      "title": "Aucun système à cette adresse"
+    },
+    "save": {
+      "anotherCoach": "un autre entraîneur",
+      "cancel": "Annuler",
+      "copyNotice": "Ce système appartient à {{author}}. L'enregistrer en créera une copie qui sera la vôtre.",
+      "copyTitle": "Enregistrer une copie",
+      "error": "Le système n'a pas pu être enregistré. Votre travail est conservé ici ; réessayez.",
+      "name": "Nom",
+      "private": "Privé : vous seul pouvez le voir",
+      "public": "Public : visible de tous dans la bibliothèque",
+      "restoreNotice": "Ce système n'existe plus dans votre compte. L'enregistrer le stockera à nouveau.",
+      "submit": "Enregistrer",
+      "title": "Enregistrer le système",
+      "unavailable": "L'enregistrement nécessite un compte, que cette application n'a pas configuré",
+      "unsaved": "Modifications non enregistrées",
+      "visibility": "Qui peut le voir"
     },
     "timeline": {
       "pass": "Passe",
@@ -111,6 +224,26 @@
       "play": "Lecture",
       "previousStep": "Étape précédente",
       "scrubber": "Position de lecture"
+    }
+  },
+  "plays": {
+    "card": {
+      "badge": {
+        "private": "Privé",
+        "public": "Public"
+      },
+      "by": "Par {{name}}",
+      "court": {
+        "fiba": "FIBA",
+        "nba": "NBA"
+      },
+      "extent": {
+        "full": "terrain entier",
+        "half": "demi-terrain"
+      },
+      "open": "Ouvrir {{name}}",
+      "openLabel": "Ouvrir",
+      "updated": "Modifié le {{date}}"
     }
   }
 }

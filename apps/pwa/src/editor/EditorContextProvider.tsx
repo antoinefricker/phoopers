@@ -39,6 +39,11 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
     setMode(next);
     setPlacingScreen(false);
   }, []);
+  const renamePlay = useCallback<EditorContextValue['renamePlay']>((name) => {
+    const trimmed = name.trim();
+    if (trimmed === '') return;
+    setPlay((current) => (current.name === trimmed ? current : { ...current, name: trimmed }));
+  }, []);
   const addPlayer = useCallback<EditorContextValue['addPlayer']>((team) => {
     setPlay((current) => mutations.addPlayer(current, team, newId<PlayerId>()));
   }, []);
@@ -139,6 +144,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       placingScreen,
       setPlacingScreen,
       issues,
+      renamePlay,
       addPlayer,
       removePlayer,
       renamePlayer,
@@ -168,6 +174,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       select,
       placingScreen,
       issues,
+      renamePlay,
       addPlayer,
       removePlayer,
       renamePlayer,

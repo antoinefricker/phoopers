@@ -1,6 +1,96 @@
 {
   "app": {
-    "language": "Language"
+    "account": "Account",
+    "language": "Language",
+    "name": "phoopers",
+    "notConfigured": "This app is not configured with a Supabase project, so this screen is unavailable.",
+    "signIn": "Sign in",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "callback": {
+      "error": "Your account could not be loaded.",
+      "retry": "Try again"
+    },
+    "displayName": {
+      "change": "Change my display name",
+      "confirm": "Continue",
+      "error": "The name could not be saved. Try again.",
+      "hint": "This is the name shown on public systems. You can change it later.",
+      "label": "Display name",
+      "title": "What should we call you?"
+    },
+    "signIn": {
+      "error": "Signing in failed. Try again in a moment.",
+      "google": "Continue with Google",
+      "purpose": "To save your systems and find them again anywhere",
+      "reassurance": "No password to remember, and nothing is published without your consent."
+    }
+  },
+  "draft": {
+    "leave": {
+      "body": "Opening another system replaces {{name}}, and its unsaved changes will be lost.",
+      "confirm": "Open anyway",
+      "stay": "Keep editing",
+      "title": "Leave your unsaved changes?"
+    }
+  },
+  "home": {
+    "mine": {
+      "description": "The systems you have saved, public or private.",
+      "open": "Open my systems",
+      "signIn": "Sign in to see your systems",
+      "title": "My systems"
+    },
+    "new": {
+      "description": "Draw a system from a blank court. Nothing is saved until you sign in.",
+      "title": "New system"
+    },
+    "notConfigured": "This app is not configured with a Supabase project, so public and saved systems are unavailable. You can still draw a system.",
+    "public": {
+      "description": "Browse the systems other coaches have shared.",
+      "open": "Browse public systems",
+      "title": "Public systems"
+    },
+    "resume": {
+      "body": "You were working on <b>{{name}}</b>. Resume it, or start a new system and discard it?",
+      "resume": "Resume",
+      "startNew": "Start a new one",
+      "title": "A system is in progress"
+    }
+  },
+  "library": {
+    "empty": "No system has been made public yet.",
+    "error": "Something went wrong. Please try again.",
+    "noMatch": "No system matches this search.",
+    "search": "Search public systems"
+  },
+  "mine": {
+    "actions": {
+      "delete": "Delete",
+      "duplicate": "Duplicate",
+      "makePrivate": "Make private",
+      "makePublic": "Make public",
+      "rename": "Rename"
+    },
+    "copyName": "{{name}} (copy)",
+    "delete": {
+      "body": "Delete {{name}}? This cannot be undone.",
+      "confirm": "Delete",
+      "title": "Delete system"
+    },
+    "empty": "You have not saved any system yet.",
+    "error": "Something went wrong. Please try again.",
+    "moreActions": "More actions for {{name}}",
+    "new": "New",
+    "noMatch": "No system matches this search.",
+    "rename": {
+      "confirm": "Rename",
+      "name": "Name",
+      "title": "Rename system"
+    },
+    "search": "Search my systems",
+    "signedOut": "Sign in to see the systems you have saved."
   },
   "play": {
     "branches": {
@@ -88,13 +178,36 @@
       "stepName": "Step name",
       "variantName": "Variant name"
     },
+    "loadError": "Something went wrong. Please try again.",
+    "loading": "Loading the system",
     "menu": {
       "create": "Create a new system",
       "editMode": "Edit mode",
       "label": "System menu",
       "playMode": "Play mode",
-      "save": "Save",
-      "saveSoon": "Saving arrives with persistence"
+      "save": "Save"
+    },
+    "missing": {
+      "body": "This system either does not exist or is private.",
+      "home": "Back to home",
+      "invite": "If it is yours, sign in to open it.",
+      "title": "No system at this address"
+    },
+    "save": {
+      "anotherCoach": "another coach",
+      "cancel": "Cancel",
+      "copyNotice": "This system belongs to {{author}}. Saving it will make a copy that is yours.",
+      "copyTitle": "Save a copy",
+      "error": "The system could not be saved. Your work is kept here; try again.",
+      "name": "Name",
+      "private": "Private: only you can see it",
+      "public": "Public: visible to everyone in the library",
+      "restoreNotice": "This system no longer exists in your account. Saving will store it again.",
+      "submit": "Save",
+      "title": "Save the system",
+      "unavailable": "Saving needs an account, which this app is not set up for",
+      "unsaved": "Unsaved changes",
+      "visibility": "Who can see it"
     },
     "timeline": {
       "pass": "Pass",
@@ -107,6 +220,26 @@
       "play": "Play",
       "previousStep": "Previous step",
       "scrubber": "Playback position"
+    }
+  },
+  "plays": {
+    "card": {
+      "badge": {
+        "private": "Private",
+        "public": "Public"
+      },
+      "by": "By {{name}}",
+      "court": {
+        "fiba": "FIBA",
+        "nba": "NBA"
+      },
+      "extent": {
+        "full": "full court",
+        "half": "half court"
+      },
+      "open": "Open {{name}}",
+      "openLabel": "Open",
+      "updated": "Updated {{date}}"
     }
   }
 }
