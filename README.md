@@ -34,7 +34,9 @@ Then start the dev server:
 make dev
 ```
 
-The app is served at http://localhost:5173.
+The app is served at http://localhost:5173. `make stop` stops it again — by port, so it
+also reaches a server another checkout or worktree left running, which is the usual reason
+the page in the browser is not the code you are editing.
 
 ## Make commands
 
@@ -46,6 +48,7 @@ the matching pnpm script, so nothing is duplicated. `make` on its own prints the
 | `make help`         | Print every target with its description (the default)     |
 | `make install`      | Install every workspace dependency from the lockfile      |
 | `make dev`          | Start the PWA dev server on http://localhost:5173         |
+| `make stop`         | Stop whatever is serving http://localhost:5173            |
 | `make build`        | Production build of every workspace                       |
 | `make preview`      | Serve the PWA production build locally                    |
 | `make lint`         | ESLint across the repo, then `prettier --check`           |

@@ -7,10 +7,11 @@
 
 PNPM := pnpm
 PWA := $(PNPM) --filter @phoopers/pwa
+DEV_PORT := 5173
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install dev build preview lint lint-fix format format-check typecheck test test-watch i18n-check i18n-extract ci clean
+.PHONY: help install dev stop build preview lint lint-fix format format-check typecheck test test-watch i18n-check i18n-extract ci clean
 
 ##@ General
 
@@ -29,6 +30,18 @@ install: ## Install every workspace dependency from the lockfile
 
 dev: ## Start the PWA dev server on http://localhost:5173
 	$(PWA) dev
+
+# The one target that wraps no pnpm script: stopping a server is a thing you do to a
+# process, not to a workspace. It kills by PORT rather than by checkout, so it also
+# reaches a server a worktree or another clone left listening — which is the usual
+# reason the page in the browser is not the code you are editing.
+stop: ## Stop whatever is serving http://localhost:5173
+	@pids=$$(lsof -ti tcp:$(DEV_PORT) 2>/dev/null); \
+	if [ -z "$$pids" ]; then \
+		echo "Nothing is listening on port $(DEV_PORT)."; \
+	else \
+		kill $$pids && echo "Stopped $$(echo $$pids | wc -w | tr -d ' ') process(es) on port $(DEV_PORT)."; \
+	fi
 
 build: ## Production build of every workspace
 	$(PNPM) build
