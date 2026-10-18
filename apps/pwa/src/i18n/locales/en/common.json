@@ -32,6 +32,33 @@
       "title": "A system is in progress"
     }
   },
+  "mine": {
+    "actions": {
+      "delete": "Delete",
+      "duplicate": "Duplicate",
+      "makePrivate": "Make private",
+      "makePublic": "Make public",
+      "rename": "Rename"
+    },
+    "copyName": "{{name}} (copy)",
+    "delete": {
+      "body": "Delete {{name}}? This cannot be undone.",
+      "confirm": "Delete",
+      "title": "Delete system"
+    },
+    "empty": "You have not saved any system yet.",
+    "error": "Something went wrong. Please try again.",
+    "moreActions": "More actions for {{name}}",
+    "new": "New",
+    "noMatch": "No system matches this search.",
+    "rename": {
+      "confirm": "Rename",
+      "name": "Name",
+      "title": "Rename system"
+    },
+    "search": "Search my systems",
+    "signedOut": "Sign in to see the systems you have saved."
+  },
   "play": {
     "branches": {
       "label": "Play branches",
@@ -137,6 +164,26 @@
       "play": "Play",
       "previousStep": "Previous step",
       "scrubber": "Playback position"
+    }
+  },
+  "plays": {
+    "card": {
+      "badge": {
+        "private": "Private",
+        "public": "Public"
+      },
+      "by": "By {{name}}",
+      "court": {
+        "fiba": "FIBA",
+        "nba": "NBA"
+      },
+      "extent": {
+        "full": "full court",
+        "half": "half court"
+      },
+      "open": "Open {{name}}",
+      "openLabel": "Open",
+      "updated": "Updated {{date}}"
     }
   }
 }

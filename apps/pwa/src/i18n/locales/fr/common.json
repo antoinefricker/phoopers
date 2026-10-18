@@ -32,6 +32,33 @@
       "title": "Un système est en cours"
     }
   },
+  "mine": {
+    "actions": {
+      "delete": "Supprimer",
+      "duplicate": "Dupliquer",
+      "makePrivate": "Rendre privé",
+      "makePublic": "Rendre public",
+      "rename": "Renommer"
+    },
+    "copyName": "{{name}} (copie)",
+    "delete": {
+      "body": "Supprimer {{name}} ? Cette action est irréversible.",
+      "confirm": "Supprimer",
+      "title": "Supprimer le système"
+    },
+    "empty": "Vous n'avez encore enregistré aucun système.",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "moreActions": "Autres actions pour {{name}}",
+    "new": "Nouveau",
+    "noMatch": "Aucun système ne correspond à cette recherche.",
+    "rename": {
+      "confirm": "Renommer",
+      "name": "Nom",
+      "title": "Renommer le système"
+    },
+    "search": "Rechercher dans mes systèmes",
+    "signedOut": "Connectez-vous pour voir les systèmes que vous avez enregistrés."
+  },
   "play": {
     "branches": {
       "label": "Variantes du système",
@@ -141,6 +168,26 @@
       "play": "Lecture",
       "previousStep": "Étape précédente",
       "scrubber": "Position de lecture"
+    }
+  },
+  "plays": {
+    "card": {
+      "badge": {
+        "private": "Privé",
+        "public": "Public"
+      },
+      "by": "Par {{name}}",
+      "court": {
+        "fiba": "FIBA",
+        "nba": "NBA"
+      },
+      "extent": {
+        "full": "terrain entier",
+        "half": "demi-terrain"
+      },
+      "open": "Ouvrir {{name}}",
+      "openLabel": "Ouvrir",
+      "updated": "Modifié le {{date}}"
     }
   }
 }
