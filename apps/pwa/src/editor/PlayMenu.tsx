@@ -113,9 +113,11 @@ export function PlayMenu() {
           </Stack>
         </Popover.Dropdown>
       </Popover>
-      <SavePlayDialog key={saving.dialogKey} {...saving.dialogProps} />
+      {/* Prefixed per dialog, not the bare counter: both counters start at 0, so two siblings
+          carried the key `0` and React warned about it on every render of the editor. */}
+      <SavePlayDialog key={`save-${saving.dialogKey}`} {...saving.dialogProps} />
       <CreatePlayDialog
-        key={creating.count}
+        key={`create-${creating.count}`}
         opened={creating.opened}
         onClose={() => setCreating((c) => ({ ...c, opened: false }))}
       />
