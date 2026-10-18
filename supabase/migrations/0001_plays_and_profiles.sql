@@ -8,7 +8,7 @@ create table public.profiles (
 
 create table public.plays (
   id uuid primary key,
-  owner_id uuid not null references auth.users on delete cascade,
+  owner_id uuid not null references public.profiles (id) on delete cascade,
   name text not null,
   court text not null,
   extent text not null,
