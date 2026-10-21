@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MantineProvider } from '@mantine/core';
 import App from './App';
-import { theme } from './theme';
+import { cssVariablesResolver, theme } from './theme';
 import './i18n/i18n';
 import '@mantine/core/styles.css';
 // 400, 600 and 700 are the weights the rendered pages actually compute — measured in a
@@ -22,7 +22,7 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
       <App />
     </MantineProvider>
   </StrictMode>,
