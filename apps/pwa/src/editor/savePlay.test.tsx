@@ -239,7 +239,9 @@ describe('saving a system', () => {
 
     await waitFor(() => expect(playsApi.updatePlay).toHaveBeenCalledWith(fixturePlay));
     expect(playsApi.updatePlay).toHaveBeenCalledTimes(1);
-    expect(where()).toBe(`/play/${fixturePlay.id}`);
+    // Awaited, not read straight after the write: dropping `?save=1` is a router state update,
+    // so the two land in separate renders and asserting it synchronously was a race.
+    await waitFor(() => expect(where()).toBe(`/play/${fixturePlay.id}`));
   });
 
   it('mints a copy id once per dialog, so a retry cannot make a second copy', async () => {

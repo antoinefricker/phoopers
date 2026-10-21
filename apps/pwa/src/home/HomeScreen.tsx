@@ -56,17 +56,20 @@ export function HomeScreen() {
     openCreating();
   };
 
+  // The notice is untrue once the coach is signed in, so it is a sentence of its own rather than
+  // part of the description.
+  const newDescription = [
+    t('home.new.description', 'Draw a system from a blank court.'),
+    status === 'signedIn' ? null : t('home.new.signInNotice', 'Nothing is saved until you sign in.'),
+  ]
+    .filter((sentence) => sentence !== null)
+    .join(' ');
+
   return (
     <Container size="lg" py="xl">
       <Stack gap="lg">
         <SimpleGrid cols={{ base: 1, md: 3 }}>
-          <Door
-            title={t('home.new.title', 'New system')}
-            description={t(
-              'home.new.description',
-              'Draw a system from a blank court. Nothing is saved until you sign in.',
-            )}
-          >
+          <Door title={t('home.new.title', 'New system')} description={newDescription}>
             <Button variant="light" onClick={startSystem}>
               {t('home.new.title', 'New system')}
             </Button>

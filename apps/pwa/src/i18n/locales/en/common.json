@@ -43,7 +43,8 @@
       "title": "My systems"
     },
     "new": {
-      "description": "Draw a system from a blank court. Nothing is saved until you sign in.",
+      "description": "Draw a system from a blank court.",
+      "signInNotice": "Nothing is saved until you sign in.",
       "title": "New system"
     },
     "notConfigured": "This app is not configured with a Supabase project, so public and saved systems are unavailable. You can still draw a system.",
