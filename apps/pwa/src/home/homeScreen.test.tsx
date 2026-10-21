@@ -41,6 +41,17 @@ describe('HomeScreen', () => {
     );
   });
 
+  it('warns that nothing is saved when nobody is signed in', () => {
+    renderHome();
+    expect(screen.getByText(/Nothing is saved until you sign in/)).toBeInTheDocument();
+  });
+
+  it('drops the warning once the coach is signed in', () => {
+    renderHome(auth({ status: 'signedIn', userId: 'u' }));
+    expect(screen.queryByText(/Nothing is saved/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Draw a system from a blank court/)).toBeInTheDocument();
+  });
+
   it('invites signing in on My systems when nobody is signed in', () => {
     renderHome();
     expect(screen.getByRole('link', { name: 'Sign in to see your systems' })).toHaveAttribute(

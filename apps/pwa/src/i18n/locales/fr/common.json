@@ -43,7 +43,8 @@
       "title": "Mes systèmes"
     },
     "new": {
-      "description": "Dessinez un système sur un terrain vierge. Rien n'est enregistré tant que vous n'êtes pas connecté.",
+      "description": "Dessinez un système sur un terrain vierge.",
+      "signInNotice": "Rien n'est enregistré tant que vous n'êtes pas connecté.",
       "title": "Nouveau système"
     },
     "notConfigured": "Cette application n'est reliée à aucun projet Supabase : les systèmes publics et enregistrés sont indisponibles. Vous pouvez tout de même dessiner un système.",
