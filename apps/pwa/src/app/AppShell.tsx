@@ -17,9 +17,9 @@ function AccountControl() {
   if (!configured || status === 'loading') return null;
   if (status === 'signedOut') {
     return (
-      <Anchor component={Link} to="/signin">
+      <Button component={Link} to="/signin" variant="light">
         {t('app.signIn', 'Sign in')}
-      </Anchor>
+      </Button>
     );
   }
   return (
