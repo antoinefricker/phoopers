@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Anchor, Button, Group, Menu, Title } from '@mantine/core';
+import { Anchor, Button, Group, Image, Menu, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet } from 'react-router';
+import wordmark from '../assets/phoopers.png';
 import { DisplayNameDialog } from '../auth/DisplayNameDialog';
 import { useAuthContext } from '../auth/useAuthContext';
 import { useProfile } from '../auth/useProfile';
@@ -53,8 +54,12 @@ export function AppShell() {
     <>
       <Group component="header" justify="space-between" p="md">
         <Anchor component={Link} to="/" underline="never" c="inherit">
-          <Title order={1} size="h2">
-            {t('app.name', 'phoopers')}
+          {/* The wordmark replaces the name but not the heading: the `h1` keeps the document
+              outline, and the alt text is the very string it used to render, so a screen reader
+              and the accessible name of this link are unchanged. `lh={0}` stops the heading's
+              line box adding space under an image that has none of its own. */}
+          <Title order={1} size="h2" lh={0}>
+            <Image src={wordmark} alt={t('app.name', 'phoopers')} h={32} w="auto" />
           </Title>
         </Anchor>
         <Group gap="md">
