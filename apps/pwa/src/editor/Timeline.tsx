@@ -4,23 +4,29 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useEffect, useRef } from 'react';
-import type { ComponentProps, KeyboardEvent } from 'react';
+import type { ComponentProps, KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PlayerId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
+import { snapToGrid } from '../play2d/transportMath';
 import { StepRuler } from './StepRuler';
 import { entityName } from './entityName';
 import { forkTimeOf } from './mutations';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
-import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX, fractionOf, rowsOf } from './timelineGeometry';
+import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX, fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { DRAG_SLOP_PX } from './useTimeDrag';
 
 export function Timeline() {
   const { t } = useTranslation();
   const { play, selection, select, removeKeyframe, movePlayer } = useEditorContext();
-  const { timeline, branchId, currentTimeRef, subscribe, seek } = usePlaybackContext();
+  const { timeline, branchId, currentTimeRef, subscribe, seek, pause } = usePlaybackContext();
   const playheadRef = useRef<HTMLDivElement>(null);
+  // The overlay the playhead lives on IS the time axis: it is already inset to where t=0 and
+  // t=duration fall, so measuring it needs no arithmetic of its own. It takes no pointer events,
+  // which does not stop it being measured.
+  const axisRef = useRef<HTMLDivElement>(null);
+  const scrubbing = useRef(false);
   const { duration } = timeline;
   const forkTime = forkTimeOf(play, branchId);
 
@@ -37,6 +43,51 @@ export function Timeline() {
 
     return subscribe(place);
   }, [currentTimeRef, subscribe, duration]);
+
+  /**
+   * Anywhere on the tracks or the ruler moves the playhead, and holding the button scrubs.
+   *
+   * It reaches only the empty parts of the timeline by construction rather than by a list of
+   * exceptions: every gesture in here — a bar, a handle, a marker — is bound through
+   * `useTimeDrag`, whose `onPointerDown` stops propagation precisely so an ancestor cannot act
+   * on an event it has taken. The guard below is for the controls that are not gestures at all:
+   * the row menu, a remove button, a rename field.
+   */
+  const scrubTo = (clientX: number, rect: DOMRect) => {
+    // The grid, as the scrubber does: a step, a screen or a keyframe created here takes the time
+    // the playhead reads, and a continuous one would put them between two cells.
+    seek(snapToGrid(timeFromClientX(clientX, rect, duration)));
+  };
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    if ((event.target as HTMLElement).closest('button, a, input, textarea, select') !== null) return;
+    const rect = axisRef.current?.getBoundingClientRect();
+    // Outside the axis is the label column, whose width belongs to the names and not to time.
+    // A press there is left alone rather than clamped to t=0.
+    if (rect === undefined || event.clientX < rect.left || event.clientX > rect.right) return;
+
+    scrubbing.current = true;
+    // Captured so the gesture survives the pointer leaving the panel, as a scrubber's does.
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    // Once, on the press: a manual move stops playback, which is the transport's rule too.
+    pause();
+    scrubTo(event.clientX, rect);
+  };
+
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!scrubbing.current) return;
+    const rect = axisRef.current?.getBoundingClientRect();
+    // Clamped from here on, unlike the press: dragging past either end of the axis holds the
+    // playhead at that end, which `timeFromClientX` already does.
+    if (rect !== undefined) scrubTo(event.clientX, rect);
+  };
+
+  const endScrub = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!scrubbing.current) return;
+    scrubbing.current = false;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Delete' && selection?.kind === 'keyframe') {
@@ -114,7 +165,15 @@ export function Timeline() {
       {/* Keys arrive from the focused marker button and bubble up to here. */}
       {/* Same reason as the court: dragging a marker must not highlight the row labels or a
           step name. Inputs below re-enable selection for the text they actually edit. */}
-      <Box data-testid="timeline-surface" style={{ position: 'relative', userSelect: 'none' }} onKeyDown={onKeyDown}>
+      <Box
+        data-testid="timeline-surface"
+        style={{ position: 'relative', userSelect: 'none' }}
+        onKeyDown={onKeyDown}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endScrub}
+        onPointerCancel={endScrub}
+      >
         {/* Positioned, and above the grid `PlayView` draws behind this whole region: the rows
             and the ruler have no background of their own, so without a layer of their own the
             grid paints over their markers. The playhead's layer sits above both. */}
@@ -157,6 +216,8 @@ export function Timeline() {
         {/* Matches the tracks' inset on both sides, so the playhead and the mask stay aligned
             with the markers rather than drifting by the inset at the far end. */}
         <Box
+          ref={axisRef}
+          data-testid="timeline-axis"
           style={{
             position: 'absolute',
             top: 0,
