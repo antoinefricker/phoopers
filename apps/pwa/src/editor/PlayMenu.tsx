@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActionIcon, Alert, Box, Button, Divider, Popover, Stack, Tooltip } from '@mantine/core';
+import { ActionIcon, Alert, Box, Button, Divider, Popover, Stack, Text, Tooltip } from '@mantine/core';
 import { IconMenu2 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { CreatePlayDialog } from './CreatePlayDialog';
@@ -21,7 +21,7 @@ import { useSaveSystem } from './useSaveSystem';
  */
 export function PlayMenu() {
   const { t } = useTranslation();
-  const { mode, setMode } = useEditorContext();
+  const { play, mode, setMode } = useEditorContext();
   const [opened, setOpened] = useState(false);
   const saving = useSaveSystem();
   // The dialog stays mounted so Mantine's transitions survive, and its `key` changes on each
@@ -48,6 +48,14 @@ export function PlayMenu() {
         </Popover.Target>
         <Popover.Dropdown>
           <Stack gap="xs">
+            {/* The system's name, only where the header has had to drop it. Plain text and not a
+                heading: the header's own `h2` stays in the DOM when CSS hides it, and a second
+                element carrying the same name would make "the heading named X" ambiguous to a
+                screen reader and to a test alike. */}
+            <Text fw={600} hiddenFrom="sm" style={{ overflowWrap: 'anywhere' }}>
+              {play.name}
+            </Text>
+            <Divider hiddenFrom="sm" />
             {/* One entry, never two: the mode you are not in is the only one worth offering, and
               a pair would ask the coach to read which of them is already true. No glyph — an eye
               and a pencil said no more than the words beside them. */}

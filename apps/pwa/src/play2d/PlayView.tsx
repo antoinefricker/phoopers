@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ActionIcon, Box, Group, Paper, Popover, ScrollArea, Stack, Title } from '@mantine/core';
+import { ActionIcon, Box, Paper, Popover, ScrollArea, Stack, Title } from '@mantine/core';
 import { IconGitBranch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
+import { AppHeader } from '../app/AppHeader';
 import { SelectionActions } from '../editor/SelectionActions';
 import { IssuePanel } from '../editor/IssuePanel';
 import { PlayMenu } from '../editor/PlayMenu';
@@ -37,16 +37,22 @@ export function PlayView() {
             is left. `height` rather than `min-height`, or the regions have no total to divide.
             100dvh as an inline override: a browser without dvh drops it and keeps the 100vh. */}
         <Stack h="100vh" style={{ height: '100dvh' }} p="md" gap="sm">
-          <Group justify="space-between" align="center" gap="sm" style={{ flex: '0 0 auto' }}>
-            <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-              {/* First in the header, ahead of the variants and the name: what it does is to the
-                system as a whole — switch between watching and authoring it, create another one,
-                save this one — rather than to anything inside it. */}
-              <PlayMenu />
-              {/* The variants live in a menu ahead of the title rather than in a panel beside the
-                court, so the court keeps the full width at every screen size. The trigger is
-                icon-only: Popover gives it `aria-expanded`, and the dropdown repeats the name
-                as its heading. */}
+          {/* The shared header, so the language and the account are the same here as anywhere
+              else — the account control is what this page lacked while it drew its own. The
+              padding is 0: the column around it is already padded. */}
+          <AppHeader
+            p={0}
+            // First in the header, ahead of the wordmark and the variants: what it does is to the
+            // system as a whole — switch between watching and authoring it, create another one,
+            // save this one — rather than to anything inside it. On a phone it also carries the
+            // system's name, which the header itself has no room for.
+            leading={<PlayMenu />}
+            title={play.name}
+            // The variants live in a menu ahead of the title rather than in a panel beside the
+            // court, so the court keeps the full width at every screen size. The trigger is
+            // icon-only: Popover gives it `aria-expanded`, and the dropdown repeats the name
+            // as its heading.
+            controls={
               <Popover
                 opened={branchesOpen}
                 onChange={setBranchesOpen}
@@ -79,14 +85,8 @@ export function PlayView() {
                   </ScrollArea.Autosize>
                 </Popover.Dropdown>
               </Popover>
-              <Title order={2}>{play.name}</Title>
-            </Group>
-            <Group gap="sm" wrap="nowrap">
-              {/* At the far end of the header's controls: it is set once and left alone,
-                  unlike its neighbours. */}
-              <LanguageSwitcher />
-            </Group>
-          </Group>
+            }
+          />
           {/* The time controls sit above the court, between it and the header. The scrubber stays
             directly above the ruler and the tracks: they share one time axis and one playhead
             crosses all of them, so the control belongs beside what it drives.

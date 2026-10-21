@@ -5,7 +5,7 @@ import { MantineProvider } from '@mantine/core';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import { createQueryClient } from '../app/queryClient';
-import { AuthContext } from '../auth/useAuthContext';
+import { AuthContext, type AuthContextValue } from '../auth/useAuthContext';
 import { DraftContextProvider } from '../draft/DraftContextProvider';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ballCarryAt, resolveBranch, stateAt, type ResolvedTimeline, type Vec2 } from '../engine';
@@ -18,7 +18,7 @@ import { HELD_BALL_OFFSET } from './PlayerSymbol';
 import { fullCourtViewBox } from './geometry/court';
 import { playheadTime } from '../testUtils/transport';
 
-function renderView(widthPx = 1440) {
+function renderView(widthPx = 1440, auth: Partial<AuthContextValue> = {}) {
   stubViewportWidth(widthPx);
   return render(
     <MantineProvider env="test">
@@ -30,6 +30,7 @@ function renderView(widthPx = 1440) {
             configured: false,
             signInWithGoogle: async () => {},
             signOut: async () => {},
+            ...auth,
           }}
         >
           <MemoryRouter>
@@ -123,7 +124,7 @@ describe('PlayView', () => {
     const user = userEvent.setup();
     const { container } = renderView();
 
-    expect(screen.getByRole('img')).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));
+    expect(screen.getByRole('img', { name: /Court diagram/ })).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));
     expect(container.querySelectorAll('[data-testid="token"]')).toHaveLength(10);
     expect(container.querySelector('[data-testid="ball-token"]')).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
@@ -131,6 +132,27 @@ describe('PlayView', () => {
     const branches = await openBranchMenu(user);
     expect(branches.getByRole('button', { name: 'Base' })).toBeInTheDocument();
     expect(branches.getByRole('button', { name: SWITCH_NAME })).toBeInTheDocument();
+  });
+
+  it('carries the account control, which its own header never had', () => {
+    renderView(1440, { configured: true, status: 'signedIn', userId: 'u' });
+
+    expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument();
+  });
+
+  it('invites a signed-out coach to sign in without leaving the editor', () => {
+    renderView(1440, { configured: true });
+
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/signin');
+  });
+
+  it('keeps the system name in the menu, for the widths the header drops it at', async () => {
+    const user = userEvent.setup();
+    renderView();
+
+    await user.click(screen.getByRole('button', { name: 'System menu' }));
+    // Not a heading: the header's own one stays in the DOM, and two would be ambiguous.
+    expect(within(screen.getByRole('dialog')).getByText(hornsPlay.name)).toBeInTheDocument();
   });
 
   it('shows the play name as a heading, untranslated', () => {
@@ -144,7 +166,7 @@ describe('PlayView', () => {
     // in createPlayDialog.test.tsx; that the two differ only in the viewBox is PlayCanvas's test.
     renderView();
 
-    expect(screen.getByRole('img')).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));
+    expect(screen.getByRole('img', { name: /Court diagram/ })).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));
     expect(screen.queryByRole('radiogroup', { name: 'Court view' })).not.toBeInTheDocument();
   });
 
