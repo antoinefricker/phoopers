@@ -10,11 +10,12 @@ export const theme = createTheme({
   // which made the app's own chrome — the play button, the scrubber, a focus ring — the same
   // colour as one of the two teams, so blue meant both "this app" and "the attack". The teams
   // keep their blue and red, which are the court's language and not the product's.
-  primaryColor: 'yellow',
+  primaryColor: 'violet',
   // Let Mantine pick black or white for whatever sits on a filled control, rather than taking
-  // its white default: with a high-luminance primary, white on filled measured 1.86:1 on the
-  // play button — the app's main control, effectively illegible. Set on the theme and not per
-  // button so a control added later cannot miss it.
+  // its white default. It is what the primary being a setting costs: the app wore a yellow
+  // primary, where white on filled measured 1.86:1 on the play button — the app's main control,
+  // effectively illegible. Violet needs no rescuing, but the next palette might. Set on the
+  // theme and not per button so a control added later cannot miss it.
   autoContrast: true,
   fontFamily: FONT_STACK,
   headings: { fontFamily: FONT_STACK },

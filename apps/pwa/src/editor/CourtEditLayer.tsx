@@ -164,7 +164,7 @@ export function CourtEditLayer() {
           ref={ghostCircleRef}
           r={PLAYER_HIT_RADIUS}
           fill="none"
-          stroke="var(--mantine-color-yellow-6)"
+          stroke="var(--mantine-primary-color-filled)"
           strokeWidth={0.1}
           strokeDasharray="0.3 0.2"
         />
