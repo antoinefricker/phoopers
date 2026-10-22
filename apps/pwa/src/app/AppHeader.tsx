@@ -96,7 +96,7 @@ export function AppHeader({ leading, controls, title, p = 'md' }: AppHeaderProps
               reads the same to a screen reader as it did when it was text. `lh={0}` stops the
               heading's line box adding space under an image that has none of its own. */}
           <Title order={1} size="h2" lh={0}>
-            <Image src={wordmark} alt={t('app.name', 'phoopers')} h={32} w="auto" />
+            <Image src={wordmark} alt={t('app.name', 'phoopers')} h={28} w="auto" />
           </Title>
         </Anchor>
         {controls}

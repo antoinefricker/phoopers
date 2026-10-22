@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ActionIcon, Alert, Box, Button, Divider, Group, Kbd, Popover, Stack, Text, Tooltip } from '@mantine/core';
-import { IconMenu2 } from '@tabler/icons-react';
+import { Alert, Box, Burger, Button, Divider, Group, Kbd, Popover, Stack, Text, Tooltip } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { CreatePlayDialog } from './CreatePlayDialog';
 import { SavePlayDialog } from './SavePlayDialog';
@@ -50,14 +49,15 @@ export function PlayMenu() {
     <>
       <Popover opened={opened} onChange={setOpened} width={260} position="bottom-start" shadow="md" trapFocus>
         <Popover.Target>
-          <ActionIcon
-            variant="default"
-            size={36}
+          {/* Mantine's own Burger rather than an icon in a button: it already turns into a cross
+              while the dropdown is open, so the control says whether the menu is showing instead
+              of leaving that to the dropdown alone. */}
+          <Burger
+            opened={opened}
+            size="sm"
             onClick={() => setOpened((open) => !open)}
             aria-label={t('play.menu.label', 'System menu')}
-          >
-            <IconMenu2 size={18} stroke={1.5} />
-          </ActionIcon>
+          />
         </Popover.Target>
         <Popover.Dropdown>
           <Stack gap="xs">
