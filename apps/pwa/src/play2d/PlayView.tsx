@@ -18,6 +18,7 @@ import { FLOOR } from './Court';
 import { HiddenEntitiesContextProvider } from './HiddenEntitiesContextProvider';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
+import { GUTTER_WIDTH } from './transportMath';
 
 // Court (centre), transport (beneath) and the branch menu in the header. Which court is drawn is
 // the play's own business — `court` and `extent` — so there is no view control for it: one that
@@ -45,6 +46,10 @@ export function PlayView() {
               padding is 0: the column around it is already padded. */}
           <AppHeader
             p={0}
+            // The menu and the wordmark take the timeline's gutter, so the header's left block
+            // is the same column as the row names and the transport's buttons beneath it,
+            // rather than a width of its own that lands near them and misses.
+            leadingWidth={GUTTER_WIDTH}
             // First in the header, ahead of the wordmark and the variants: what it does is to the
             // system as a whole — switch between watching and authoring it, create another one,
             // save this one — rather than to anything inside it. On a phone it also carries the
