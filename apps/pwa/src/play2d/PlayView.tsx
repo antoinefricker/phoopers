@@ -31,6 +31,11 @@ export function PlayView() {
   // Controlled rather than left to Mantine: picking a variant closes the menu, which the
   // uncontrolled popover has no way to do.
   const [branchesOpen, setBranchesOpen] = useState(false);
+  // A system with one variant has nothing to switch to, so while watching, the control is left
+  // out rather than shown dead: a system that never forks would otherwise carry a button that
+  // does nothing for its whole life. Authoring is the exception rather than a second condition —
+  // forking is how a second variant comes to exist, and it is reached from inside this menu.
+  const showBranches = mode === 'edit' || play.branches.length > 1;
 
   return (
     <PlaybackContextProvider key={play.id} play={play}>
@@ -61,41 +66,43 @@ export function PlayView() {
             // icon-only: Popover gives it `aria-expanded`, and the dropdown repeats the name
             // as its heading.
             controls={
-              <Popover
-                opened={branchesOpen}
-                onChange={setBranchesOpen}
-                width={300}
-                position="bottom-start"
-                shadow="md"
-                trapFocus
-                // Below Mantine's Modal, which sits at 200. The fork and delete dialogs are
-                // rendered by the tree INSIDE this dropdown, and at Popover's default 300 the
-                // menu drew itself over their overlay and clipped the dialog. The menu stays
-                // open behind the dialog on purpose: closing it would unmount the dialog with it.
-                zIndex={190}
-              >
-                <Popover.Target>
-                  <ActionIcon
-                    variant="light"
-                    // Grey for the reason the system menu's is: picking a branch is not an
-                    // action on the play, and the primary is spent on the ones that are.
-                    color="gray"
-                    size={36}
-                    onClick={() => setBranchesOpen((open) => !open)}
-                    aria-label={t('play.branches.title', 'Branches')}
-                  >
-                    <IconGitBranch size={18} stroke={1.5} />
-                  </ActionIcon>
-                </Popover.Target>
-                <Popover.Dropdown>
-                  <Title order={6} mb="xs">
-                    {t('play.branches.title', 'Branches')}
-                  </Title>
-                  <ScrollArea.Autosize mah="min(60vh, 24rem)">
-                    <BranchTree play={play} onBranchSelected={() => setBranchesOpen(false)} />
-                  </ScrollArea.Autosize>
-                </Popover.Dropdown>
-              </Popover>
+              showBranches ? (
+                <Popover
+                  opened={branchesOpen}
+                  onChange={setBranchesOpen}
+                  width={300}
+                  position="bottom-start"
+                  shadow="md"
+                  trapFocus
+                  // Below Mantine's Modal, which sits at 200. The fork and delete dialogs are
+                  // rendered by the tree INSIDE this dropdown, and at Popover's default 300 the
+                  // menu drew itself over their overlay and clipped the dialog. The menu stays
+                  // open behind the dialog on purpose: closing it would unmount the dialog with it.
+                  zIndex={190}
+                >
+                  <Popover.Target>
+                    <ActionIcon
+                      variant="light"
+                      // Grey for the reason the system menu's is: picking a branch is not an
+                      // action on the play, and the primary is spent on the ones that are.
+                      color="gray"
+                      size={36}
+                      onClick={() => setBranchesOpen((open) => !open)}
+                      aria-label={t('play.branches.title', 'Branches')}
+                    >
+                      <IconGitBranch size={18} stroke={1.5} />
+                    </ActionIcon>
+                  </Popover.Target>
+                  <Popover.Dropdown>
+                    <Title order={6} mb="xs">
+                      {t('play.branches.title', 'Branches')}
+                    </Title>
+                    <ScrollArea.Autosize mah="min(60vh, 24rem)">
+                      <BranchTree play={play} onBranchSelected={() => setBranchesOpen(false)} />
+                    </ScrollArea.Autosize>
+                  </Popover.Dropdown>
+                </Popover>
+              ) : undefined
             }
           />
           {/* The time controls sit above the court, between it and the header. The scrubber stays
