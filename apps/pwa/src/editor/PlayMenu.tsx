@@ -1,5 +1,19 @@
 import { useState } from 'react';
-import { Alert, Box, Burger, Divider, Drawer, Group, Kbd, Loader, NavLink, Stack, Text, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Alert,
+  Box,
+  Divider,
+  Drawer,
+  Group,
+  Kbd,
+  Loader,
+  NavLink,
+  Stack,
+  Text,
+  Tooltip,
+} from '@mantine/core';
+import { IconMenu2 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { CreatePlayDialog } from './CreatePlayDialog';
 import { SavePlayDialog } from './SavePlayDialog';
@@ -52,16 +66,20 @@ export function PlayMenu() {
 
   return (
     <>
-      {/* Mantine's own Burger rather than an icon in a button, and a sibling of the drawer
-          rather than a target, since a drawer is not anchored to anything. It is given `opened`
-          for the animation on the way in and out: the drawer comes from the same edge and
-          covers the burger while it is up, so the cross is only ever seen in passing. */}
-      <Burger
-        opened={opened}
-        size="sm"
-        onClick={() => setOpened((open) => !open)}
+      {/* An icon button, matching the branches control it shares the header line with, and a
+          sibling of the drawer rather than a target, since a drawer is not anchored to
+          anything. Nothing is written on it, so `aria-label` is the whole of its name. */}
+      <ActionIcon
+        variant="light"
+        // Grey, not the primary: the colour marks what acts on the play — the transport, the
+        // add button — and this one leaves the play alone, as the drawer's own entries do.
+        color="gray"
+        size={36}
+        onClick={() => setOpened(true)}
         aria-label={t('play.menu.label', 'System menu')}
-      />
+      >
+        <IconMenu2 size={18} stroke={1.5} />
+      </ActionIcon>
       <Drawer
         opened={opened}
         onClose={() => setOpened(false)}

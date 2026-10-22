@@ -71,7 +71,10 @@ export function PlayView() {
               >
                 <Popover.Target>
                   <ActionIcon
-                    variant="default"
+                    variant="light"
+                    // Grey for the reason the system menu's is: picking a branch is not an
+                    // action on the play, and the primary is spent on the ones that are.
+                    color="gray"
                     size={36}
                     onClick={() => setBranchesOpen((open) => !open)}
                     aria-label={t('play.branches.title', 'Branches')}
