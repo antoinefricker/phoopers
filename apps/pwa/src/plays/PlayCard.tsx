@@ -21,7 +21,7 @@ export function PlayCard({ summary, actions, onOpen, showVisibility = false }: P
     summary.extent === 'half' ? t('plays.card.extent.half', 'half court') : t('plays.card.extent.full', 'full court');
 
   return (
-    <Card withBorder padding="md" radius="md" component="article" aria-label={summary.name}>
+    <Card withBorder padding="md" component="article" aria-label={summary.name}>
       <Stack gap="xs">
         <Group justify="space-between" wrap="nowrap" align="flex-start">
           <Title order={3} size="h4">
