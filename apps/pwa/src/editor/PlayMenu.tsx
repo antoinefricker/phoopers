@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { ActionIcon, Alert, Box, Button, Divider, Popover, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Alert, Box, Button, Divider, Group, Kbd, Popover, Stack, Text, Tooltip } from '@mantine/core';
 import { IconMenu2 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { CreatePlayDialog } from './CreatePlayDialog';
 import { SavePlayDialog } from './SavePlayDialog';
 import { useEditorContext } from './useEditorContext';
+import { MODE_SHORTCUT, SAVE_SHORTCUT } from './editorShortcuts';
+import { useEditorShortcut } from './useEditorShortcut';
 import { useSaveSystem } from './useSaveSystem';
 
 /**
@@ -24,6 +26,17 @@ export function PlayMenu() {
   const { play, mode, setMode } = useEditorContext();
   const [opened, setOpened] = useState(false);
   const saving = useSaveSystem();
+  // Here, and not in a hook of its own beside the mode's: `useSaveSystem` holds the dialog's
+  // state and this component renders the dialog, so a second instance anywhere else would open
+  // one that nothing displays. Disabled while there is nothing to save to, or a write is already
+  // in flight — a repeated chord must not start a second one.
+  useEditorShortcut(
+    SAVE_SHORTCUT,
+    () => {
+      if (saving.start()) setOpened(false);
+    },
+    !saving.disabled && !saving.busy,
+  );
   // The dialog stays mounted so Mantine's transitions survive, and its `key` changes on each
   // open so its fields reset on a fresh instance rather than through an effect.
   const [creating, setCreating] = useState({ opened: false, count: 0 });
@@ -35,7 +48,7 @@ export function PlayMenu() {
 
   return (
     <>
-      <Popover opened={opened} onChange={setOpened} width={240} position="bottom-start" shadow="md" trapFocus>
+      <Popover opened={opened} onChange={setOpened} width={260} position="bottom-start" shadow="md" trapFocus>
         <Popover.Target>
           <ActionIcon
             variant="default"
@@ -59,11 +72,26 @@ export function PlayMenu() {
             {/* One entry, never two: the mode you are not in is the only one worth offering, and
               a pair would ask the coach to read which of them is already true. No glyph — an eye
               and a pencil said no more than the words beside them. */}
+            {/* The entry carries the key it shares with `useModeShortcut`: a bare letter nobody
+                is told about is a letter nobody presses. `aria-keyshortcuts` says the same thing
+                to a screen reader, which cannot see the hint. */}
             <Button
               variant="subtle"
               color="gray"
               fullWidth
-              justify="flex-start"
+              // Not flex-start, unlike the entries with nothing on their right: this pushes the
+              // hint to the far edge, so the two chords line up in a column rather than each
+              // starting wherever its own label happens to end.
+              justify="space-between"
+              aria-keyshortcuts={MODE_SHORTCUT.aria}
+              // Hidden from the accessibility tree: `aria-keyshortcuts` above already carries the
+              // key, and leaving the hint in the name makes a screen reader read the entry as
+              // "Edit mode E". The glyph is for the eyes that cannot be told by an attribute.
+              rightSection={
+                <Kbd size="xs" aria-hidden="true" style={{ whiteSpace: 'nowrap' }}>
+                  {t('play.menu.modeShortcut', 'Alt + Shift + E')}
+                </Kbd>
+              }
               onClick={pick(() => setMode(mode === 'play' ? 'edit' : 'play'))}
             >
               {mode === 'play' ? t('play.menu.editMode', 'Edit mode') : t('play.menu.playMode', 'Play mode')}
@@ -88,15 +116,29 @@ export function PlayMenu() {
                   variant="subtle"
                   color="gray"
                   fullWidth
-                  justify="flex-start"
+                  justify="space-between"
                   disabled={saving.disabled}
                   loading={saving.busy}
                   onClick={() => {
                     // An overwrite has no dialog to report in, so the menu stays open to say how it went.
                     if (saving.start()) setOpened(false);
                   }}
+                  aria-keyshortcuts={SAVE_SHORTCUT.aria}
+                  // Hidden from the accessibility tree for the reason the mode entry's is:
+                  // `aria-keyshortcuts` already carries the chord.
                   rightSection={
-                    saving.isDirty ? (
+                    <Kbd size="xs" aria-hidden="true" style={{ whiteSpace: 'nowrap' }}>
+                      {t('play.menu.saveShortcut', 'Alt + Shift + S')}
+                    </Kbd>
+                  }
+                >
+                  {/* The dot rides with the word rather than sitting at the far edge: it says
+                      something about THIS entry — that there is something to save — and across
+                      the gap it read as a third column of its own. A span, not Group's default
+                      div, because it lives inside the button's label. */}
+                  <Group component="span" gap={6} wrap="nowrap">
+                    {t('play.menu.save', 'Save')}
+                    {saving.isDirty && (
                       <Box
                         component="span"
                         role="img"
@@ -106,10 +148,8 @@ export function PlayMenu() {
                         bg="orange"
                         style={{ borderRadius: '50%' }}
                       />
-                    ) : null
-                  }
-                >
-                  {t('play.menu.save', 'Save')}
+                    )}
+                  </Group>
                 </Button>
               </span>
             </Tooltip>

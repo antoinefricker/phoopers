@@ -189,8 +189,10 @@
       "create": "Créer un nouveau système",
       "editMode": "Mode édition",
       "label": "Menu du système",
+      "modeShortcut": "Alt + Shift + E",
       "playMode": "Mode lecture",
-      "save": "Enregistrer"
+      "save": "Enregistrer",
+      "saveShortcut": "Alt + Shift + S"
     },
     "missing": {
       "body": "Ce système n'existe pas ou est privé.",

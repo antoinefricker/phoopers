@@ -265,3 +265,41 @@ describe('saving a system', () => {
     expect(screen.getByRole('button', { name: /^Save/ })).toBeDisabled();
   });
 });
+
+describe('the save shortcut', () => {
+  const chord = () => userEvent.keyboard('{Alt>}{Shift>}s{/Shift}{/Alt}');
+
+  it('opens the save dialog without going through the menu', async () => {
+    renderView({ auth: signedIn });
+
+    await chord();
+
+    expect(await screen.findByRole('dialog', { name: 'Save the system' })).toBeInTheDocument();
+  });
+
+  it('overwrites straight away on a system the coach already owns', async () => {
+    vi.mocked(playsApi.updatePlay).mockResolvedValue(stored());
+    renderView({ auth: signedIn, origin: { ...storedAs(ME), fingerprint: 'older' } });
+
+    await chord();
+
+    await waitFor(() => expect(playsApi.updatePlay).toHaveBeenCalledWith(fixturePlay));
+  });
+
+  it('sends a signed-out coach to sign in, as the menu entry does', async () => {
+    renderView({ auth: signedOut });
+
+    await chord();
+
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toContain('/signin'));
+  });
+
+  it('says nothing when there is no Supabase project to save to', async () => {
+    renderView({ auth: { status: 'signedOut', userId: null, configured: false } });
+
+    await chord();
+
+    expect(screen.queryByRole('dialog', { name: 'Save the system' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('where').textContent).not.toContain('/signin');
+  });
+});

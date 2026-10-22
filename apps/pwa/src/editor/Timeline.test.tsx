@@ -706,3 +706,79 @@ describe('the ball row for a screen reader', () => {
     expect(within(ballRow).queryAllByRole('button', { name: /^Keyframe at/ })).toHaveLength(0);
   });
 });
+
+// The axis overlay is the element the scrub measures, and jsdom gives it no layout. It is placed
+// away from x=0 on purpose, so a press in the label column to its left is a real case here.
+const AXIS_LEFT = 40;
+const AXIS_WIDTH = 100;
+const withAxis = () =>
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const axis = this.dataset['testid'] === 'timeline-axis';
+    const left = axis ? AXIS_LEFT : 0;
+    const width = axis ? AXIS_WIDTH : 0;
+
+    return { left, width, right: left + width, top: 0, bottom: 0, height: 0, x: left, y: 0, toJSON: () => ({}) };
+  });
+
+/** Press, optionally drag through `through`, and release — all on the timeline surface. */
+const scrub = async (clientX: number, through: number[] = []) => {
+  const surface = screen.getByTestId('timeline-surface');
+  await userEvent.pointer([
+    { keys: '[MouseLeft>]', target: surface, coords: { clientX, clientY: 0 } },
+    ...through.map((x) => ({ target: surface, coords: { clientX: x, clientY: 0 } })),
+    { keys: '[/MouseLeft]', target: surface, coords: { clientX: through.at(-1) ?? clientX, clientY: 0 } },
+  ]);
+};
+
+const playheadLeft = () => screen.getByTestId('timeline-playhead').style.left;
+
+describe('scrubbing the timeline', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('moves the playhead to where the timeline was pressed', async () => {
+    withAxis();
+    renderLive(fixturePlay);
+
+    // A quarter along a four-second play is t=1, which the grid keeps exactly.
+    await scrub(AXIS_LEFT + AXIS_WIDTH / 4);
+
+    expect(playheadLeft()).toBe('25%');
+  });
+
+  it('follows the pointer while the button is held', async () => {
+    withAxis();
+    renderLive(fixturePlay);
+
+    await scrub(AXIS_LEFT + AXIS_WIDTH / 4, [AXIS_LEFT + AXIS_WIDTH / 2, AXIS_LEFT + (AXIS_WIDTH * 3) / 4]);
+
+    expect(playheadLeft()).toBe('75%');
+  });
+
+  it('holds the playhead at the end when the drag runs past the axis', async () => {
+    withAxis();
+    renderLive(fixturePlay);
+
+    await scrub(AXIS_LEFT + AXIS_WIDTH / 2, [AXIS_LEFT + AXIS_WIDTH * 3]);
+
+    expect(playheadLeft()).toBe('100%');
+  });
+
+  it('leaves the playhead alone for a press in the label column', async () => {
+    withAxis();
+    renderLive(fixturePlay);
+
+    await scrub(AXIS_LEFT - 10);
+
+    expect(playheadLeft()).toBe('0%');
+  });
+
+  it('leaves the playhead alone when a control inside the timeline is pressed', async () => {
+    withAxis();
+    renderLive(fixturePlay);
+
+    // Not a drag gesture, so nothing stops the event reaching the surface: the guard does.
+    await userEvent.click(within(rowFor(P1)).getByRole('button', { name: /^Actions for/ }));
+
+    expect(playheadLeft()).toBe('0%');
+  });
+});
