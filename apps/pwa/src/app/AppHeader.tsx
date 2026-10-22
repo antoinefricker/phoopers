@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Anchor, Button, Group, Image, Menu, Title, type MantineSpacing } from '@mantine/core';
+import { IconUser } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import wordmark from '../assets/phoopers.png';
@@ -18,7 +19,13 @@ function AccountControl() {
   if (!configured || status === 'loading') return null;
   if (status === 'signedOut') {
     return (
-      <Button component={Link} to="/signin" variant="light">
+      <Button
+        component={Link}
+        to="/signin"
+        variant="light"
+        color="gray"
+        leftSection={<IconUser size={18} stroke={1.5} />}
+      >
         {t('app.signIn', 'Sign in')}
       </Button>
     );
@@ -27,7 +34,9 @@ function AccountControl() {
     <>
       <Menu position="bottom-end">
         <Menu.Target>
-          <Button variant="subtle">{profile.data?.displayName ?? t('app.account', 'Account')}</Button>
+          <Button variant="light" color="gray" leftSection={<IconUser size={18} stroke={1.5} />}>
+            {profile.data?.displayName ?? t('app.account', 'Account')}
+          </Button>
         </Menu.Target>
         <Menu.Dropdown>
           <Menu.Item onClick={() => setDialog((d) => ({ opened: true, openCount: d.openCount + 1 }))}>
