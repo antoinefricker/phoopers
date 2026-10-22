@@ -10,6 +10,7 @@ import { TimeGrid } from '../editor/TimeGrid';
 import { Timeline } from '../editor/Timeline';
 import { extentOf } from '../engine';
 import { useEditorContext } from '../editor/useEditorContext';
+import { useModeShortcut } from '../editor/useModeShortcut';
 import { BranchTree } from './BranchTree';
 import { PlayCanvas } from './PlayCanvas';
 import { StepCaption } from './StepCaption';
@@ -24,6 +25,8 @@ import { PlaybackTransport } from './PlaybackTransport';
 export function PlayView() {
   const { t } = useTranslation();
   const { play, mode } = useEditorContext();
+  // The only caller: the shortcut exists where the mode does, rather than app-wide.
+  useModeShortcut();
   // Controlled rather than left to Mantine: picking a variant closes the menu, which the
   // uncontrolled popover has no way to do.
   const [branchesOpen, setBranchesOpen] = useState(false);

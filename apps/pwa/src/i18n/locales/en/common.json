@@ -185,8 +185,10 @@
       "create": "Create a new system",
       "editMode": "Edit mode",
       "label": "System menu",
+      "modeShortcut": "Alt + Shift + E",
       "playMode": "Play mode",
-      "save": "Save"
+      "save": "Save",
+      "saveShortcut": "Alt + Shift + S"
     },
     "missing": {
       "body": "This system either does not exist or is private.",
