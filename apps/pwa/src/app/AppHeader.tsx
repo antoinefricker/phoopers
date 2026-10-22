@@ -103,6 +103,11 @@ export function AppHeader({ leading, controls, title, p = 'md' }: AppHeaderProps
         {title !== undefined && (
           <Title
             order={2}
+            // Smaller than an `h2` would be on its own: this one sits on a header line beside
+            // the wordmark and the page's controls, not at the top of a page of prose, and at
+            // the token's size it was the loudest thing in the bar. The level stays 2 — it is
+            // what this heading IS, and shrinking it is a matter of the line it lives on.
+            fz={20}
             visibleFrom="sm"
             style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
