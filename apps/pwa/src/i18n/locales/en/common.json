@@ -182,6 +182,7 @@
     "loadError": "Something went wrong. Please try again.",
     "loading": "Loading the system",
     "menu": {
+      "close": "Close the system menu",
       "create": "Create a new system",
       "editMode": "Edit mode",
       "label": "System menu",
