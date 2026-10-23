@@ -5,6 +5,12 @@ import type { Keyframe, Play, PlayerId, Step, StepId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
+import { PlayView } from './PlayView';
+import { ZOOM_LEVELS, contentWidthPx } from '../editor/timelineScale';
+import { enterEditMode, renderEditor } from '../editor/testUtils/renderEditor';
+import { fixturePlay, ROOT } from '../engine/__fixtures__/play';
+import { resolveBranch } from '../engine';
+import { stubViewportWidth } from '../testUtils/viewport';
 import {
   TIME_GRID_S,
   adjacentStep,
@@ -516,5 +522,65 @@ describe('transport icons', () => {
       expect(button.querySelector('svg')).toBeInTheDocument();
       expect(button.textContent).toBe('');
     }
+  });
+});
+
+describe('the scrubber', () => {
+  beforeEach(() => stubViewportWidth(1440));
+
+  const DURATION = resolveBranch(fixturePlay, ROOT).duration;
+  const [LEVEL_1 = 24] = ZOOM_LEVELS;
+  const SCALED_WIDTH = `${contentWidthPx(DURATION, LEVEL_1)}px`;
+
+  const renderWatching = () => renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+  const renderAuthoring = async () => {
+    const view = renderWatching();
+    await enterEditMode();
+
+    return view;
+  };
+
+  it('takes the timeline scale while authoring', async () => {
+    await renderAuthoring();
+
+    expect(screen.getByTestId('scrubber-window-content').style.width).toBe(SCALED_WIDTH);
+  });
+
+  it('scrolls with the tracks while authoring', async () => {
+    await renderAuthoring();
+    const strip = screen.getByTestId('timeline-scrollbar');
+    Object.defineProperty(strip, 'scrollLeft', { value: 120, configurable: true, writable: true });
+    fireEvent.scroll(strip);
+
+    expect(screen.getByTestId('scrubber-window-content').style.transform).toBe('translateX(-120px)');
+  });
+
+  it('stays elastic while watching', () => {
+    renderWatching();
+
+    // No window, hence no fixed width to scroll within and nothing to scroll with.
+    expect(screen.queryByTestId('scrubber-window')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('timeline-scrollbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('slider')).toBeInTheDocument();
+  });
+
+  it('still seeks with the arrow keys at a fixed scale', async () => {
+    await renderAuthoring();
+    const slider = screen.getByRole('slider');
+
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+
+    expect(slider).toHaveAttribute('aria-valuenow', String(TIME_GRID_S));
+  });
+
+  it('still shows a mark for every step in both modes', async () => {
+    const stepCount = resolveBranch(fixturePlay, ROOT).steps.length;
+    const { container, unmount } = renderWatching();
+    const marksWatching = container.querySelectorAll('.mantine-Slider-mark').length;
+    unmount();
+    const authoring = await renderAuthoring();
+
+    expect(marksWatching).toBe(stepCount);
+    expect(authoring.container.querySelectorAll('.mantine-Slider-mark')).toHaveLength(stepCount);
   });
 });

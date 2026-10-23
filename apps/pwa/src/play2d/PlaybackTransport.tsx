@@ -1,5 +1,6 @@
 import { ActionIcon, Box, Group, Menu, Slider } from '@mantine/core';
 import { useContext, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   IconPlayerPause,
@@ -20,6 +21,7 @@ import {
   snapToStep,
   stepMarks,
 } from './transportMath';
+import { TimeWindow } from '../editor/TimeWindow';
 import { EditorContext } from '../editor/useEditorContext';
 import { usePlaybackContext } from './usePlaybackContext';
 import { usePlaybackTimeContext } from './usePlaybackTimeContext';
@@ -64,6 +66,41 @@ export function PlaybackTransport() {
       scrubTo(next);
     }
   };
+
+  const noteKeyboardMove = (event: KeyboardEvent<HTMLElement>) => {
+    keyboardMoveRef.current = event.key.startsWith('Arrow');
+  };
+
+  // Mantine pads the slider root by a fixed 8px so the thumb's centre can reach either end
+  // without overflowing. That inset is its own, not ours, and it left the scrubber's axis 8px
+  // inside the tracks' at both ends, so it is dropped.
+  // The thumb's size is deliberately NOT tied to the track inset: what has to line up across the
+  // three surfaces is the TRACK, and the thumb only overhangs it. Tying them once meant the thumb
+  // shrank to 8px — invisible against an 8px bar — the moment the inset followed the markers
+  // down to 4. While authoring, the window clips that overhang at its own edge, so the thumb is
+  // cut where it passes t = 0 or the end of the play.
+  const slider = (
+    <Slider
+      thumbSize={THUMB_SIZE_PX}
+      min={0}
+      max={max}
+      step={TIME_GRID_S}
+      value={Math.min(Math.max(displayTime, 0), max)}
+      onChange={(value) => {
+        const snap = !keyboardMoveRef.current;
+        keyboardMoveRef.current = false;
+        scrubTo(snap ? snapToStep(value, timeline.steps, SNAP_THRESHOLD) : value);
+      }}
+      // Dots without names: they show where a drag will snap, while the step ruler sits
+      // directly below on the same axis and names each step in full. Labelling them here
+      // too printed every name twice, centred and ellipsised against the ruler's
+      // left-aligned full text.
+      marks={stepMarks(timeline.steps).map(({ value }) => ({ value }))}
+      styles={{ root: { paddingInline: 0 } }}
+      label={(value) => value.toFixed(1)}
+      aria-label={t('play.transport.scrubber', 'Playback position')}
+    />
+  );
 
   return (
     // The same gutter the tracks below keep for their scrollbar, so the scrubber ends where
@@ -147,42 +184,27 @@ export function PlaybackTransport() {
           <IconPlayerSkipForward size={18} stroke={1.5} />
         </ActionIcon>
       </Group>
-      <Box
-        flex="1 1 14rem"
-        miw={0}
-        style={{ marginInline: TRACK_INSET_PX }}
-        onKeyDownCapture={(event) => {
-          keyboardMoveRef.current = event.key.startsWith('Arrow');
-        }}
-      >
-        {/* Mantine pads the slider root by a fixed 8px so the thumb's centre can reach either
-            end without overflowing. That inset is its own, not ours, and it left the scrubber's
-            axis 8px inside the tracks' at both ends, so it is dropped.
-            The thumb's size is deliberately NOT tied to the track inset: what has to line up
-            across the three surfaces is the TRACK, and the thumb only overhangs it. Tying them
-            once meant the thumb shrank to 8px — invisible against an 8px bar — the moment the
-            inset followed the markers down to 4. */}
-        <Slider
-          thumbSize={THUMB_SIZE_PX}
-          min={0}
-          max={max}
-          step={TIME_GRID_S}
-          value={Math.min(Math.max(displayTime, 0), max)}
-          onChange={(value) => {
-            const snap = !keyboardMoveRef.current;
-            keyboardMoveRef.current = false;
-            scrubTo(snap ? snapToStep(value, timeline.steps, SNAP_THRESHOLD) : value);
-          }}
-          // Dots without names: they show where a drag will snap, while the step ruler sits
-          // directly below on the same axis and names each step in full. Labelling them here
-          // too printed every name twice, centred and ellipsised against the ruler's
-          // left-aligned full text.
-          marks={stepMarks(timeline.steps).map(({ value }) => ({ value }))}
-          styles={{ root: { paddingInline: 0 } }}
-          label={(value) => value.toFixed(1)}
-          aria-label={t('play.transport.scrubber', 'Playback position')}
-        />
-      </Box>
+      {/* Only the editor is scaled. Watching draws no timeline, so the scrubber is the one time
+          surface on screen and stays elastic: it spans the window and shows the whole play. */}
+      {editing ? (
+        // The window carries the same inset the tracks' windows do, so the margin the elastic
+        // branch puts on its Box is not repeated here. Its content is as wide as the play at the
+        // timeline's zoom and scrolls with the shared offset, which keeps the thumb and the step
+        // dots on the same x as the rows below.
+        <TimeWindow testId="scrubber-window">
+          <Box
+            h="100%"
+            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+            onKeyDownCapture={noteKeyboardMove}
+          >
+            {slider}
+          </Box>
+        </TimeWindow>
+      ) : (
+        <Box flex="1 1 14rem" miw={0} style={{ marginInline: TRACK_INSET_PX }} onKeyDownCapture={noteKeyboardMove}>
+          {slider}
+        </Box>
+      )}
     </Group>
   );
 }
