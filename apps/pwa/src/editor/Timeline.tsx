@@ -75,10 +75,16 @@ export function Timeline() {
     if ((event.target as HTMLElement).closest('button, a, input, textarea, select') !== null) return;
     const area = axisAreaRef.current?.getBoundingClientRect();
     const rect = axisContentRef.current?.getBoundingClientRect();
-    // Outside the area is the label column, whose width belongs to the names and not to time.
-    // A press there is left alone rather than clamped to t=0.
+    // Two edges refuse a press, for the same reason: neither side is the time axis.
+    // Left of the area is the label column, whose width belongs to the names and not to time.
+    // Right of the CONTENT is past the end of the play, which the window reaches whenever it is
+    // wider than the play is long — and there the spec says there is nothing: no grid, no track,
+    // nothing to click. A press there is left alone rather than seeking to the last instant.
+    // The clamp inside `timeFromClientX` is not the same rule and is deliberately kept: a drag
+    // already under way that runs past the end holds the playhead there rather than dropping it.
     if (area === undefined || rect === undefined) return;
     if (event.clientX < area.left || event.clientX > area.right) return;
+    if (event.clientX > rect.right) return;
 
     scrubbing.current = true;
     // Captured so the gesture survives the pointer leaving the panel, as a scrubber's does.

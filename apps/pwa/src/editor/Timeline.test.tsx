@@ -730,17 +730,21 @@ describe('the ball row for a screen reader', () => {
 // A scrub reads two boxes, and jsdom lays out neither. The axis AREA is the fixed region beside
 // the label column: it decides whether a press was on the time axis at all, so it is given a
 // width and placed away from x=0, which makes a press in the label column to its left a real
-// case here. The CONTENT inside it is the play, and its left edge is t=0 — the distance from
-// there is what the scale turns into a time.
+// case here. The CONTENT inside it is the play: its left edge is t=0 — the distance from there
+// is what the scale turns into a time — and it is as wide as the play is long.
 const AXIS_LEFT = 40;
-// Wide enough to hold the whole fixture play, so every press below lands inside the region.
-const AXIS_WIDTH = 1000;
+// The fixture is a 4s play, which is 960px at this level. The area is given MORE than that on
+// purpose: a window wider than the play is the ordinary case, and the strip of area past the
+// content's right edge is the empty space the spec says holds nothing to click.
+const CONTENT_WIDTH = xOfTime(4, LEVEL_1);
+const AXIS_WIDTH = CONTENT_WIDTH + 200;
 const withAxis = () =>
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
     const id = this.dataset['testid'];
-    const onAxis = id === 'timeline-axis-area' || id === 'timeline-axis-content';
+    const area = id === 'timeline-axis-area';
+    const onAxis = area || id === 'timeline-axis-content';
     const left = onAxis ? AXIS_LEFT : 0;
-    const width = id === 'timeline-axis-area' ? AXIS_WIDTH : 0;
+    const width = area ? AXIS_WIDTH : onAxis ? CONTENT_WIDTH : 0;
 
     return { left, width, right: left + width, top: 0, bottom: 0, height: 0, x: left, y: 0, toJSON: () => ({}) };
   });
@@ -812,14 +816,27 @@ describe('scrubbing the timeline', () => {
   });
 
   it('leaves the playhead alone for a press past the end of the play', async () => {
-    // Past the end of the play there is nothing — no grid, no track, nothing to click — but the
-    // area still reaches there when the window is wider than the play. A press in that empty
-    // space is not a seek to the last instant, it is a press on nothing.
+    // INSIDE the axis area and to the right of the content: the empty strip a window wider than
+    // the play leaves beyond it. The spec says there is nothing there — no grid, no track,
+    // nothing to click — so a press is a press on nothing, not a seek to the last instant.
+    // It is the one bound the area alone cannot give: the area reaches the panel's edge.
     withAxis();
     renderLive(fixturePlay);
 
-    await scrub(AXIS_LEFT + AXIS_WIDTH + 10);
+    await scrub(atTime(4) + 100);
 
     expect(playheadLeft()).toBe(leftPx(0, LEVEL_1));
+  });
+
+  it('still carries a drag that runs past the end to the end', async () => {
+    // The press bound above and the clamp inside the drag are different rules, and this pins
+    // that adding the first did not quietly take the second: a gesture already under way that
+    // leaves the content holds the playhead at the end rather than dropping it there.
+    withAxis();
+    renderLive(fixturePlay);
+
+    await scrub(atTime(2), [atTime(4) + 100]);
+
+    expect(playheadLeft()).toBe(leftPx(4, LEVEL_1));
   });
 });
