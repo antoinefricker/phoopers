@@ -418,7 +418,7 @@ would need more than `MAX_GRID_LINES` (240) of them. The cap counts lines, not p
 does not know the zoom: a play past the cap loses its cell lines at level 1, where a cell is a
 comfortable 24 px, exactly as at level 4.
 
-Read from `gridTicks`: a **23.99 s** play keeps 240 lines (215 of them minor); a **24 s** play
+Read from `gridTicks`: a **23.99 s** play keeps 240 lines (216 of them minor, the other 24 being the whole seconds 0 to 23); a **24 s** play
 keeps 25, none minor, and every duration from 24 s up does the same. At level 1 a 24 s play is
 5760 px wide with a line only every 240 px.
 
@@ -444,9 +444,11 @@ scrolls with the tracks, so the coach has no overview: a play wider than the win
 seen in part. [Spec 007](specs/007-23-10-2026-timeline-scale.md#scrolling) accepted this as the
 price of keeping the four time surfaces aligned.
 
-Measured by arithmetic from the layout in the code. The visible axis is the window less the
-page's 16 px padding each side (32), the 180 px label column, the 12 px scrollbar gutter, and 6 px
-of inset each end (12): **window − 236 px**. A play takes `duration × px per second`, which is 60
+Measured in a browser on a new 5 on 5 system in edit mode: the rows' `TimeWindow` is **1204 px**
+wide in a 1440 px window and **154 px** in a 390 px one, both starting at x = 202, so the visible
+axis is **window − 236 px**. That is the page's 16 px padding each side (32), the 180 px label
+column, the 12 px scrollbar gutter, and 6 px of inset each end (12), which adds up to the same
+figure. At level 1 the 8 s play's content is 1920 px wide, 716 px of it off screen at rest. A play takes `duration × px per second`, which is 60
 px per second at level 4.
 
 | Window         | Visible axis | Longest play that fits at level 4 | At level 1 (240 px/s) |
@@ -466,15 +468,15 @@ which is the one surface allowed to be elastic; or a fifth, fit-to-window level.
 
 ### The time axis cannot be scrolled without moving focus or dragging
 
-Tab focus carries the view: since commit 48eb599, `TimeWindow` handles `onFocusCapture` by moving
-the shared offset through `scrollTo`, so a keyboard user who tabs to a marker, bar or handle
+Tab focus carries the view: `TimeWindow` handles `onFocusCapture` by moving the shared
+offset through `scrollTo`, so a keyboard user who tabs to a marker, bar or handle
 outside the window has the view brought to it. What is left is that nothing scrolls the axis
 _without_ changing focus. The scrollbar strip is `aria-hidden` and the view moves by a CSS
 transform, so there is no keyboard equivalent of dragging the strip. A coach who wants to look
 further along the play without changing what is selected has to zoom out with the buttons, or tab
 through everything that lies between.
 
-Measured by arithmetic from the layout (window less 236 px, as in the entry above). At level 1 a
+Measured in a browser (see the entry above for the window sizes). At level 1 a
 1440 px window shows **5.02 s** of axis (1204 px at 240 px/s), so on the 8 s sample the last
 **2.98 s**, 37 % of the play, is off screen at rest. On a 390 px phone it shows **0.64 s**, so
 almost every marker is. At level 4 a 1440 px window shows 20.07 s and the same play fits whole.
