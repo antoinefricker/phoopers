@@ -131,11 +131,11 @@ export function LivePlayback({ children }: { children: ReactNode }) {
 }
 
 /**
- * Switch mode through the system menu in the header, which is where the control lives: the
- * dropdown offers only the mode you are NOT in, so each of these is a single named entry.
+ * Switch mode through the app menu in the header, which is where the control lives: its Editing
+ * group offers only the mode you are NOT in, so each of these is a single named entry.
  */
 const pickFromMenu = async (name: string) => {
-  await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Menu/ }));
   await userEvent.click(await screen.findByRole('button', { name }));
 };
 

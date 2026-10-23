@@ -169,6 +169,12 @@ export function useSaveSystem() {
 
   return {
     isDirty,
+    /**
+     * True when a save would write nothing: the open system is stored, the signer owns it, and
+     * it is identical to what is stored. Not simply "not dirty" — a system someone else owns
+     * has a copy to make however untouched it is, and one never stored has itself to store.
+     */
+    upToDate: kindOfWrite === 'overwrite' && !isDirty,
     /** Nothing can be saved without a Supabase project, nor before the session is known. */
     disabled: !configured || status === 'loading',
     busy: overwriting,

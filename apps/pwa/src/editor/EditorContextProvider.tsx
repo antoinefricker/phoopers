@@ -134,6 +134,14 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
     [select],
   );
 
+  // The id survives, unlike `createPlay`'s: the system is the same one, emptied. Nothing
+  // remounts on it, so the root branch keeps its id too and a playback context pointing at it
+  // stays valid; a caller watching a variant selects the root itself, as deleting one does.
+  const clearPlay = useCallback<EditorContextValue['clearPlay']>(() => {
+    setPlay((current) => mutations.clearPlay(current));
+    select(null);
+  }, [select]);
+
   const value = useMemo<EditorContextValue>(
     () => ({
       play,
@@ -165,6 +173,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       forkBranch,
       removeBranch,
       createPlay,
+      clearPlay,
     }),
     [
       play,
@@ -195,6 +204,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       forkBranch,
       removeBranch,
       createPlay,
+      clearPlay,
     ],
   );
 

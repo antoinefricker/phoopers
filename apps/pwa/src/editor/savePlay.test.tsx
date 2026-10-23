@@ -52,11 +52,25 @@ const renderView = (options: Parameters<typeof renderEditor>[2] = {}) =>
   );
 
 const openMenu = async () => {
-  await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Menu/ }));
 };
 
-const save = async () => {
+// Saving is offered in both modes; these are the tests that want the whole Editing group.
+// Switching mode closes the drawer, which is why the menu is opened twice here.
+const openMenuEditing = async () => {
   await openMenu();
+  const toEdit = screen.queryByRole('button', { name: 'Edit mode' });
+  if (toEdit === null) return;
+  await userEvent.click(toEdit);
+  await openMenu();
+};
+
+// The indicator beside the Save entry is decorative, as Mantine's is; the entry says there is
+// something to save in words, hidden from the eye but part of its accessible name.
+const saveEntry = () => screen.getByRole('button', { name: /^Save/ });
+
+const save = async () => {
+  await openMenuEditing();
   await userEvent.click(screen.getByRole('button', { name: /^Save/ }));
 };
 
@@ -83,13 +97,35 @@ beforeEach(() => {
 describe('saving a system', () => {
   it('marks Save while the open system differs from what is stored', async () => {
     const { unmount } = renderView({ origin: null });
-    await openMenu();
-    expect(screen.getByRole('img', { name: 'Unsaved changes' })).toBeInTheDocument();
+    await openMenuEditing();
+    expect(saveEntry()).toHaveAccessibleName(/Unsaved changes/);
     unmount();
 
     renderView({ origin: storedAs(ME), auth: signedIn });
+    await openMenuEditing();
+    expect(saveEntry()).not.toHaveAccessibleName(/Unsaved changes/);
+  });
+
+  it('offers Save while watching too, since saving the work is not authoring it', async () => {
+    renderView({ origin: null, auth: signedIn });
     await openMenu();
-    expect(screen.queryByRole('img', { name: 'Unsaved changes' })).not.toBeInTheDocument();
+
+    expect(saveEntry()).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('has nothing to do when the open system is already what is stored', async () => {
+    renderView({ origin: storedAs(ME), auth: signedIn });
+    await openMenu();
+
+    expect(saveEntry()).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('still offers a copy of a system someone else owns, untouched as it is', async () => {
+    // Not dirty, and still something to save: the copy does not exist yet.
+    renderView({ origin: storedAs(SOMEONE), auth: signedIn });
+    await openMenu();
+
+    expect(saveEntry()).not.toHaveAttribute('aria-disabled');
   });
 
   it('sends a coach with no account to sign in, and comes back to the save dialog', async () => {
@@ -134,7 +170,7 @@ describe('saving a system', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(readProbe().play.name).toBe('Horns flare');
     await openMenu();
-    expect(screen.queryByRole('img', { name: 'Unsaved changes' })).not.toBeInTheDocument();
+    expect(saveEntry()).not.toHaveAccessibleName(/Unsaved changes/);
   });
 
   it('overwrites without a dialog when the signer owns the system', async () => {
@@ -145,7 +181,7 @@ describe('saving a system', () => {
     // The open menu is itself a dialog, so look for the save dialog by name.
     expect(screen.queryByRole('dialog', { name: /^Save/ })).not.toBeInTheDocument();
     expect(playsApi.insertPlay).not.toHaveBeenCalled();
-    await waitFor(() => expect(screen.queryByRole('img', { name: 'Unsaved changes' })).not.toBeInTheDocument());
+    await waitFor(() => expect(saveEntry()).not.toHaveAccessibleName(/Unsaved changes/));
   });
 
   it('offers a copy, and leaves the original alone, when someone else owns it', async () => {
@@ -198,7 +234,7 @@ describe('saving a system', () => {
     await save();
 
     expect(await screen.findByText(/could not be saved/)).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Unsaved changes' })).toBeInTheDocument();
+    expect(saveEntry()).toHaveAccessibleName(/Unsaved changes/);
   });
 
   it('offers to store the system again when its row has vanished', async () => {
@@ -260,7 +296,7 @@ describe('saving a system', () => {
 
   it('cannot save when no Supabase project is configured', async () => {
     renderView();
-    await openMenu();
+    await openMenuEditing();
 
     // Announced rather than natively disabled: the entry stays focusable so the tooltip can say
     // why it cannot be used, so the assertion is that it says so AND that pressing it writes

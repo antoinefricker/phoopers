@@ -10,7 +10,7 @@ import { playheadTime } from '../testUtils/transport';
 const renderView = () => renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
 
 const openMenu = async () => {
-  await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Menu/ }));
 };
 
 const openDialog = async () => {

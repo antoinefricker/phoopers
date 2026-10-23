@@ -134,7 +134,7 @@ describe('the editor wiring', () => {
   it('shows the key on the menu entry that does the same thing', async () => {
     renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
 
-    await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Menu/ }));
     const entry = await screen.findByRole('button', { name: /Edit mode/ });
 
     expect(entry).toHaveAttribute('aria-keyshortcuts', 'Alt+Shift+E');

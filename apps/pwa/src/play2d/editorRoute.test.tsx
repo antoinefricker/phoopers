@@ -171,7 +171,7 @@ describe('editor routes', () => {
     fetched(stored);
     const { unmount } = renderAt('/play/p1');
 
-    await user.click(screen.getByRole('button', { name: 'System menu' }));
+    await user.click(screen.getByRole('button', { name: /^Menu/ }));
     await user.click(screen.getByRole('button', { name: 'Create a new system' }));
     const dialog = await screen.findByRole('dialog');
     await user.type(within(dialog).getByLabelText(/Name/), 'Brand new');
