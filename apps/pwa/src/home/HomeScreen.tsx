@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { useAuthContext } from '../auth/useAuthContext';
 import { readDraft } from '../draft/draftStorage';
-import { CreateSystemDialog } from './CreateSystemDialog';
+import { CreateSystemDialog } from '../app/CreateSystemDialog';
 import { ResumeDraftDialog } from './ResumeDraftDialog';
 
 interface DoorProps {

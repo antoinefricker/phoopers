@@ -1,7 +1,21 @@
 {
   "app": {
-    "account": "Account",
     "language": "Language",
+    "menu": {
+      "account": "Account",
+      "browse": "Browse systems",
+      "close": "Close the menu",
+      "create": "Create a new system",
+      "editing": "Editing",
+      "label": "Menu",
+      "labelUnsaved": "Menu, with unsaved changes",
+      "mine": "My systems",
+      "mineNeedsAccount": "Sign in to see your systems",
+      "navigation": "Navigation",
+      "needsProject": "This needs an account, which this app is not set up for",
+      "noAccounts": "This app is not set up with a project, so there are no accounts.",
+      "profile": "My information"
+    },
     "name": "phoopers",
     "notConfigured": "This app is not configured with a Supabase project, so this screen is unavailable.",
     "signIn": "Sign in",
@@ -13,7 +27,6 @@
       "retry": "Try again"
     },
     "displayName": {
-      "change": "Change my display name",
       "confirm": "Continue",
       "error": "The name could not be saved. Try again.",
       "hint": "This is the name shown on public systems. You can change it later.",
@@ -101,6 +114,10 @@
     "canvas": {
       "label": "Court diagram: {{name}}"
     },
+    "clear": {
+      "body": "Everything on the court will be erased: the players, their movement, the steps, the screens and every variant. The system keeps its name and its court.",
+      "confirm": "Erase everything"
+    },
     "court": {},
     "create": {
       "cancel": "Cancel",
@@ -182,10 +199,8 @@
     "loadError": "Something went wrong. Please try again.",
     "loading": "Loading the system",
     "menu": {
-      "close": "Close the system menu",
-      "create": "Create a new system",
+      "clear": "Clear",
       "editMode": "Edit mode",
-      "label": "System menu",
       "modeShortcut": "Alt + Shift + E",
       "playMode": "Play mode",
       "save": "Save",

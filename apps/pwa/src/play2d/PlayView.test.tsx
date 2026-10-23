@@ -134,23 +134,28 @@ describe('PlayView', () => {
     expect(branches.getByRole('button', { name: SWITCH_NAME })).toBeInTheDocument();
   });
 
-  it('carries the account control, which its own header never had', () => {
+  it('carries the account, in the menu rather than beside the wordmark', async () => {
+    const user = userEvent.setup();
     renderView(1440, { configured: true, status: 'signedIn', userId: 'u' });
 
-    expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Menu/ }));
+    expect(await screen.findByRole('button', { name: /My information/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
   });
 
-  it('invites a signed-out coach to sign in without leaving the editor', () => {
+  it('invites a signed-out coach to sign in without leaving the editor', async () => {
+    const user = userEvent.setup();
     renderView(1440, { configured: true });
 
-    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/signin');
+    await user.click(screen.getByRole('button', { name: /^Menu/ }));
+    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeInTheDocument();
   });
 
   it('keeps the system name in the menu, for the widths the header drops it at', async () => {
     const user = userEvent.setup();
     renderView();
 
-    await user.click(screen.getByRole('button', { name: 'System menu' }));
+    await user.click(screen.getByRole('button', { name: /^Menu/ }));
     // Not a heading: the header's own one stays in the DOM, and two would be ambiguous.
     expect(within(screen.getByRole('dialog')).getByText(hornsPlay.name)).toBeInTheDocument();
   });
@@ -250,7 +255,7 @@ describe('PlayView', () => {
         const user = userEvent.setup();
         renderView(1440, {}, soloPlay);
 
-        await user.click(screen.getByRole('button', { name: 'System menu' }));
+        await user.click(screen.getByRole('button', { name: /^Menu/ }));
         await user.click(await screen.findByRole('button', { name: /Edit mode/ }));
 
         await user.click(await screen.findByRole('button', { name: 'Branches' }));
@@ -400,7 +405,7 @@ describe('PlayView assembly', () => {
   it('shows the timeline and the issue panel in edit mode', async () => {
     renderView();
 
-    await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Menu/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Edit mode' }));
 
     expect(screen.getByTestId('step-ruler')).toBeInTheDocument();

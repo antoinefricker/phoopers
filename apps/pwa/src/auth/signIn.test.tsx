@@ -159,10 +159,10 @@ describe('the display name dialog', () => {
     );
   }
 
-  it('opens from the account menu, starting from the current name, and can be closed', async () => {
+  it('opens from the menu, starting from the current name, and can be closed', async () => {
     renderMenu();
-    await userEvent.click(await screen.findByRole('button', { name: 'Coach K' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Change my display name' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Menu/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /My information/ }));
     expect(((await screen.findByRole('textbox')) as HTMLInputElement).value).toBe('Coach K');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByText('What should we call you?')).toBeNull());

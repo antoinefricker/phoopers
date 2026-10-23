@@ -52,11 +52,21 @@ const renderView = (options: Parameters<typeof renderEditor>[2] = {}) =>
   );
 
 const openMenu = async () => {
-  await userEvent.click(screen.getByRole('button', { name: 'System menu' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Menu/ }));
+};
+
+// Saving is an authoring action, so it is offered in the Editing group in edit mode alone.
+// Switching mode closes the drawer, which is why the menu is opened twice here.
+const openMenuEditing = async () => {
+  await openMenu();
+  const toEdit = screen.queryByRole('button', { name: 'Edit mode' });
+  if (toEdit === null) return;
+  await userEvent.click(toEdit);
+  await openMenu();
 };
 
 const save = async () => {
-  await openMenu();
+  await openMenuEditing();
   await userEvent.click(screen.getByRole('button', { name: /^Save/ }));
 };
 
@@ -83,12 +93,12 @@ beforeEach(() => {
 describe('saving a system', () => {
   it('marks Save while the open system differs from what is stored', async () => {
     const { unmount } = renderView({ origin: null });
-    await openMenu();
+    await openMenuEditing();
     expect(screen.getByRole('img', { name: 'Unsaved changes' })).toBeInTheDocument();
     unmount();
 
     renderView({ origin: storedAs(ME), auth: signedIn });
-    await openMenu();
+    await openMenuEditing();
     expect(screen.queryByRole('img', { name: 'Unsaved changes' })).not.toBeInTheDocument();
   });
 
@@ -260,7 +270,7 @@ describe('saving a system', () => {
 
   it('cannot save when no Supabase project is configured', async () => {
     renderView();
-    await openMenu();
+    await openMenuEditing();
 
     // Announced rather than natively disabled: the entry stays focusable so the tooltip can say
     // why it cannot be used, so the assertion is that it says so AND that pressing it writes

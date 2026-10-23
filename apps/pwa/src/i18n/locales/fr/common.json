@@ -1,7 +1,21 @@
 {
   "app": {
-    "account": "Compte",
     "language": "Langue",
+    "menu": {
+      "account": "Compte",
+      "browse": "Parcourir les systèmes",
+      "close": "Fermer le menu",
+      "create": "Créer un nouveau système",
+      "editing": "Édition",
+      "label": "Menu",
+      "labelUnsaved": "Menu, modifications non enregistrées",
+      "mine": "Mes systèmes",
+      "mineNeedsAccount": "Connectez-vous pour voir vos systèmes",
+      "navigation": "Navigation",
+      "needsProject": "Cela demande un compte, or cette application n'est pas configurée pour en avoir",
+      "noAccounts": "Cette application n'est reliée à aucun projet : il n'y a donc pas de comptes.",
+      "profile": "Mes informations"
+    },
     "name": "phoopers",
     "notConfigured": "Cette application n'est reliée à aucun projet Supabase : cet écran est indisponible.",
     "signIn": "Se connecter",
@@ -13,7 +27,6 @@
       "retry": "Réessayer"
     },
     "displayName": {
-      "change": "Changer mon nom d'affichage",
       "confirm": "Continuer",
       "error": "Le nom n'a pas pu être enregistré. Réessayez.",
       "hint": "C'est le nom affiché sur les systèmes publics. Vous pourrez le changer plus tard.",
@@ -101,6 +114,10 @@
     "canvas": {
       "label": "Schéma du terrain : {{name}}"
     },
+    "clear": {
+      "body": "Tout ce qui est sur le terrain sera effacé : les joueurs, leurs déplacements, les étapes, les écrans et toutes les variantes. Le système garde son nom et son terrain.",
+      "confirm": "Tout effacer"
+    },
     "court": {},
     "create": {
       "cancel": "Annuler",
@@ -186,10 +203,8 @@
     "loadError": "Une erreur s'est produite. Veuillez réessayer.",
     "loading": "Chargement du système",
     "menu": {
-      "close": "Fermer le menu du système",
-      "create": "Créer un nouveau système",
+      "clear": "Effacer",
       "editMode": "Mode édition",
-      "label": "Menu du système",
       "modeShortcut": "Alt + Shift + E",
       "playMode": "Mode lecture",
       "save": "Enregistrer",

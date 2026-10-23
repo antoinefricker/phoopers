@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { writeDraft } from '../draft/draftStorage';
 import type { BranchId, PlayId } from '../engine';
 import { CreatePlayDialog } from '../editor/CreatePlayDialog';
 import { EditorContextProvider, NEW_PLAY_DURATION } from '../editor/EditorContextProvider';
 import { createPlay } from '../editor/mutations';
-import { useEditorContext } from '../editor/useEditorContext';
+import { EditorContext, useEditorContext } from '../editor/useEditorContext';
 
 interface Props {
   opened: boolean;
@@ -23,15 +23,24 @@ function Handoff({ placeholderId, opened, onClose }: Props & { placeholderId: Pl
     void navigate('/play');
   }, [play, placeholderId, navigate]);
 
+  // Nothing is open away from the editor, so there is no warning to give about discarding it.
   return <CreatePlayDialog opened={opened} onClose={onClose} hideDiscardWarning />;
 }
 
 /**
- * The creation dialog away from the editor. The dialog builds its system through the editor
- * context, so this hosts a throwaway one: the placeholder is never drawn or stored, and the
- * first play that replaces it is the coach's.
+ * Creating a system, from wherever the coach asked for one.
+ *
+ * The menu offers it on every page, but the two places it is asked from want different things.
+ * In the editor there is a system open and the new one replaces it, through the editor context
+ * that is already there — anything else would leave the coach looking at the old system. Away
+ * from it there is no context at all, so this hosts a throwaway one: the placeholder is never
+ * drawn or stored, and the first play that replaces it becomes the draft, which `/play` opens.
+ *
+ * Read with `useContext` rather than `useEditorContext`: having no editor is the ordinary case
+ * here, not a mistake, and the hook is right to throw for everyone else.
  */
 export function CreateSystemDialog({ opened, onClose }: Props) {
+  const editor = useContext(EditorContext);
   const [placeholder] = useState(() =>
     createPlay(
       { name: '', court: 'fiba', extent: 'full', lineup: 'empty', duration: NEW_PLAY_DURATION },
@@ -43,6 +52,9 @@ export function CreateSystemDialog({ opened, onClose }: Props) {
       },
     ),
   );
+
+  // The warning belongs to this branch alone: there is a system open, and it is about to go.
+  if (editor !== null) return <CreatePlayDialog opened={opened} onClose={onClose} />;
 
   return (
     <EditorContextProvider initialPlay={placeholder}>
