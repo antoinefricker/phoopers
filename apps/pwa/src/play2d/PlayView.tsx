@@ -8,6 +8,7 @@ import { IssuePanel } from '../editor/IssuePanel';
 import { PlayMenu } from '../editor/PlayMenu';
 import { TimeGrid } from '../editor/TimeGrid';
 import { Timeline } from '../editor/Timeline';
+import { TimelineZoomControls } from '../editor/TimelineZoomControls';
 import { TimelineViewportContextProvider } from '../editor/TimelineViewportContextProvider';
 import { extentOf } from '../engine';
 import { useEditorContext } from '../editor/useEditorContext';
@@ -174,6 +175,9 @@ function TimeRegion({ mode }: { mode: 'play' | 'edit' }) {
 
   return (
     <TimelineViewportContextProvider duration={timeline.duration}>
+      {/* A row of its own, outside the box the grid fills: the grid's lines are measured from the
+          transport's top, so a row inside it would have them running behind the buttons. */}
+      {mode === 'edit' && <TimelineZoomControls />}
       <Box style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {mode === 'edit' && <TimeGrid />}
         {/* Above the grid, and carrying the gap the region used to give these two. */}

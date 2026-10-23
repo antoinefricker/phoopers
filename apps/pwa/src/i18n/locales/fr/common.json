@@ -219,7 +219,9 @@
     },
     "timeline": {
       "pass": "Passe",
-      "shot": "Tir"
+      "shot": "Tir",
+      "zoomIn": "Zoomer",
+      "zoomOut": "Dézoomer"
     },
     "transport": {
       "add": "Ajouter",

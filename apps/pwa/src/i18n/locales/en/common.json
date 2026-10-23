@@ -215,7 +215,9 @@
     },
     "timeline": {
       "pass": "Pass",
-      "shot": "Shot"
+      "shot": "Shot",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out"
     },
     "transport": {
       "add": "Add",
