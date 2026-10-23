@@ -68,12 +68,13 @@ describe('clearing a system', () => {
     expect(screen.queryAllByTestId('token')).toHaveLength(0);
   });
 
-  it('offers neither clearing nor saving while watching, but still offers the way back', async () => {
+  it('offers no clearing while watching, but still the way back and the save', async () => {
     renderView();
     await openMenu();
 
     expect(screen.getByRole('button', { name: 'Edit mode' })).toBeInTheDocument();
+    // Saving the work is not authoring it, so it is offered in both modes.
+    expect(screen.getByRole('button', { name: /^Save/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Save/ })).not.toBeInTheDocument();
   });
 });

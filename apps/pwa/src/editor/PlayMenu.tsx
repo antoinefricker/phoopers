@@ -32,6 +32,9 @@ export function PlayMenu() {
   // and has to be able to close it, and a callback handed out during a render cannot do that.
   const [opened, setOpened] = useState(false);
   const saving = useSaveSystem();
+  // Offered in both modes — saving the work is not authoring it — but there is nothing to do
+  // when a save would write nothing, or when there is nowhere to write it.
+  const cannotSave = saving.disabled || saving.upToDate;
   // Here, and not in a hook of its own beside the mode's: `useSaveSystem` holds the dialog's
   // state and this component renders the dialog, so a second instance anywhere else would open
   // one that nothing displays. Disabled while there is nothing to save to, or a write is already
@@ -41,7 +44,7 @@ export function PlayMenu() {
     () => {
       if (saving.start()) setOpened(false);
     },
-    !saving.disabled && !saving.busy,
+    !cannotSave && !saving.busy,
   );
   // The dialog stays mounted so Mantine's transitions survive, and its `key` changes on each
   // open so it starts from a fresh instance rather than through an effect.
@@ -103,76 +106,78 @@ export function PlayMenu() {
                 }
                 onClick={pick(() => setMode(mode === 'play' ? 'edit' : 'play'))}
               />
+              <Tooltip
+                label={
+                  saving.disabled
+                    ? t('play.save.unavailable', 'Saving needs an account, which this app is not set up for')
+                    : t('play.save.upToDate', 'Everything is saved')
+                }
+                disabled={!cannotSave}
+              >
+                {/* `aria-disabled` and a guarded handler, not the native `disabled`: NavLink
+                      keeps its own `disabled` prop for styling and never forwards it to the
+                      element, so the attribute would not arrive. Announcing it this way also
+                      leaves the entry focusable, which is what lets the tooltip above explain
+                      why it cannot be used — the native attribute used to swallow those events
+                      and needed a wrapper span. */}
+                <NavLink
+                  component="button"
+                  type="button"
+                  mod={{ disabled: cannotSave }}
+                  aria-disabled={cannotSave || undefined}
+                  aria-keyshortcuts={SAVE_SHORTCUT.aria}
+                  // NavLink's body clips, so that a long label truncates with an ellipsis
+                  // rather than pushing the chord off the entry. The unsaved mark hangs a
+                  // few pixels above the word it sits on, which that clipping cut in half.
+                  // This label is one short word and has nothing to truncate.
+                  styles={{ body: { overflow: 'visible' } }}
+                  onClick={() => {
+                    if (cannotSave) return;
+                    // An overwrite has no dialog to report in, so the drawer stays open to
+                    // say how it went.
+                    if (saving.start()) close();
+                  }}
+                  // The mark rides on the word rather than sitting at the far edge: it says
+                  // something about THIS entry — that there is something to save — and across
+                  // the gap it read as a third column of its own. The indicator is
+                  // decorative, so the words beside it are what a screen reader is told.
+                  label={
+                    <UnsavedIndicator dirty={saving.isDirty} inline>
+                      {t('play.menu.save', 'Save')}
+                      {saving.isDirty && <VisuallyHidden> {t('play.save.unsaved', 'Unsaved changes')}</VisuallyHidden>}
+                    </UnsavedIndicator>
+                  }
+                  // NavLink has no `loading` of its own, so the write in flight takes the
+                  // place of the chord: the hint is of no use while the only thing to do is
+                  // wait.
+                  rightSection={
+                    saving.busy ? (
+                      <Loader size="xs" />
+                    ) : (
+                      <Kbd size="xs" aria-hidden="true" style={{ whiteSpace: 'nowrap' }}>
+                        {t('play.menu.saveShortcut', 'Alt + Shift + S')}
+                      </Kbd>
+                    )
+                  }
+                />
+              </Tooltip>
+              {saving.overwriteFailed && (
+                <Alert color="red" p="xs">
+                  {t('play.save.error', 'The system could not be saved. Your work is kept here; try again.')}
+                </Alert>
+              )}
+              {/* Clearing is authoring and saving the work is not, so this is the one entry
+                  that goes when the coach is merely watching. */}
               {mode === 'edit' && (
-                <>
-                  <Tooltip
-                    label={t('play.save.unavailable', 'Saving needs an account, which this app is not set up for')}
-                    disabled={!saving.disabled}
-                  >
-                    {/* `aria-disabled` and a guarded handler, not the native `disabled`: NavLink
-                        keeps its own `disabled` prop for styling and never forwards it to the
-                        element, so the attribute would not arrive. Announcing it this way also
-                        leaves the entry focusable, which is what lets the tooltip above explain
-                        why it cannot be used — the native attribute used to swallow those events
-                        and needed a wrapper span. */}
-                    <NavLink
-                      component="button"
-                      type="button"
-                      mod={{ disabled: saving.disabled }}
-                      aria-disabled={saving.disabled || undefined}
-                      aria-keyshortcuts={SAVE_SHORTCUT.aria}
-                      // NavLink's body clips, so that a long label truncates with an ellipsis
-                      // rather than pushing the chord off the entry. The unsaved mark hangs a
-                      // few pixels above the word it sits on, which that clipping cut in half.
-                      // This label is one short word and has nothing to truncate.
-                      styles={{ body: { overflow: 'visible' } }}
-                      onClick={() => {
-                        if (saving.disabled) return;
-                        // An overwrite has no dialog to report in, so the drawer stays open to
-                        // say how it went.
-                        if (saving.start()) close();
-                      }}
-                      // The mark rides on the word rather than sitting at the far edge: it says
-                      // something about THIS entry — that there is something to save — and across
-                      // the gap it read as a third column of its own. The indicator is
-                      // decorative, so the words beside it are what a screen reader is told.
-                      label={
-                        <UnsavedIndicator dirty={saving.isDirty} inline>
-                          {t('play.menu.save', 'Save')}
-                          {saving.isDirty && (
-                            <VisuallyHidden> {t('play.save.unsaved', 'Unsaved changes')}</VisuallyHidden>
-                          )}
-                        </UnsavedIndicator>
-                      }
-                      // NavLink has no `loading` of its own, so the write in flight takes the
-                      // place of the chord: the hint is of no use while the only thing to do is
-                      // wait.
-                      rightSection={
-                        saving.busy ? (
-                          <Loader size="xs" />
-                        ) : (
-                          <Kbd size="xs" aria-hidden="true" style={{ whiteSpace: 'nowrap' }}>
-                            {t('play.menu.saveShortcut', 'Alt + Shift + S')}
-                          </Kbd>
-                        )
-                      }
-                    />
-                  </Tooltip>
-                  {saving.overwriteFailed && (
-                    <Alert color="red" p="xs">
-                      {t('play.save.error', 'The system could not be saved. Your work is kept here; try again.')}
-                    </Alert>
-                  )}
-                  <NavLink
-                    component="button"
-                    type="button"
-                    label={t('play.menu.clear', 'Clear')}
-                    // The drawer stays open behind the confirmation: dismissing it must leave the
-                    // coach where they were, with the entry they nearly pressed still in front
-                    // of them.
-                    onClick={() => setClearing((c) => ({ opened: true, count: c.count + 1 }))}
-                  />
-                </>
+                <NavLink
+                  component="button"
+                  type="button"
+                  label={t('play.menu.clear', 'Clear')}
+                  // The drawer stays open behind the confirmation: dismissing it must leave the
+                  // coach where they were, with the entry they nearly pressed still in front
+                  // of them.
+                  onClick={() => setClearing((c) => ({ opened: true, count: c.count + 1 }))}
+                />
               )}
             </>
           );

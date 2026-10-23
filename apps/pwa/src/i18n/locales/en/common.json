@@ -226,6 +226,7 @@
       "title": "Save the system",
       "unavailable": "Saving needs an account, which this app is not set up for",
       "unsaved": "Unsaved changes",
+      "upToDate": "Everything is saved",
       "visibility": "Who can see it"
     },
     "timeline": {

@@ -55,7 +55,7 @@ const openMenu = async () => {
   await userEvent.click(screen.getByRole('button', { name: /^Menu/ }));
 };
 
-// Saving is an authoring action, so it is offered in the Editing group in edit mode alone.
+// Saving is offered in both modes; these are the tests that want the whole Editing group.
 // Switching mode closes the drawer, which is why the menu is opened twice here.
 const openMenuEditing = async () => {
   await openMenu();
@@ -104,6 +104,28 @@ describe('saving a system', () => {
     renderView({ origin: storedAs(ME), auth: signedIn });
     await openMenuEditing();
     expect(saveEntry()).not.toHaveAccessibleName(/Unsaved changes/);
+  });
+
+  it('offers Save while watching too, since saving the work is not authoring it', async () => {
+    renderView({ origin: null, auth: signedIn });
+    await openMenu();
+
+    expect(saveEntry()).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('has nothing to do when the open system is already what is stored', async () => {
+    renderView({ origin: storedAs(ME), auth: signedIn });
+    await openMenu();
+
+    expect(saveEntry()).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('still offers a copy of a system someone else owns, untouched as it is', async () => {
+    // Not dirty, and still something to save: the copy does not exist yet.
+    renderView({ origin: storedAs(SOMEONE), auth: signedIn });
+    await openMenu();
+
+    expect(saveEntry()).not.toHaveAttribute('aria-disabled');
   });
 
   it('sends a coach with no account to sign in, and comes back to the save dialog', async () => {

@@ -230,6 +230,7 @@
       "title": "Enregistrer le système",
       "unavailable": "L'enregistrement nécessite un compte, que cette application n'a pas configuré",
       "unsaved": "Modifications non enregistrées",
+      "upToDate": "Tout est enregistré",
       "visibility": "Qui peut le voir"
     },
     "timeline": {
