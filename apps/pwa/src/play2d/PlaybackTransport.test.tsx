@@ -557,18 +557,69 @@ describe('the scrubber', () => {
   });
 
   // jsdom lays nothing out, so a clipped thumb cannot be seen; the computed style is the only
-  // thing to pin. The clip must reach half a thumb past the axis, and the margin must give back
-  // what the padding took so the axis still begins TRACK_INSET_PX in, like the tracks'.
-  it('keeps the thumb whole at both ends without moving the axis', async () => {
-    await renderAuthoring();
-    const window = getComputedStyle(screen.getByTestId('scrubber-window'));
-    const left = parseFloat(window.paddingLeft);
-    const right = parseFloat(window.paddingRight);
+  // thing to pin. At an end the view has reached, the clip must reach half a thumb past the axis,
+  // and the margin must give back what the padding took so the axis still begins TRACK_INSET_PX
+  // in, like the tracks'. Anywhere else the clip stays at the axis edge, as the other surfaces'
+  // does, or the track and the marks would spill into the gutter.
+  // Narrower than the fixture's 960px of play, so there is something to scroll.
+  const WINDOW_PX = 500;
+  const scrubberEdges = () => {
+    const style = getComputedStyle(screen.getByTestId('scrubber-window'));
 
-    expect(left).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
-    expect(right).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
-    expect(parseFloat(window.marginLeft) + left).toBe(TRACK_INSET_PX);
-    expect(parseFloat(window.marginRight) + right).toBe(TRACK_INSET_PX);
+    return {
+      padding: [parseFloat(style.paddingLeft), parseFloat(style.paddingRight)],
+      margin: [parseFloat(style.marginLeft), parseFloat(style.marginRight)],
+    };
+  };
+  const scrollTo = (offset: number) => {
+    const strip = screen.getByTestId('timeline-scrollbar');
+    Object.defineProperty(strip, 'scrollLeft', { value: offset, configurable: true, writable: true });
+    fireEvent.scroll(strip);
+  };
+  const stubWindowWidth = () =>
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: WINDOW_PX,
+      bottom: 10,
+      width: WINDOW_PX,
+      height: 10,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+  it('keeps the thumb whole at the start without moving the axis', async () => {
+    stubWindowWidth();
+    await renderAuthoring();
+    const { padding, margin } = scrubberEdges();
+
+    expect(padding[0]).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
+    expect(margin[0]! + padding[0]!).toBe(TRACK_INSET_PX);
+    // The far end is out of view, so nothing hangs past the axis there.
+    expect(padding[1]).toBe(0);
+    expect(margin[1]).toBe(TRACK_INSET_PX);
+  });
+
+  it('keeps the thumb whole at the end of the play without moving the axis', async () => {
+    stubWindowWidth();
+    await renderAuthoring();
+    scrollTo(Number.MAX_SAFE_INTEGER);
+    const { padding, margin } = scrubberEdges();
+
+    expect(padding[1]).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
+    expect(margin[1]! + padding[1]!).toBe(TRACK_INSET_PX);
+    expect(padding[0]).toBe(0);
+  });
+
+  it('clips at the axis edge, like the tracks, anywhere in between', async () => {
+    stubWindowWidth();
+    await renderAuthoring();
+    scrollTo(120);
+    const { padding, margin } = scrubberEdges();
+
+    expect(padding).toEqual([0, 0]);
+    expect(margin).toEqual([TRACK_INSET_PX, TRACK_INSET_PX]);
   });
 
   it('stays elastic while watching', () => {

@@ -25,10 +25,15 @@ interface Props {
    * How far something drawn ON the axis's ends reaches past them, in px: the scrubber's thumb is
    * centred on t = 0 and t = duration, so half of it sits outside the axis. The window's clip
    * normally stops at the axis's edge and would cut it. With this set the clip moves out by that
-   * much — as padding, with the margin giving the same back — so the axis still starts exactly
-   * `TRACK_INSET_PX` from the gutter and stays aligned with every other surface. The default, 0,
-   * leaves the window exactly as it was. Only the horizontal clip is kept: a hover label rises
-   * above the thumb and would be cut by a vertical one.
+   * much at an end — as padding, with the margin giving the same back — so the axis still starts
+   * exactly `TRACK_INSET_PX` from the gutter and stays aligned with every other surface.
+   *
+   * Only at the end the view has actually reached. Everything else the window holds (the track,
+   * the marks) would spill into the margin too, and a clip cannot tell a thumb from a track; but
+   * at an end that has not been reached there is nothing hanging past the axis to show, so the
+   * clip stays at the axis edge, where every other surface clips. The default, 0, leaves the
+   * window exactly as it was. Only the horizontal clip is moved: a hover label rises above the
+   * thumb and would be cut by a vertical one.
    */
   overhangPx?: number;
 }
@@ -50,7 +55,7 @@ interface Props {
  * and native scrolling would mean four scrollbars and four scroll events to keep damped.
  */
 export function TimeWindow({ children, testId, contentRef, measure = false, overhangPx = 0 }: Props) {
-  const { scrollLeft, contentWidthPx, setViewportWidthPx } = useTimelineViewportContext();
+  const { scrollLeft, contentWidthPx, viewportWidthPx, setViewportWidthPx } = useTimelineViewportContext();
 
   // A ref callback, not an effect: `react-hooks/set-state-in-effect` forbids a setter in an
   // effect body, and the width has to be read once on mount — the observer only ever fires on a
@@ -70,6 +75,10 @@ export function TimeWindow({ children, testId, contentRef, measure = false, over
     [setViewportWidthPx],
   );
 
+  const overhangLeft = scrollLeft <= 0 ? overhangPx : 0;
+  // A play shorter than the window has both ends in view, which this reads as the end reached.
+  const overhangRight = scrollLeft >= contentWidthPx - viewportWidthPx ? overhangPx : 0;
+
   return (
     <Box
       data-testid={testId}
@@ -81,11 +90,11 @@ export function TimeWindow({ children, testId, contentRef, measure = false, over
         height: '100%',
         overflow: 'hidden',
         position: 'relative',
-        marginLeft: TRACK_INSET_PX - overhangPx,
-        marginRight: TRACK_INSET_PX - overhangPx,
+        marginLeft: TRACK_INSET_PX - overhangLeft,
+        marginRight: TRACK_INSET_PX - overhangRight,
         ...(overhangPx > 0 && {
-          paddingLeft: overhangPx,
-          paddingRight: overhangPx,
+          paddingLeft: overhangLeft,
+          paddingRight: overhangRight,
           overflowX: 'clip',
           overflowY: 'visible',
         }),
