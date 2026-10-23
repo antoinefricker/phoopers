@@ -40,9 +40,6 @@ interface Props {
 // One grid cell: every authored time falls on the grid, so the shortest screen is the distance
 // between two of them.
 export const MIN_SCREEN_DURATION = TIME_GRID_S;
-// A drop snaps to a step within a fixed distance on screen, so the pull is the same at every zoom
-// level rather than a shrinking share of the play; see `snapRadiusSeconds`.
-
 // The row is 2rem tall; the badge leaves a little air above and below.
 const ROW_SYMBOL_PX = 24;
 

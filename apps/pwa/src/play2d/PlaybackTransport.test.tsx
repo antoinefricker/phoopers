@@ -299,6 +299,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  // The window-width stub is a spy on a prototype, which outlives the test that made it.
+  vi.restoreAllMocks();
 });
 
 const click = (element: HTMLElement) => fireEvent.click(element);
