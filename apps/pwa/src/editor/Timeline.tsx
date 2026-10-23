@@ -18,12 +18,14 @@ import { TimelineScrollbar } from './TimelineScrollbar';
 import { SCROLLBAR_GUTTER_PX, leftPx, rowsOf, spanPx, timeFromClientX } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { DRAG_SLOP_PX } from './useTimeDrag';
+import { xOfTime } from './timelineScale';
+import { scrollToFollow } from './timelineScroll';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 
 export function Timeline() {
   const { t } = useTranslation();
   const { play, selection, select, removeKeyframe, movePlayer } = useEditorContext();
-  const { timeline, branchId, currentTimeRef, subscribe, seek, pause } = usePlaybackContext();
+  const { timeline, branchId, currentTimeRef, isPlaying, subscribe, seek, pause } = usePlaybackContext();
   const playheadRef = useRef<HTMLDivElement>(null);
   // Two boxes, two questions, and they stopped having one answer the day the axis started
   // scrolling. `axisAreaRef` is the fixed region to the right of the label column: it answers
@@ -36,7 +38,14 @@ export function Timeline() {
   const axisContentRef = useRef<HTMLDivElement>(null);
   const scrubbing = useRef(false);
   const { duration } = timeline;
-  const { pxPerCell } = useTimelineViewportContext();
+  const { pxPerCell, scrollLeft, scrollTo, viewportWidthPx, contentWidthPx } = useTimelineViewportContext();
+  // What the follow reads each frame. Held in a ref so the subscription below does not tear
+  // down and re-subscribe whenever the view moves, and so a frame reads the latest offset
+  // without the clock re-rendering the rows to hand it one.
+  const followRef = useRef({ isPlaying, scrollLeft, viewportWidthPx, contentWidthPx, scrollTo });
+  useEffect(() => {
+    followRef.current = { isPlaying, scrollLeft, viewportWidthPx, contentWidthPx, scrollTo };
+  });
   const forkTime = forkTimeOf(play, branchId);
 
   // The playhead moves by writing its style directly, as the court tokens do, so a playing
@@ -48,9 +57,21 @@ export function Timeline() {
       }
     };
 
+    // Only while the play runs: a seek is the coach pointing at a time, which is already where
+    // they are looking, and moving the view under their pointer would fight a scrub.
+    const follow = (time: number) => {
+      place(time);
+      const view = followRef.current;
+      if (!view.isPlaying) return;
+
+      const next = scrollToFollow(xOfTime(time, pxPerCell), view);
+      // A write only when the view has to move, so a playhead inside the band costs nothing.
+      if (next !== view.scrollLeft) view.scrollTo(next);
+    };
+
     place(currentTimeRef.current);
 
-    return subscribe(place);
+    return subscribe(follow);
     // The scale, not the duration: a time's position is a distance from t=0 now, so a zoom is
     // what moves the playhead without the clock ticking.
   }, [currentTimeRef, subscribe, pxPerCell]);

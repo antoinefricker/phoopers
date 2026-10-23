@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import type { KeyboardEvent, PointerEvent, RefObject } from 'react';
 import { timeFromClientX } from './timelineGeometry';
+import { scrollForEdgeDrag } from './timelineScroll';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 import { TIME_GRID_S, snapToGrid } from '../play2d/transportMath';
 
@@ -50,7 +51,7 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
     null,
   );
   const dragged = useRef(false);
-  const { pxPerCell } = useTimelineViewportContext();
+  const { pxPerCell, scrollLeft, scrollTo, viewportWidthPx, contentWidthPx } = useTimelineViewportContext();
 
   const bind = (gesture: TimeGesture) => ({
     onPointerDown: (event: PointerEvent<HTMLElement>) => {
@@ -75,12 +76,24 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
     onPointerMove: (event: PointerEvent<HTMLElement>) => {
       event.stopPropagation();
       const drag = active.current;
-      const rect = trackRef.current?.getBoundingClientRect();
-      if (drag === null || rect === undefined) return;
+      const measured = trackRef.current?.getBoundingClientRect();
+      if (drag === null || measured === undefined) return;
 
       if (!drag.moved && Math.abs(event.clientX - drag.startX) < DRAG_SLOP_PX) return;
 
       drag.moved = true;
+      // The view moves BEFORE the time is read, so the time the gesture resolves is the one under
+      // the pointer once the view has moved, not the one it had just left. The track is the
+      // translated content, so the window's own left edge is its left plus the offset.
+      const box = { scrollLeft, viewportWidthPx, contentWidthPx };
+      // A window with no measured width has no edge to be at: until its first measurement lands
+      // (and in a harness that never lays anything out) every pointer would read as past it.
+      const scrolled =
+        viewportWidthPx > 0 ? scrollForEdgeDrag(event.clientX - (measured.left + scrollLeft), box) : scrollLeft;
+      if (scrolled !== scrollLeft) scrollTo(scrolled);
+      // The rect was measured before the move and the DOM has not caught up with it yet, so the
+      // content's left edge is shifted by hand by the distance the view just travelled.
+      const rect = new DOMRect(measured.left - (scrolled - scrollLeft), measured.top, measured.width, measured.height);
       // Snapped to the grid BEFORE the gesture constrains it, never after: a constraint stops a
       // keyframe just short of its neighbour, and rounding that result would land it on top of
       // the thing the constraint exists to keep it off. The bound keeps the last word, so a

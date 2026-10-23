@@ -69,9 +69,13 @@ const SIGNED_OUT: AuthContextValue = {
 // The app mounts the viewport around the whole time region, so anything that positions by pixels
 // can read the scale; the harness does the same, sized to the playback's own duration.
 function Viewport({ children }: { children: ReactNode }) {
-  const { timeline } = usePlaybackContext();
+  const { timeline, currentTimeRef } = usePlaybackContext();
 
-  return <TimelineViewportContextProvider duration={timeline.duration}>{children}</TimelineViewportContextProvider>;
+  return (
+    <TimelineViewportContextProvider duration={timeline.duration} playheadTimeRef={currentTimeRef}>
+      {children}
+    </TimelineViewportContextProvider>
+  );
 }
 
 export function renderEditor(

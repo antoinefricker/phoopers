@@ -1,0 +1,164 @@
+import { act, fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fixturePlay, P1, ROOT } from '../engine/__fixtures__/play';
+import { PlayView } from '../play2d/PlayView';
+import { stubViewportWidth } from '../testUtils/viewport';
+import { enterEditMode, readProbe, renderEditor, trackOf } from './testUtils/renderEditor';
+
+// jsdom lays nothing out, so the window is given a width by hand: 400px is narrower than the
+// 960px the fixture's four seconds take at the opening zoom, so there is something to scroll.
+const WINDOW_PX = 400;
+// At 24px per 0.1 s cell a second is 240px. The follow band is 10 % to 90 % of the window.
+const PX_PER_SECOND = 240;
+
+let now = 0;
+let frames = new Map<number, FrameRequestCallback>();
+let nextFrame = 1;
+
+beforeEach(() => {
+  stubViewportWidth(1440);
+  now = 0;
+  frames = new Map();
+  nextFrame = 1;
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+    frames.set(nextFrame, cb);
+
+    return nextFrame++;
+  });
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id));
+  // The scrolled content's left edge is where a real layout would put it: minus the offset it is
+  // translated by. Everything else sits at the origin, the one window with a width.
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+    const el = this as HTMLElement;
+    const id = el.getAttribute('data-testid') ?? '';
+    const shift = /translateX\((-?[\d.]+)px\)/.exec(el.style.transform)?.[1] ?? '0';
+    const width = id.endsWith('-window') || id === 'step-ruler-window' ? WINDOW_PX : 0;
+
+    return new DOMRect(id.endsWith('-content') ? Number(shift) : 0, 0, width, 0);
+  });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+// One animation frame, `ms` after the last. The clock ignores its first frame (it has no
+// previous stamp to measure from), so a play always starts with a zero-length one.
+function advance(ms: number) {
+  now += ms;
+  const pending = frames;
+  frames = new Map();
+  act(() => {
+    for (const frame of pending.values()) frame(now);
+  });
+}
+
+const renderTimeline = async () => {
+  renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+  await enterEditMode();
+};
+
+const offsetOf = () => screen.getByTestId(`timeline-window-${P1}-content`).style.transform;
+const keyframe = (t: number) =>
+  within(screen.getByTestId(`timeline-row-${P1}`)).getByRole('button', { name: `Keyframe at ${t}s` });
+// A seek the way a coach does it, without touching the clock's running state.
+const seekTo = (t: number) => fireEvent.click(keyframe(t));
+
+const scrollbarTo = (offset: number) => {
+  const strip = screen.getByTestId('timeline-scrollbar');
+  Object.defineProperty(strip, 'scrollLeft', { value: offset, configurable: true, writable: true });
+  fireEvent.scroll(strip);
+};
+
+const startPlaying = async () => {
+  await userEvent.click(screen.getByRole('button', { name: 'Play' }));
+  // The clock's opening frame, which only records its stamp.
+  advance(0);
+};
+
+describe('the view while the play runs', () => {
+  it('holds still while the playhead is inside the band', async () => {
+    await renderTimeline();
+    await startPlaying();
+
+    // A second in is 240px, inside the 40 to 360px band of a 400px window.
+    advance(1000);
+
+    expect(offsetOf()).toBe('translateX(0px)');
+  });
+
+  it('carries the playhead at the far edge', async () => {
+    await renderTimeline();
+    await startPlaying();
+
+    // Two seconds in is 480px, 120px past the band's far edge at 360px, so the view moves by
+    // exactly that to hold the playhead on the edge.
+    advance(2000);
+
+    expect(offsetOf()).toBe(`translateX(-${2 * PX_PER_SECOND - WINDOW_PX * 0.9}px)`);
+  });
+
+  it('does not move on its own while the play is stopped', async () => {
+    await renderTimeline();
+
+    // A keyframe at 4s is 960px along, far outside the window, and selecting one seeks to it.
+    // Following is for a play that runs: a stopped one has a coach pointing, not a clock moving.
+    seekTo(4);
+
+    expect(offsetOf()).toBe('translateX(0px)');
+  });
+});
+
+describe('the view around a zoom', () => {
+  it('keeps the playhead where it was in the window', async () => {
+    await renderTimeline();
+    scrollbarTo(300);
+    seekTo(2);
+    // 480px along, 300px scrolled: 180px into the window.
+    expect(offsetOf()).toBe('translateX(-300px)');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }));
+
+    // At 18px per cell the playhead is 360px along, so the offset that keeps it 180px in is 180px.
+    expect(offsetOf()).toBe('translateX(-180px)');
+  });
+
+  it('never leaves the view past the end of a shorter play', async () => {
+    await renderTimeline();
+    scrollbarTo(WINDOW_PX * 1.4);
+    seekTo(4);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }));
+
+    // Zooming out shrinks the content from 960px to 720px, whose furthest offset is 320px. The
+    // offset it had before, 560px, would sit 240px past that if nothing settled it with the zoom.
+    expect(offsetOf()).toBe('translateX(-320px)');
+  });
+});
+
+describe('the view during a drag', () => {
+  it('scrolls when the pointer reaches the edge, and the drag goes on', async () => {
+    await renderTimeline();
+    const user = userEvent.setup();
+    const marker = keyframe(2);
+
+    // Pressed at x = 0, where the mocked marker sits, so the grab offset is nothing and the
+    // pointer's x is the marker's.
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: marker, coords: { clientX: 0, clientY: 0 } },
+      { target: marker, coords: { clientX: WINDOW_PX - 5, clientY: 0 } },
+      { target: marker, coords: { clientX: WINDOW_PX - 4, clientY: 0 } },
+    ]);
+
+    // Within 24px of the right edge, each move steps the view along by 24px.
+    expect(offsetOf()).toBe('translateX(-48px)');
+
+    await user.pointer({ keys: '[/MouseLeft]', target: marker });
+
+    // The time committed is the one under the pointer after the view moved (396 + 48 = 444px,
+    // which is 1.85 s, snapped to 1.9), not the one under it before: 396px is 1.65 s, or 1.7.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toContain(1.9);
+  });
+});

@@ -171,10 +171,10 @@ export function PlayView() {
 // duration. Mounted in both modes: the transport sits in it either way. The zoom level resets
 // whenever this mounts, which is what keeps it to one editor session.
 function TimeRegion({ mode }: { mode: 'play' | 'edit' }) {
-  const { timeline } = usePlaybackContext();
+  const { timeline, currentTimeRef } = usePlaybackContext();
 
   return (
-    <TimelineViewportContextProvider duration={timeline.duration}>
+    <TimelineViewportContextProvider duration={timeline.duration} playheadTimeRef={currentTimeRef}>
       {/* A row of its own, outside the box the grid fills: the grid's lines are measured from the
           transport's top, so a row inside it would have them running behind the buttons. */}
       {mode === 'edit' && <TimelineZoomControls />}
