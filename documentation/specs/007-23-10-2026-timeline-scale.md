@@ -43,7 +43,7 @@ alignment, paid deliberately.
 What it costs, measured, is in
 [limitations](../limitations.md#a-whole-system-can-no-longer-be-seen-at-once-unless-it-fits), and the one
 thing it leaves a keyboard unable to do in
-[limitations](../limitations.md#a-keyboard-user-cannot-scroll-the-time-axis).
+[limitations](../limitations.md#the-time-axis-cannot-be-scrolled-without-moving-focus-or-dragging).
 
 **The horizontal scrollbar's place is reserved whether or not it is in use**, as the vertical
 one's already is. A gutter that appeared with the bar would move the axis under the coach's

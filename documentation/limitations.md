@@ -464,29 +464,28 @@ over overview, and lists a fit-to-window level and an overview strip as non-goal
 **Fix:** an overview strip, a minimap of the whole play with the visible window marked on it,
 which is the one surface allowed to be elastic; or a fifth, fit-to-window level.
 
-### A keyboard user cannot scroll the time axis
+### The time axis cannot be scrolled without moving focus or dragging
 
-The scrollbar strip is `aria-hidden`, the view moves by a CSS transform, and the zoom buttons
-are the only keyboard route to a different view. Focusing a marker, bar or handle that sits
-outside the window does not bring it into view: nothing on the axis listens for focus. A
-keyboard user reaches a time outside the window by zooming out with the buttons until it is in
-view, and by nothing else.
+Tab focus carries the view: since commit 48eb599, `TimeWindow` handles `onFocusCapture` by moving
+the shared offset through `scrollTo`, so a keyboard user who tabs to a marker, bar or handle
+outside the window has the view brought to it. What is left is that nothing scrolls the axis
+_without_ changing focus. The scrollbar strip is `aria-hidden` and the view moves by a CSS
+transform, so there is no keyboard equivalent of dragging the strip. A coach who wants to look
+further along the play without changing what is selected has to zoom out with the buttons, or tab
+through everything that lies between.
 
-Measured by the same arithmetic. At level 1 a 1440 px window shows **5.02 s** of axis (1204 px
-at 240 px/s), so on the 8 s sample the last **2.98 s**, 37 % of the play, is off screen at rest.
-On a 390 px phone it shows **0.64 s**, so almost every marker is. At level 4 a 1440 px window
-shows 20.07 s and the same play fits whole. Whether the browser's own scroll-into-view on focus
-moves the clipped `TimeWindow` out of step with the transform was not tested in a browser.
+Measured by arithmetic from the layout (window less 236 px, as in the entry above). At level 1 a
+1440 px window shows **5.02 s** of axis (1204 px at 240 px/s), so on the 8 s sample the last
+**2.98 s**, 37 % of the play, is off screen at rest. On a 390 px phone it shows **0.64 s**, so
+almost every marker is. At level 4 a 1440 px window shows 20.07 s and the same play fits whole.
 
-It was not fixed because a scroll-on-focus rule has to be designed across every focusable on
-the axis rather than patched in, and because the arrow keys already mean "nudge the selected
-object by 0.1 s", so a rule that also moved the view with them needs a decision first.
+It was not fixed because a scroll key has to be chosen against the arrow keys, which already mean
+"nudge the selected object by 0.1 s", and against the page's own scrolling.
 
-**Fix:** a focus-driven scroll-into-view covering every focusable on the axis, the markers, the
-bars and the handles, that calls `scrollTo` through the viewport context with a margin so the
-target is not left against the edge. The arrow keys keep nudging the selected object only; the
-view follows the nudged object's new position through the same rule rather than through a
-second key binding.
+**Fix:** make the scrollbar strip a keyboard-operable control, focusable with `role="scrollbar"`
+or a slider and arrow, Home and End keys calling `scrollTo` through the viewport context, so the
+view can be moved without moving focus. It takes its own tab stop, which keeps the arrows on the
+timeline's objects meaning what they mean now.
 
 ## Accounts and persistence
 
