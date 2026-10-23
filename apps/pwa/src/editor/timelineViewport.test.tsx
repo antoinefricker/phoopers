@@ -25,9 +25,12 @@ function Probe() {
   );
 }
 
+// The clock's time, which a zoom reads; these tests never move it, so it rests at the start.
+const playhead = { current: 0 };
+
 function mount(duration = 18) {
   render(
-    <TimelineViewportContextProvider duration={duration}>
+    <TimelineViewportContextProvider duration={duration} playheadTimeRef={playhead}>
       <Probe />
     </TimelineViewportContextProvider>,
   );

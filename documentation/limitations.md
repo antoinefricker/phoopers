@@ -408,6 +408,29 @@ creation a non-goal.
 behind a small form. None of them touches `createPlay`; a court change additionally wants the
 existing keyframes clamped to the new bounds, which `clampToCourt` already computes.
 
+### Following the playhead re-renders the timeline on every frame
+
+While a play runs, the playhead moves by direct style writes and re-renders nothing. The view
+that follows it does not: once the playhead reaches the far edge of the follow band, which is
+where the follow holds it for the rest of the play, every frame sets the scroll offset in the
+viewport provider's state, so every row, the ruler, the grid and the scrollbar re-render once per
+frame.
+
+Measured with the React Profiler under jsdom on the horns set (11 rows) with a 400 px window and
+frames 16 ms apart: **0.4 ms of render work per frame while the playhead is inside the band, 8.9
+to 13.6 ms per frame once it is carried** (534 ms over 60 frames, 41 of them committing). jsdom
+does no layout or paint, so this is React work alone and a real browser adds to it; it was not
+profiled in one. The ratio, about 23 times, is the finding, not the absolute figure.
+
+It was not fixed because the offset is one value shared by five windows and the scrollbar, and
+the only way to keep it single while writing it directly is a store they all subscribe to,
+which is a refactor of how every time surface reads the scroll rather than a change to the
+follow.
+
+**Fix:** hold the offset in a ref plus a subscription, as the playback clock does, with each
+`TimeWindow` and the scrollbar registering to write its own transform; commit to state only when
+the play stops or a gesture moves the view.
+
 ## Accounts and persistence
 
 ### No automated test covers the Row Level Security policies

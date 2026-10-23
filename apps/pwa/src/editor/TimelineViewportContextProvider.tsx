@@ -8,9 +8,9 @@ interface Props {
   /**
    * The playback clock's time, which a zoom reads to keep the playhead where it was in the
    * window. A ref rather than a value because the clock ticks and this provider must not.
-   * Without one the playhead counts as sitting at the start.
+   * Required: a caller that left it out would anchor every zoom on t = 0 with no error to say so.
    */
-  playheadTimeRef?: RefObject<number>;
+  playheadTimeRef: RefObject<number>;
   children: ReactNode;
 }
 
@@ -37,7 +37,7 @@ export function TimelineViewportContextProvider({ duration, playheadTimeRef, chi
       const nextPx = ZOOM_LEVELS[nextIndex];
       if (nextPx === undefined || nextIndex === levelIndex) return;
 
-      const time = playheadTimeRef?.current ?? 0;
+      const time = playheadTimeRef.current;
       setLevelIndex(nextIndex);
       setScrollLeft(
         scrollAroundZoom(xOfTime(time, pxPerCell), xOfTime(time, nextPx), {

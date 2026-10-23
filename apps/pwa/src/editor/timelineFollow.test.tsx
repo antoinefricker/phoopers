@@ -148,8 +148,8 @@ describe('the view during a drag', () => {
     // pointer's x is the marker's.
     await user.pointer([
       { keys: '[MouseLeft>]', target: marker, coords: { clientX: 0, clientY: 0 } },
-      { target: marker, coords: { clientX: WINDOW_PX - 5, clientY: 0 } },
-      { target: marker, coords: { clientX: WINDOW_PX - 4, clientY: 0 } },
+      { target: marker, coords: { clientX: WINDOW_PX - 11, clientY: 0 } },
+      { target: marker, coords: { clientX: WINDOW_PX - 10, clientY: 0 } },
     ]);
 
     // Within 24px of the right edge, each move steps the view along by 24px.
@@ -157,8 +157,9 @@ describe('the view during a drag', () => {
 
     await user.pointer({ keys: '[/MouseLeft]', target: marker });
 
-    // The time committed is the one under the pointer after the view moved (396 + 48 = 444px,
-    // which is 1.85 s, snapped to 1.9), not the one under it before: 396px is 1.65 s, or 1.7.
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toContain(1.9);
+    // The time committed is the one under the pointer after the view moved (390 + 48 = 438px,
+    // 18.25 cells, so 1.8 s), not the one under it before (390px, 16.25 cells, so 1.6 s). Both sit
+    // well off a half cell, so a change to how ties round cannot flip this.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toContain(1.8);
   });
 });
