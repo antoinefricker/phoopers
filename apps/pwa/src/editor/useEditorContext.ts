@@ -50,6 +50,12 @@ export interface EditorContextValue {
    * chosen starting placement, the default duration, and nothing selected.
    */
   createPlay: (options: Omit<CreatePlayOptions, 'duration'>) => void;
+  /**
+   * Empties the open system in place: the same id, name, court, extent and length, on a court
+   * holding nothing but the ball. Unlike `createPlay` it is still the same system, so a save
+   * after it overwrites the row it came from rather than storing a second copy.
+   */
+  clearPlay: () => void;
 }
 
 export const EditorContext = createContext<EditorContextValue | null>(null);

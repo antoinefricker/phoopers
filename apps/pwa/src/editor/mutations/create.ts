@@ -1,4 +1,5 @@
 import type { Branch, BranchId, CourtExtent, Keyframe, Play, PlayId, Player, PlayerId } from '../../engine';
+import { extentOf } from '../../engine';
 import { displayedCentre, freeSpot } from '../bounds';
 import type { LineupKind } from '../lineups';
 import { LINEUPS } from '../lineups';
@@ -79,4 +80,28 @@ export function createPlay(options: CreatePlayOptions, ids: CreatePlayIds): Play
     rootBranchId: ids.rootBranchId,
     branches: [root],
   };
+}
+
+/**
+ * Empties the open system without replacing it: the same id, name, court, extent, length and
+ * root branch, on a court holding nothing but the ball.
+ *
+ * Not `createPlay` with the same name, which is what this looks like: `createPlay` mints a new
+ * `PlayId`, and the draft's origin is matched on that id. Clearing through it would quietly turn
+ * the next save from an overwrite into an insert, leaving the coach's stored system behind.
+ *
+ * The root branch keeps its id as well, so a playback context pointing at it survives the clear;
+ * a caller watching a variant has to select the root itself, as deleting a branch already does.
+ * Every variant goes with the players, not only the ones forked from the root: a branch forks at
+ * a step, and there are no steps left for one to fork at.
+ */
+export function clearPlay(play: Play): Play {
+  const empty = createPlay(
+    // Only the court matters here: everything else is taken from `play` below, so an absent
+    // extent or duration stays absent rather than being written out with a default.
+    { name: play.name, court: play.court, extent: extentOf(play), lineup: 'empty', duration: 0 },
+    { playId: play.id, rootBranchId: play.rootBranchId, offense: [], defense: [] },
+  );
+
+  return { ...play, players: empty.players, branches: empty.branches };
 }

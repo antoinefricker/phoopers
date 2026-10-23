@@ -168,3 +168,47 @@ describe('createPlay', () => {
     expect(screen.getByTestId('branches')).toHaveTextContent('1');
   });
 });
+
+describe('clearPlay', () => {
+  it('empties the system without replacing it, and lets go of the selection', async () => {
+    function Clearer() {
+      const { play, selection, select, clearPlay } = useEditorContext();
+
+      return (
+        <>
+          <output data-testid="id">{play.id}</output>
+          <output data-testid="name">{play.name}</output>
+          <output data-testid="count">{play.players.length}</output>
+          <output data-testid="branches">{play.branches.length}</output>
+          <output data-testid="selection">{selection === null ? 'none' : selection.kind}</output>
+          <button type="button" onClick={() => select({ kind: 'entity', entityId: P1 })}>
+            select
+          </button>
+          <button type="button" onClick={clearPlay}>
+            clear
+          </button>
+        </>
+      );
+    }
+
+    render(
+      <MantineProvider>
+        <EditorContextProvider initialPlay={fixturePlay}>
+          <Clearer />
+        </EditorContextProvider>
+      </MantineProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'select' }));
+    expect(screen.getByTestId('selection')).toHaveTextContent('entity');
+
+    await userEvent.click(screen.getByRole('button', { name: 'clear' }));
+
+    // The system is the same system: a save after a clear still overwrites the row it came from.
+    expect(screen.getByTestId('id')).toHaveTextContent(fixturePlay.id);
+    expect(screen.getByTestId('name')).toHaveTextContent(fixturePlay.name);
+    expect(screen.getByTestId('count')).toHaveTextContent('0');
+    expect(screen.getByTestId('branches')).toHaveTextContent('1');
+    // The selected player is gone, so a selection naming it would outlive what it points at.
+    expect(screen.getByTestId('selection')).toHaveTextContent('none');
+  });
+});

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { BranchId, PlayId, PlayerId } from '../../engine';
+import type { Branch, BranchId, PlayId, PlayerId, StepId } from '../../engine';
 import { validatePlay } from '../../engine';
 import type { LineupKind } from '../lineups';
 import { LINEUPS } from '../lineups';
 import type { CreatePlayIds, CreatePlayOptions } from './create';
-import { createPlay } from './create';
+import { clearPlay, createPlay } from './create';
 
 const idsFor = (lineup: LineupKind): CreatePlayIds => ({
   playId: 'new-play' as PlayId,
@@ -70,5 +70,70 @@ describe('createPlay', () => {
     for (const lineup of ['empty', 'fiveOnFive', 'threeOnThree'] as const) {
       expect(validatePlay(createPlay(options({ lineup }), idsFor(lineup)))).toEqual([]);
     }
+  });
+});
+
+describe('clearPlay', () => {
+  const peopled = () => {
+    const play = createPlay(options({ name: 'Horns', extent: 'full', lineup: 'fiveOnFive' }), idsFor('fiveOnFive'));
+    const root = play.branches[0] as Branch;
+    return {
+      ...play,
+      branches: [
+        { ...root, steps: [{ id: 's1' as StepId, t: 2, name: 'Entry', duration: 1 }], screens: [] },
+        {
+          id: 'b2' as BranchId,
+          parentId: root.id,
+          forkStepId: 's1' as StepId,
+          name: 'Variant',
+          tracks: { ball: [] },
+          steps: [],
+          screens: [],
+        },
+        {
+          id: 'b3' as BranchId,
+          parentId: 'b2' as BranchId,
+          forkStepId: 's1' as StepId,
+          name: 'Deep',
+          tracks: { ball: [] },
+          steps: [],
+          screens: [],
+        },
+      ],
+    };
+  };
+
+  it('keeps the system itself and empties what is on the court', () => {
+    const before = peopled();
+    const after = clearPlay(before);
+
+    expect(after).toMatchObject({ id: 'new-play', name: 'Horns', court: 'fiba', extent: 'full', duration: 8 });
+    expect(after.players).toEqual([]);
+    expect(after.rootBranchId).toBe(before.rootBranchId);
+  });
+
+  it('leaves one branch holding nothing but the ball', () => {
+    const after = clearPlay(peopled());
+    const root = after.branches[0];
+
+    expect(after.branches).toHaveLength(1);
+    expect(root?.id).toBe('new-root');
+    expect(root?.parentId).toBeNull();
+    expect(root?.forkStepId).toBeNull();
+    expect(root?.name).toBe('Horns');
+    expect(root?.steps).toEqual([]);
+    expect(root?.screens).toEqual([]);
+    // The same court a freshly created one has: the ball alone, at the centre of what is shown.
+    expect(root?.tracks).toEqual({ ball: [{ t: 0, position: { x: 14, y: 7.5 } }] });
+  });
+
+  it('drops every variant, not only the ones forked from the root', () => {
+    const after = clearPlay(peopled());
+
+    expect(after.branches.map((b) => b.name)).toEqual(['Horns']);
+  });
+
+  it('builds a valid play', () => {
+    expect(validatePlay(clearPlay(peopled()))).toEqual([]);
   });
 });
