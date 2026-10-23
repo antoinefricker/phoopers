@@ -12,12 +12,36 @@ Clearing a system is a new pure mutation, `clearPlay`, rather than a call to `cr
 
 **Spec:** none of its own. This amends the interface described in [spec 005](../specs/005-17-10-2026-system-creation.md) (creation) and [spec 006](../specs/006-18-10-2026-accounts-and-persistence.md) (accounts, library, my systems); both keep their behaviour, only the way in changes.
 
-## Open concern, to settle at review
+## How it came out
+
+Implemented as planned, with four corrections the work itself forced. They are recorded here
+rather than silently in the diff, because each one is a decision somebody will otherwise have
+to re-derive.
+
+- **The mode entry stays in the Editing group in both modes**, which is the reading assumed
+  below; it was approved at review. Clear and Save are the edit-only entries.
+- **`clearPlay` keeps the root branch's id**, so its signature is `clearPlay(play)` with no ids
+  to mint. Nothing remounts on a clear — the play id never changes — so a playback context
+  pointing at the root would otherwise resolve a branch that is gone, and `resolveBranch` throws
+  on one. The menu still selects the root and seeks to 0, since the coach may have been watching
+  a variant.
+- **`AppMenu` can be controlled** (`opened` / `onOpenedChange`), and the editor owns that state.
+  The save chord fires while the drawer is closed and has to be able to close it, and a `close`
+  handed out during a render cannot be stored without setting state from inside another
+  component's render.
+- **`CreateSystemDialog` moved to `src/app/` and reads `EditorContext` itself** rather than
+  taking a `hideDiscardWarning` prop. The menu offers creation everywhere, but in the editor the
+  new system has to replace the open one through the context that is already there; hosting a
+  throwaway one and navigating to `/play`, as it does elsewhere, left the coach looking at the
+  old system. That makes `src/app/` import from `src/editor/`, which the constraint below
+  forbade: the constraint was wrong, since the creation dialog is editor-backed by nature.
+
+## Open concern, settled at review
 
 The mode entry ("Edit mode" / "Play mode") was asked to live inside the **Edition** group, and that group shows only in edit mode. Taken literally, a coach who switches to play mode can only come back with `Alt + Shift + E`: the entry that would bring them back is inside the group that just disappeared. Two ways out, and the plan assumes the first:
 
 - **Assumed:** the Edition group is shown whenever the editor is open, and in play mode it holds the mode entry **alone** — Clear and Save are the entries that are edit-only. The group then always offers the way back, and no entry acts on a system the coach is only watching.
-- The literal reading: the whole group is hidden in play mode, and `Alt + Shift + E` is the only way back. If this is what is wanted, say so at review and task 4 drops the exception.
+- The literal reading: the whole group is hidden in play mode, and `Alt + Shift + E` is the only way back. Rejected at review.
 
 ## Decisions
 
@@ -44,7 +68,7 @@ The mode entry ("Edit mode" / "Play mode") was asked to live inside the **Editio
 - `pnpm lint`, `pnpm --filter @phoopers/pwa typecheck`, `pnpm --filter @phoopers/pwa test` and `pnpm --filter @phoopers/pwa i18n:check` all pass before every commit.
 - Modals reset by changing `key` on each open, never by a `useState` setter in a `useEffect`.
 - Mantine first: `Drawer`, `NavLink`, `Divider`, `Text` as the group headings, `Tooltip` for the disabled entries' reason.
-- Nothing in `src/app/` may import from `src/editor/` except types; the dependency runs the other way.
+- ~~Nothing in `src/app/` may import from `src/editor/` except types; the dependency runs the other way.~~ Dropped: see "How it came out".
 
 ## Review Focus
 
@@ -67,7 +91,7 @@ Input classes no task's happy path exercises. Each has its test placed in the ta
 
 **Interfaces:**
 
-- Produces: `clearPlay(play: Play, ids: { rootBranchId: BranchId }): Play`.
+- Produces: `clearPlay(play: Play): Play`. (Written as `clearPlay(play, ids)`; see "How it came out".)
 
 - [ ] **Step 1: Write the failing tests**
 
