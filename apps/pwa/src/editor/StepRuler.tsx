@@ -12,8 +12,7 @@ import { barResize, leftPx, spanPx } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
-
-const SNAP_FRACTION = 0.02;
+import { snapRadiusSeconds } from './timelineScale';
 
 interface EditorProps {
   step: Step;
@@ -144,7 +143,7 @@ export function StepRuler() {
                     // The bar starts at the step's time rather than straddling it.
                     anchor: 'start',
                     resolve: (rawT, snap) =>
-                      constrainStepRetime(play, step.id, step.t, rawT, others, snap ? SNAP_FRACTION * duration : 0),
+                      constrainStepRetime(play, step.id, step.t, rawT, others, snap ? snapRadiusSeconds(pxPerCell) : 0),
                     place: (element, value) => {
                       element.style.left = leftPx(value, pxPerCell);
                     },

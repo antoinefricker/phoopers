@@ -366,7 +366,7 @@ describe('retiming', () => {
   });
 
   it('snaps to a nearby step', async () => {
-    // The release lands on 1.0s; a step at 1.03 is inside the 0.08s threshold.
+    // The release lands on 1.0s; a step at 1.03 is inside the 0.05s radius (12 px at the finest level).
     withTrackAt(120 - xOfTime(1, LEVEL_1));
     const withNearbyStep = withBranch(fixturePlay, ROOT, (b) => ({
       ...b,

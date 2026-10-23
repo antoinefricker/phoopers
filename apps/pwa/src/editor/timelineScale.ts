@@ -58,6 +58,21 @@ export function timeAtX(x: number, pxPerCell: number): number {
   return Number.isFinite(t) ? t : 0;
 }
 
+// How close a dropped keyframe or step must land to another to snap onto it, in pixels on
+// screen. It is a distance rather than a share of the play's length: a share becomes more
+// pixels on a long play and at the widest zoom, so the coach's precision would be strongest
+// exactly where the timeline is already coarsest, and loosest where it is finest. Twelve pixels
+// is half a grid cell at the finest level, which is as close as the grid itself resolves.
+export const SNAP_RADIUS_PX = 12;
+
+/**
+ * The snap radius in seconds at a given zoom: the same distance on screen at every level, so
+ * the pull feels identical whatever the scale and whatever the play's length.
+ */
+export function snapRadiusSeconds(pxPerCell: number): number {
+  return timeAtX(SNAP_RADIUS_PX, pxPerCell);
+}
+
 /**
  * The width the timeline needs to show a play of the given duration at this zoom.
  *

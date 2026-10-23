@@ -18,6 +18,7 @@ import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
+import { snapRadiusSeconds } from './timelineScale';
 import { useEditorContext } from './useEditorContext';
 import type { Selection } from './useEditorContext';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
@@ -39,8 +40,8 @@ interface Props {
 // One grid cell: every authored time falls on the grid, so the shortest screen is the distance
 // between two of them.
 export const MIN_SCREEN_DURATION = TIME_GRID_S;
-// A drop within this fraction of the play's length of a step snaps to it.
-const SNAP_FRACTION = 0.02;
+// A drop snaps to a step within a fixed distance on screen, so the pull is the same at every zoom
+// level rather than a shrinking share of the play; see `snapRadiusSeconds`.
 
 // The row is 2rem tall; the badge leaves a little air above and below.
 const ROW_SYMBOL_PX = 24;
@@ -428,7 +429,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                           k.t,
                           rawT,
                           timeline.steps,
-                          snap ? SNAP_FRACTION * duration : 0,
+                          snap ? snapRadiusSeconds(pxPerCell) : 0,
                         ),
                       place: (element, value) => {
                         element.style.left = leftPx(value, pxPerCell);
