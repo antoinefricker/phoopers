@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import type { KeyboardEvent, PointerEvent, RefObject } from 'react';
 import { timeFromClientX } from './timelineGeometry';
+import { useTimelineViewportContext } from './useTimelineViewportContext';
 import { TIME_GRID_S, snapToGrid } from '../play2d/transportMath';
 
 // A press that moves less than this is a click with a twitch, not a drag. Without it a 1px wobble
@@ -49,6 +50,7 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
     null,
   );
   const dragged = useRef(false);
+  const { pxPerCell } = useTimelineViewportContext();
 
   const bind = (gesture: TimeGesture) => ({
     onPointerDown: (event: PointerEvent<HTMLElement>) => {
@@ -83,7 +85,10 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       // keyframe just short of its neighbour, and rounding that result would land it on top of
       // the thing the constraint exists to keep it off. The bound keeps the last word, so a
       // value that meets one can sit off the grid.
-      drag.value = drag.gesture.resolve(snapToGrid(timeFromClientX(event.clientX - drag.grab, rect, duration)), true);
+      drag.value = drag.gesture.resolve(
+        snapToGrid(timeFromClientX(event.clientX - drag.grab, rect, pxPerCell, duration)),
+        true,
+      );
       drag.gesture.place(event.currentTarget, drag.value);
     },
     onPointerUp: (event: PointerEvent<HTMLElement>) => {

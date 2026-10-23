@@ -7,9 +7,10 @@ import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { constrainStepRetime } from './constraints';
 import { TimelineBar } from './TimelineBar';
 import { LABEL_WIDTH, MIN_SCREEN_DURATION } from './TimelineRow';
-import { TRACK_INSET_PX, barResize, percentOf, spanWidth } from './timelineGeometry';
+import { TRACK_INSET_PX, barResize, leftPx, spanPx } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
+import { useTimelineViewportContext } from './useTimelineViewportContext';
 
 const SNAP_FRACTION = 0.02;
 
@@ -73,6 +74,7 @@ export function StepRuler() {
   const trackRef = useRef<HTMLDivElement>(null);
   const { duration, steps } = timeline;
   const ownStepIds = new Set(play.branches.find((b) => b.id === branchId)?.steps.map((s) => s.id));
+  const { pxPerCell } = useTimelineViewportContext();
   const { bind } = useTimeDrag(trackRef, duration);
   // Where each step's label stops being shown. Sorted, because "the next step" is a question
   // about time, not about the order the steps were authored in.
@@ -105,7 +107,7 @@ export function StepRuler() {
       >
         {ordered.map((step, index) => {
           const others = steps.filter((s) => s.id !== step.id);
-          const barWidth = spanWidth(step.t, windowEnd(step, index), duration);
+          const barWidth = spanPx(step.t, windowEnd(step, index), pxPerCell);
 
           // The app's own colour, through the primary variables rather than a named green: a
           // step is the product's way of annotating a play, not something either team owns, and
@@ -120,8 +122,8 @@ export function StepRuler() {
                 key={step.id}
                 testId={`step-bar-${step.id}`}
                 inherited
-                leftPercent={percentOf(step.t, duration)}
-                widthPercent={barWidth}
+                left={leftPx(step.t, pxPerCell)}
+                width={barWidth}
                 color="primary"
                 caption={step.name}
                 captionDimmed
@@ -139,8 +141,8 @@ export function StepRuler() {
             >
               <TimelineBar
                 testId={`step-bar-${step.id}`}
-                leftPercent={percentOf(step.t, duration)}
-                widthPercent={barWidth}
+                left={leftPx(step.t, pxPerCell)}
+                width={barWidth}
                 color="primary"
                 label={step.name}
                 // The bar itself retimes the step, as its tick did before it had a width.
@@ -151,10 +153,10 @@ export function StepRuler() {
                   resolve: (rawT, snap) =>
                     constrainStepRetime(play, step.id, step.t, rawT, others, snap ? SNAP_FRACTION * duration : 0),
                   place: (element, value) => {
-                    element.style.left = percentOf(value, duration);
+                    element.style.left = leftPx(value, pxPerCell);
                   },
                   restore: (element) => {
-                    element.style.left = percentOf(step.t, duration);
+                    element.style.left = leftPx(step.t, pxPerCell);
                   },
                   commit: (value) => moveStep(step.id, value),
                 })}
@@ -167,7 +169,7 @@ export function StepRuler() {
                     // of the play for a last step: two windows may never overlap.
                     resolve: (rawT) =>
                       Math.min(Math.max(rawT, step.t + MIN_SCREEN_DURATION), ordered[index + 1]?.t ?? duration),
-                    ...barResize(step.t, windowEnd(step, index), duration),
+                    ...barResize(step.t, windowEnd(step, index), pxPerCell),
                     commit: (value) => setStepDuration(step.id, value - step.t),
                   }),
                 }}

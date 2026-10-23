@@ -7,9 +7,9 @@ import {
   barResize,
   fractionOf,
   gridTicks,
-  percentOf,
+  leftPx,
   rowsOf,
-  spanWidth,
+  spanPx,
   timeFromClientX,
 } from './timelineGeometry';
 import { TIME_GRID_S, gridTime } from '../play2d/transportMath';
@@ -95,28 +95,37 @@ describe('rowsOf', () => {
 const rect = (left: number, width: number) => ({ left, width }) as DOMRect;
 
 describe('timeFromClientX', () => {
-  it('maps a position across the row to a time', () => {
-    expect(timeFromClientX(150, rect(100, 200), 8)).toBe(2);
+  it('reads a pointer against the scale, whatever the box is', () => {
+    // jsdom reports every bounding box as 0 wide, and the row's own width no longer matters:
+    // 240 px from its left edge is 1 s at 24 px per 0.1 s cell.
+    expect(timeFromClientX(340, rect(100, 0), 24, 8)).toBeCloseTo(1.0, 9);
   });
 
-  it('returns 0 for a zero-width row rather than NaN', () => {
-    // jsdom reports every bounding box as 0x0, so this is the only branch most component tests take.
-    expect(timeFromClientX(150, rect(100, 0), 8)).toBe(0);
+  it('is unmoved by the width of the box', () => {
+    expect(timeFromClientX(340, rect(100, 5000), 24, 8)).toBeCloseTo(1.0, 9);
   });
 
   it('returns 0 for a non-positive or NaN duration', () => {
-    // A zero duration alone would not pin the guard: clamp(f) * 0 is 0 either way.
-    expect(timeFromClientX(150, rect(100, 200), -8)).toBe(0);
-    expect(timeFromClientX(150, rect(100, 200), Number.NaN)).toBe(0);
+    // A play with no length has nowhere to point at; without the guard the upper clamp would be NaN.
+    expect(timeFromClientX(340, rect(100, 200), 24, -8)).toBe(0);
+    expect(timeFromClientX(340, rect(100, 200), 24, Number.NaN)).toBe(0);
+  });
+
+  it('returns 0 for a scale that is not usable rather than NaN', () => {
+    // A zero scale is what a missing zoom level reads as; dividing by it would give Infinity.
+    expect(timeFromClientX(340, rect(100, 200), 0, 8)).toBe(0);
   });
 
   it('returns 0 for a non-finite position rather than NaN', () => {
-    expect(timeFromClientX(Number.NaN, rect(100, 200), 8)).toBe(0);
+    expect(timeFromClientX(Number.NaN, rect(100, 200), 24, 8)).toBe(0);
   });
 
-  it('clamps beyond either end', () => {
-    expect(timeFromClientX(0, rect(100, 200), 8)).toBe(0);
-    expect(timeFromClientX(999, rect(100, 200), 8)).toBe(8);
+  it('clamps below zero and never returns NaN', () => {
+    expect(timeFromClientX(-500, rect(0, 0), 24, 8)).toBe(0);
+  });
+
+  it('clamps at the end of the play', () => {
+    expect(timeFromClientX(99999, rect(100, 200), 24, 8)).toBe(8);
   });
 });
 
@@ -185,28 +194,20 @@ describe('gridTicks', () => {
   });
 });
 
-describe('percentOf and spanWidth', () => {
-  it('places a time at its share of the duration', () => {
-    expect(percentOf(2, 8)).toBe('25%');
-  });
-
-  it('measures a span as the distance between its two ends', () => {
-    expect(spanWidth(2, 4, 8)).toBe('25%');
+describe('placing a time', () => {
+  it('is a distance, not a share', () => {
+    expect(leftPx(2.5, 24)).toBe('600px');
+    expect(spanPx(1, 2.5, 24)).toBe('360px');
   });
 
   it('gives a span that starts where it ends no width', () => {
-    expect(spanWidth(3, 3, 8)).toBe('0%');
+    expect(spanPx(3, 3, 24)).toBe('0px');
   });
 
-  it('clamps a span reaching past the play to the end of it', () => {
-    // `fractionOf` clamps each end, so a screen overrunning the play stops at the track's edge
-    // rather than drawing past it and growing a horizontal scrollbar.
-    expect(spanWidth(4, 99, 8)).toBe('50%');
-  });
-
-  it('survives a zero duration rather than dividing by it', () => {
-    expect(percentOf(2, 0)).toBe('0%');
-    expect(spanWidth(2, 4, 0)).toBe('0%');
+  it('survives a scale that is not usable rather than writing NaN', () => {
+    // A missing zoom level reads as a zero scale, and `NaNpx` would be dropped by the browser.
+    expect(leftPx(2, Number.NaN)).toBe('0px');
+    expect(spanPx(2, 4, Number.NaN)).toBe('0px');
   });
 });
 
@@ -223,34 +224,34 @@ describe('barResize', () => {
   it('writes the width of the bar the handle sits on, not the handle', () => {
     const { bar, handle } = handleInBar();
 
-    barResize(2, 4, 8).place(handle, 6);
+    barResize(2, 4, 24).place(handle, 6);
 
-    expect(bar.style.width).toBe('50%');
+    expect(bar.style.width).toBe('960px');
     expect(handle.style.width).toBe('');
   });
 
   it('puts the bar back to where the span ended when a drag is abandoned', () => {
     const { bar, handle } = handleInBar();
-    barResize(2, 4, 8).place(handle, 6);
+    barResize(2, 4, 24).place(handle, 6);
 
-    barResize(2, 4, 8).restore(handle);
+    barResize(2, 4, 24).restore(handle);
 
-    expect(bar.style.width).toBe('25%');
+    expect(bar.style.width).toBe('480px');
   });
 
   it('measures from the span start, which a drag of the end never moves', () => {
     const { bar, handle } = handleInBar();
 
-    barResize(4, 6, 8).place(handle, 8);
+    barResize(4, 6, 24).place(handle, 8);
 
-    expect(bar.style.width).toBe('50%');
+    expect(bar.style.width).toBe('960px');
   });
 
   it('writes nothing for a handle with no bar rather than throwing', () => {
     // The drag only previews; the commit that follows reads the model, not the DOM.
     const orphan = document.createElement('button');
 
-    expect(() => barResize(2, 4, 8).place(orphan, 6)).not.toThrow();
-    expect(() => barResize(2, 4, 8).restore(orphan)).not.toThrow();
+    expect(() => barResize(2, 4, 24).place(orphan, 6)).not.toThrow();
+    expect(() => barResize(2, 4, 24).restore(orphan)).not.toThrow();
   });
 });

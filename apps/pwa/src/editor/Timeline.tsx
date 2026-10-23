@@ -16,6 +16,7 @@ import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
 import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX, fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { DRAG_SLOP_PX } from './useTimeDrag';
+import { useTimelineViewportContext } from './useTimelineViewportContext';
 
 export function Timeline() {
   const { t } = useTranslation();
@@ -28,6 +29,7 @@ export function Timeline() {
   const axisRef = useRef<HTMLDivElement>(null);
   const scrubbing = useRef(false);
   const { duration } = timeline;
+  const { pxPerCell } = useTimelineViewportContext();
   const forkTime = forkTimeOf(play, branchId);
 
   // The playhead moves by writing its style directly, as the court tokens do, so a playing
@@ -56,7 +58,7 @@ export function Timeline() {
   const scrubTo = (clientX: number, rect: DOMRect) => {
     // The grid, as the scrubber does: a step, a screen or a keyframe created here takes the time
     // the playhead reads, and a continuous one would put them between two cells.
-    seek(snapToGrid(timeFromClientX(clientX, rect, duration)));
+    seek(snapToGrid(timeFromClientX(clientX, rect, pxPerCell, duration)));
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {

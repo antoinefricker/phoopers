@@ -16,15 +16,15 @@ import {
   MARKER_HEIGHT_PX,
   TRACK_INSET_PX,
   barResize,
-  fractionOf,
-  percentOf,
+  leftPx,
   rowsOf,
-  spanWidth,
+  spanPx,
 } from './timelineGeometry';
 import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
+import { useTimelineViewportContext } from './useTimelineViewportContext';
 import { useEditorContext } from './useEditorContext';
 import type { Selection } from './useEditorContext';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
@@ -56,6 +56,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   const { t } = useTranslation();
   const { play, moveKeyframe, setScreenDuration, removeScreen } = useEditorContext();
   const { branchId, timeline } = usePlaybackContext();
+  const { pxPerCell } = useTimelineViewportContext();
   const trackRef = useRef<HTMLDivElement>(null);
   const ownTrack = play.branches.find((b) => b.id === branchId)?.tracks[row.entityId] ?? [];
   const { bind, consumeDrag } = useTimeDrag(trackRef, duration);
@@ -283,8 +284,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
             key={screen.id}
             testId={`screen-bar-${screen.id}`}
             inherited={!ownScreenIds.has(screen.id)}
-            leftPercent={percentOf(screen.t, duration)}
-            widthPercent={spanWidth(screen.t, screen.t + screen.duration, duration)}
+            left={leftPx(screen.t, pxPerCell)}
+            width={spanPx(screen.t, screen.t + screen.duration, pxPerCell)}
             // The offense's blue: a block reads as belonging to the attack rather than carrying
             // a colour of its own. The bar makes its own fill and handle from it.
             color="blue"
@@ -297,7 +298,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                       current: screen.t + screen.duration,
                       // The edge cannot go left of the screen's own start: it floors at a minimum duration.
                       resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
-                      ...barResize(screen.t, screen.t + screen.duration, duration),
+                      ...barResize(screen.t, screen.t + screen.duration, pxPerCell),
                       commit: (end) => setScreenDuration(screen.id, end - screen.t),
                     }),
                   }
@@ -334,8 +335,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               position: 'absolute',
               top: '25%',
               height: '50%',
-              left: percentOf(k.t, duration),
-              width: `${(fractionOf(next.t, duration) - fractionOf(k.t, duration)) * 100}%`,
+              left: leftPx(k.t, pxPerCell),
+              width: spanPx(k.t, next.t, pxPerCell),
             };
 
             // Held, and by the same player at both ends: a pass has two attached ends too, but
@@ -436,10 +437,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                         snap ? SNAP_FRACTION * duration : 0,
                       ),
                     place: (element, value) => {
-                      element.style.left = percentOf(value, duration);
+                      element.style.left = leftPx(value, pxPerCell);
                     },
                     restore: (element) => {
-                      element.style.left = percentOf(k.t, duration);
+                      element.style.left = leftPx(k.t, pxPerCell);
                     },
                     commit: (value) => {
                       moveKeyframe(branchId, row.entityId, k.t, value);
@@ -451,7 +452,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 position: 'absolute',
                 zIndex: 10,
                 top: '50%',
-                left: percentOf(k.t, duration),
+                left: leftPx(k.t, pxPerCell),
                 touchAction: owned ? 'none' : undefined,
                 width: MARKER_WIDTH_PX,
                 height: MARKER_HEIGHT_PX,

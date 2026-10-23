@@ -14,6 +14,7 @@ import { HiddenEntitiesContextProvider } from '../../play2d/HiddenEntitiesContex
 import { PlaybackContextProvider } from '../../play2d/PlaybackContextProvider';
 import { usePlaybackContext } from '../../play2d/usePlaybackContext';
 import { EditorContextProvider } from '../EditorContextProvider';
+import { TimelineViewportContextProvider } from '../TimelineViewportContextProvider';
 import { useEditorContext } from '../useEditorContext';
 
 // Mirrors the Play the editor currently holds into the DOM, so a test can assert on the model
@@ -65,6 +66,14 @@ const SIGNED_OUT: AuthContextValue = {
   signOut: async () => {},
 };
 
+// The app mounts the viewport around the whole time region, so anything that positions by pixels
+// can read the scale; the harness does the same, sized to the playback's own duration.
+function Viewport({ children }: { children: ReactNode }) {
+  const { timeline } = usePlaybackContext();
+
+  return <TimelineViewportContextProvider duration={timeline.duration}>{children}</TimelineViewportContextProvider>;
+}
+
 export function renderEditor(
   initialPlay: Play,
   children: ReactNode,
@@ -82,7 +91,7 @@ export function renderEditor(
                 <HiddenEntitiesContextProvider>
                   {wrapPlayback ? (
                     <PlaybackContextProvider play={initialPlay}>
-                      {children}
+                      <Viewport>{children}</Viewport>
                       <PlayProbe />
                     </PlaybackContextProvider>
                   ) : (
@@ -110,7 +119,11 @@ export function renderEditor(
 export function LivePlayback({ children }: { children: ReactNode }) {
   const { play } = useEditorContext();
 
-  return <PlaybackContextProvider play={play}>{children}</PlaybackContextProvider>;
+  return (
+    <PlaybackContextProvider play={play}>
+      <Viewport>{children}</Viewport>
+    </PlaybackContextProvider>
+  );
 }
 
 /**
