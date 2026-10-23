@@ -8,6 +8,7 @@ import { IssuePanel } from '../editor/IssuePanel';
 import { PlayMenu } from '../editor/PlayMenu';
 import { TimeGrid } from '../editor/TimeGrid';
 import { Timeline } from '../editor/Timeline';
+import { TimelineViewportContextProvider } from '../editor/TimelineViewportContextProvider';
 import { extentOf } from '../engine';
 import { useEditorContext } from '../editor/useEditorContext';
 import { useModeShortcut } from '../editor/useModeShortcut';
@@ -18,6 +19,7 @@ import { FLOOR } from './Court';
 import { HiddenEntitiesContextProvider } from './HiddenEntitiesContextProvider';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
+import { usePlaybackContext } from './usePlaybackContext';
 import { GUTTER_WIDTH } from './transportMath';
 
 // Court (centre), transport (beneath) and the branch menu in the header. Which court is drawn is
@@ -134,23 +136,7 @@ export function PlayView() {
                 time axis, and a grid running behind them would be noise.
                 `minHeight: 0` so the timeline's own scroll area takes the squeeze, which is what
                 this wrapper would otherwise refuse to pass on. */}
-            <Box style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              {mode === 'edit' && <TimeGrid />}
-              {/* Above the grid, and carrying the gap the region used to give these two. */}
-              <Box
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--mantine-spacing-sm)',
-                  minHeight: 0,
-                }}
-              >
-                <PlaybackTransport />
-                {mode === 'edit' && <Timeline />}
-              </Box>
-            </Box>
+            <TimeRegion mode={mode} />
             {mode === 'edit' && <SelectionActions />}
             {mode === 'edit' && <IssuePanel />}
           </Box>
@@ -177,5 +163,34 @@ export function PlayView() {
         </Stack>
       </HiddenEntitiesContextProvider>
     </PlaybackContextProvider>
+  );
+}
+
+// Inside the playback provider, since the viewport's width follows the resolved timeline's
+// duration. Mounted in both modes: the transport sits in it either way. The zoom level resets
+// whenever this mounts, which is what keeps it to one editor session.
+function TimeRegion({ mode }: { mode: 'play' | 'edit' }) {
+  const { timeline } = usePlaybackContext();
+
+  return (
+    <TimelineViewportContextProvider duration={timeline.duration}>
+      <Box style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {mode === 'edit' && <TimeGrid />}
+        {/* Above the grid, and carrying the gap the region used to give these two. */}
+        <Box
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--mantine-spacing-sm)',
+            minHeight: 0,
+          }}
+        >
+          <PlaybackTransport />
+          {mode === 'edit' && <Timeline />}
+        </Box>
+      </Box>
+    </TimelineViewportContextProvider>
   );
 }
