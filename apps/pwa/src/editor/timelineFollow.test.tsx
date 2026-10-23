@@ -12,12 +12,15 @@ const WINDOW_PX = 400;
 // At 24px per 0.1 s cell a second is 240px. The follow band is 10 % to 90 % of the window.
 const PX_PER_SECOND = 240;
 
+// Off by default: a marker's own box would change where a drag counts its grab from.
+let markersLaidOut = false;
 let now = 0;
 let frames = new Map<number, FrameRequestCallback>();
 let nextFrame = 1;
 
 beforeEach(() => {
   stubViewportWidth(1440);
+  markersLaidOut = false;
   now = 0;
   frames = new Map();
   nextFrame = 1;
@@ -34,6 +37,18 @@ beforeEach(() => {
     const id = el.getAttribute('data-testid') ?? '';
     const shift = /translateX\((-?[\d.]+)px\)/.exec(el.style.transform)?.[1] ?? '0';
     const width = id.endsWith('-window') || id === 'step-ruler-window' ? WINDOW_PX : 0;
+
+    // A keyframe marker sits at its time along the content, wherever the view has carried it.
+    const at = /^Keyframe at ([\d.]+)s$/.exec(el.getAttribute('aria-label') ?? '')?.[1];
+    if (at !== undefined && markersLaidOut) {
+      const offset = Number(
+        /translateX\((-?[\d.]+)px\)/.exec(
+          el.closest<HTMLElement>('[data-testid$="-content"]')?.style.transform ?? '',
+        )?.[1] ?? 0,
+      );
+
+      return new DOMRect(Number(at) * PX_PER_SECOND + offset, 0, 12, 18);
+    }
 
     return new DOMRect(id.endsWith('-content') ? Number(shift) : 0, 0, width, 0);
   });
@@ -161,5 +176,26 @@ describe('the view during a drag', () => {
     // 18.25 cells, so 1.8 s), not the one under it before (390px, 16.25 cells, so 1.6 s). Both sit
     // well off a half cell, so a change to how ties round cannot flip this.
     expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toContain(1.8);
+  });
+});
+
+describe('the view when focus reaches a marker out of sight', () => {
+  it('carries the view to it, and leaves no offset of the window own', async () => {
+    await renderTimeline();
+    markersLaidOut = true;
+    const window = screen.getByTestId(`timeline-window-${P1}`);
+    // What the browser does on its own to an overflow: hidden box when focus lands out of view:
+    // it sets scrollLeft with no scrollbar to show it. jsdom does not, so it is done by hand.
+    Object.defineProperty(window, 'scrollLeft', { value: 0, configurable: true, writable: true });
+
+    act(() => keyframe(4).focus());
+    window.scrollLeft = 500;
+    fireEvent.scroll(window);
+
+    // The marker's far edge is 972px along, 572px past a 400px window, but the content is only
+    // 960px wide and its furthest offset is 560px, where the marker is in sight. The window's
+    // own offset is back to zero.
+    expect(offsetOf()).toBe('translateX(-560px)');
+    expect(window.scrollLeft).toBe(0);
   });
 });

@@ -1,6 +1,6 @@
 import { Box } from '@mantine/core';
 import { useCallback } from 'react';
-import type { ReactNode, RefObject } from 'react';
+import type { FocusEvent, ReactNode, RefObject } from 'react';
 import { TRACK_INSET_PX } from './timelineGeometry';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 
@@ -55,7 +55,7 @@ interface Props {
  * and native scrolling would mean four scrollbars and four scroll events to keep damped.
  */
 export function TimeWindow({ children, testId, contentRef, measure = false, overhangPx = 0 }: Props) {
-  const { scrollLeft, contentWidthPx, viewportWidthPx, setViewportWidthPx } = useTimelineViewportContext();
+  const { scrollLeft, scrollTo, contentWidthPx, viewportWidthPx, setViewportWidthPx } = useTimelineViewportContext();
 
   // A ref callback, not an effect: `react-hooks/set-state-in-effect` forbids a setter in an
   // effect body, and the width has to be read once on mount — the observer only ever fires on a
@@ -75,6 +75,31 @@ export function TimeWindow({ children, testId, contentRef, measure = false, over
     [setViewportWidthPx],
   );
 
+  // `overflow: hidden` still lets the browser scroll the box natively when focus lands on a
+  // descendant that is out of view (a marker reached by Tab), by setting its own `scrollLeft`
+  // with no bar to show it. That would stack a second offset on the shared one, and only on the
+  // window that holds the focused element, so the surfaces would part company. The shared offset
+  // stays the only one: a native offset is put back to zero, and the view is moved through
+  // `scrollTo` so the focused element ends up in sight, which is what the browser meant to do.
+  const keepOffsetShared = (node: HTMLElement) => {
+    const native = node.scrollLeft;
+    if (native !== 0) node.scrollLeft = 0;
+
+    return native;
+  };
+  const revealFocused = (event: FocusEvent<HTMLElement>) => {
+    const window = event.currentTarget;
+    const native = keepOffsetShared(window);
+    const edge = window.getBoundingClientRect();
+    const target = (event.target as HTMLElement).getBoundingClientRect();
+    // The browser may have scrolled before this ran, which moved the element left by `native`.
+    const left = target.left + native;
+    const right = target.right + native;
+
+    if (left < edge.left) scrollTo(scrollLeft - (edge.left - left));
+    else if (right > edge.left + viewportWidthPx) scrollTo(scrollLeft + (right - edge.left - viewportWidthPx));
+  };
+
   const overhangLeft = scrollLeft <= 0 ? overhangPx : 0;
   // A play shorter than the window has both ends in view, which this reads as the end reached.
   const overhangRight = scrollLeft >= contentWidthPx - viewportWidthPx ? overhangPx : 0;
@@ -83,6 +108,8 @@ export function TimeWindow({ children, testId, contentRef, measure = false, over
     <Box
       data-testid={testId}
       ref={measure ? watch : undefined}
+      onFocusCapture={revealFocused}
+      onScroll={(event) => keepOffsetShared(event.currentTarget)}
       style={{
         flex: 1,
         // Or the window refuses to shrink below its content and the gutter is pushed off screen.
