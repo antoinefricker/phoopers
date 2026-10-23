@@ -6,8 +6,8 @@ type BarGesture = ReturnType<ReturnType<typeof useTimeDrag>['bind']>;
 
 export interface TimelineBarProps {
   /** Where the bar starts and how wide it is, as CSS the caller has already computed. */
-  leftPercent: string;
-  widthPercent: string;
+  left: string;
+  width: string;
   /**
    * The bar's colour, as one name: a Mantine colour ("blue") or "primary" to follow the theme.
    * The bar fills itself with that colour's LIGHT variant and paints its handle with the normal
@@ -51,8 +51,8 @@ export interface TimelineBarProps {
  * object on screen, and sharing the component is what lets them be changed together.
  */
 export function TimelineBar({
-  leftPercent,
-  widthPercent,
+  left,
+  width,
   color,
   testId,
   inherited,
@@ -83,8 +83,8 @@ export function TimelineBar({
         position: 'absolute',
         top: '20%',
         height: '60%',
-        left: leftPercent,
-        width: widthPercent,
+        left,
+        width,
         background,
         borderRadius: 2,
         // Transparent to the pointer unless the bar itself is draggable: a row's markers sit

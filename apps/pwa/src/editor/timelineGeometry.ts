@@ -1,5 +1,6 @@
 import type { EntityId, Keyframe, ResolvedTimeline } from '../engine';
 import { TIME_GRID_S, gridTime } from '../play2d/transportMath';
+import { timeAtX, xOfTime } from './timelineScale';
 
 export interface TimelineRowModel {
   entityId: EntityId;
@@ -59,18 +60,12 @@ export function gridTicks(duration: number): GridTick[] {
   return ticks;
 }
 
-export function fractionOf(t: number, duration: number): number {
-  if (!(duration > 0) || !Number.isFinite(t)) return 0;
+/** A time as a distance from the start of the timeline, ready for a bar's `left`. */
+export const leftPx = (t: number, pxPerCell: number): string => `${xOfTime(t, pxPerCell)}px`;
 
-  return Math.min(Math.max(t / duration, 0), 1);
-}
-
-/** A time as a share of the play's length, ready for a bar's `left`. */
-export const percentOf = (t: number, duration: number): string => `${fractionOf(t, duration) * 100}%`;
-
-/** The span from `from` to `to` as a share of the play's length, ready for a bar's `width`. */
-export const spanWidth = (from: number, to: number, duration: number): string =>
-  `${(fractionOf(to, duration) - fractionOf(from, duration)) * 100}%`;
+/** The span from `from` to `to` as a distance, ready for a bar's `width`. */
+export const spanPx = (from: number, to: number, pxPerCell: number): string =>
+  `${xOfTime(to, pxPerCell) - xOfTime(from, pxPerCell)}px`;
 
 /**
  * The `place` and `restore` a bar's right-edge handle needs, which are the same for every bar
@@ -84,10 +79,10 @@ export const spanWidth = (from: number, to: number, duration: number): string =>
  * abandoned. A handle with no parent writes nothing rather than throwing: the drag is a
  * presentational preview, and the commit that follows it reads the model, not the DOM.
  */
-export function barResize(from: number, to: number, duration: number) {
+export function barResize(from: number, to: number, pxPerCell: number) {
   const setWidth = (element: HTMLElement, end: number) => {
     const bar = element.parentElement;
-    if (bar !== null) bar.style.width = spanWidth(from, end, duration);
+    if (bar !== null) bar.style.width = spanPx(from, end, pxPerCell);
   };
 
   return {
@@ -116,13 +111,13 @@ export function rowsOf(timeline: ResolvedTimeline): TimelineRowModel[] {
   return [{ entityId: 'ball', number: '', team: 'ball', keyframes: timeline.anchors.ball ?? [] }, ...players];
 }
 
-// Maps a pointer's x to a time across a row. Without layout (jsdom, a hidden canvas) the box is
-// 0 wide, and nothing downstream checks a time for finiteness, so every degenerate input
-// resolves to 0 rather than NaN.
-export function timeFromClientX(clientX: number, rect: DOMRect, duration: number): number {
-  if (!(rect.width > 0) || !(duration > 0)) return 0;
-  const fraction = (clientX - rect.left) / rect.width;
-  if (!Number.isFinite(fraction)) return 0;
+// Maps a pointer's x to a time across a row, reading its distance from the row's left edge
+// against the scale rather than against the box's width: the row is as wide as the play needs
+// at the current zoom, so its width says nothing the scale does not. The play's end is still the
+// upper bound, which is why the duration comes along. Nothing downstream checks a time for
+// finiteness, so every degenerate input resolves to 0 rather than NaN.
+export function timeFromClientX(clientX: number, rect: DOMRect, pxPerCell: number, duration: number): number {
+  if (!(duration > 0)) return 0;
 
-  return Math.min(Math.max(fraction, 0), 1) * duration;
+  return Math.min(Math.max(timeAtX(clientX - rect.left, pxPerCell), 0), duration);
 }

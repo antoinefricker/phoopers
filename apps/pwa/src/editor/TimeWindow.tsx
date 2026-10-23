@@ -1,0 +1,145 @@
+import { Box } from '@mantine/core';
+import { useCallback } from 'react';
+import type { FocusEvent, ReactNode, RefObject } from 'react';
+import { TRACK_INSET_PX } from './timelineGeometry';
+import { useTimelineViewportContext } from './useTimelineViewportContext';
+
+interface Props {
+  children: ReactNode;
+  /** Names the window. Its content box takes the same id with `-content`. */
+  testId: string;
+  /**
+   * The content box, which a gesture measures to turn a pointer's x into a time. It is the
+   * TRANSLATED box, so its left edge is the start of the timeline wherever the view is scrolled
+   * to — the scroll offset is already in the rect and nothing has to add it back.
+   */
+  contentRef?: RefObject<HTMLDivElement | null>;
+  /**
+   * Reports this window's width to the context. Exactly one window does, because the windows are
+   * not all the same width: the grid's reserves the vertical scrollbar's gutter and the rows'
+   * does not. Two of them reporting would leave the context flipping between two numbers for
+   * ever, each write re-rendering the other.
+   */
+  measure?: boolean;
+  /**
+   * How far something drawn ON the axis's ends reaches past them, in px: the scrubber's thumb is
+   * centred on t = 0 and t = duration, so half of it sits outside the axis. The window's clip
+   * normally stops at the axis's edge and would cut it. With this set the clip moves out by that
+   * much at an end — as padding, with the margin giving the same back — so the axis still starts
+   * exactly `TRACK_INSET_PX` from the gutter and stays aligned with every other surface.
+   *
+   * Only at the end the view has actually reached. Everything else the window holds (the track,
+   * the marks) would spill into the margin too, and a clip cannot tell a thumb from a track; but
+   * at an end that has not been reached there is nothing hanging past the axis to show, so the
+   * clip stays at the axis edge, where every other surface clips. The default, 0, leaves the
+   * window exactly as it was. Only the horizontal clip is moved: a hover label rises above the
+   * thumb and would be cut by a vertical one.
+   */
+  overhangPx?: number;
+}
+
+/**
+ * The clipping box a time surface draws its axis inside: as wide as the window leaves it, holding
+ * a child as wide as the whole play, shifted left by the shared scroll offset.
+ *
+ * All four surfaces — the grid, the ruler, every row's track and the playhead overlay — wrap
+ * their axis in one of these, which is what makes them scroll as a single surface rather than as
+ * four that agree by accident. The 180 px gutter stays OUTSIDE the window in every case, so it
+ * does not move; the spec pins it there.
+ *
+ * The inset each end of the axis keeps for a marker centred on t = 0 or t = duration lives on the
+ * window rather than inside it: inside, it would be a distance the content carried and the axis
+ * would start half a marker late.
+ *
+ * A transform rather than a real `scrollLeft`: one offset in the context drives every surface,
+ * and native scrolling would mean four scrollbars and four scroll events to keep damped.
+ */
+export function TimeWindow({ children, testId, contentRef, measure = false, overhangPx = 0 }: Props) {
+  const { scrollLeft, scrollTo, contentWidthPx, viewportWidthPx, setViewportWidthPx } = useTimelineViewportContext();
+
+  // A ref callback, not an effect: `react-hooks/set-state-in-effect` forbids a setter in an
+  // effect body, and the width has to be read once on mount — the observer only ever fires on a
+  // LATER change, and under test it is a stub that never fires at all, so a window measured by
+  // the observer alone would report zero for ever.
+  const watch = useCallback(
+    (node: HTMLDivElement | null): (() => void) | undefined => {
+      if (node === null) return undefined;
+
+      const report = () => setViewportWidthPx(node.getBoundingClientRect().width);
+      report();
+      const observer = new ResizeObserver(report);
+      observer.observe(node);
+
+      return () => observer.disconnect();
+    },
+    [setViewportWidthPx],
+  );
+
+  // `overflow: hidden` still lets the browser scroll the box natively when focus lands on a
+  // descendant that is out of view (a marker reached by Tab), by setting its own `scrollLeft`
+  // with no bar to show it. That would stack a second offset on the shared one, and only on the
+  // window that holds the focused element, so the surfaces would part company. The shared offset
+  // stays the only one: a native offset is put back to zero, and the view is moved through
+  // `scrollTo` so the focused element ends up in sight, which is what the browser meant to do.
+  const keepOffsetShared = (node: HTMLElement) => {
+    const native = node.scrollLeft;
+    if (native !== 0) node.scrollLeft = 0;
+
+    return native;
+  };
+  const revealFocused = (event: FocusEvent<HTMLElement>) => {
+    const window = event.currentTarget;
+    const native = keepOffsetShared(window);
+    const edge = window.getBoundingClientRect();
+    const target = (event.target as HTMLElement).getBoundingClientRect();
+    // The browser may have scrolled before this ran, which moved the element left by `native`.
+    const left = target.left + native;
+    const right = target.right + native;
+
+    if (left < edge.left) scrollTo(scrollLeft - (edge.left - left));
+    else if (right > edge.left + viewportWidthPx) scrollTo(scrollLeft + (right - edge.left - viewportWidthPx));
+  };
+
+  const overhangLeft = scrollLeft <= 0 ? overhangPx : 0;
+  // A play shorter than the window has both ends in view, which this reads as the end reached.
+  const overhangRight = scrollLeft >= contentWidthPx - viewportWidthPx ? overhangPx : 0;
+
+  return (
+    <Box
+      data-testid={testId}
+      ref={measure ? watch : undefined}
+      onFocusCapture={revealFocused}
+      onScroll={(event) => keepOffsetShared(event.currentTarget)}
+      style={{
+        flex: 1,
+        // Or the window refuses to shrink below its content and the gutter is pushed off screen.
+        minWidth: 0,
+        height: '100%',
+        overflow: 'hidden',
+        position: 'relative',
+        marginLeft: TRACK_INSET_PX - overhangLeft,
+        marginRight: TRACK_INSET_PX - overhangRight,
+        ...(overhangPx > 0 && {
+          paddingLeft: overhangLeft,
+          paddingRight: overhangRight,
+          overflowX: 'clip',
+          overflowY: 'visible',
+        }),
+      }}
+    >
+      <Box
+        ref={contentRef}
+        data-testid={`${testId}-content`}
+        style={{
+          position: 'relative',
+          height: '100%',
+          width: contentWidthPx,
+          // `-0` stringifies as "0", so a view at rest carries no negative zero into the style.
+          transform: `translateX(${-scrollLeft}px)`,
+        }}
+      >
+        {children}
+      </Box>
+    </Box>
+  );
+}

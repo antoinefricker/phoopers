@@ -186,6 +186,7 @@
     "loadError": "Une erreur s'est produite. Veuillez réessayer.",
     "loading": "Chargement du système",
     "menu": {
+      "close": "Fermer le menu du système",
       "create": "Créer un nouveau système",
       "editMode": "Mode édition",
       "label": "Menu du système",
@@ -218,7 +219,9 @@
     },
     "timeline": {
       "pass": "Passe",
-      "shot": "Tir"
+      "shot": "Tir",
+      "zoomIn": "Zoomer",
+      "zoomOut": "Dézoomer"
     },
     "transport": {
       "add": "Ajouter",

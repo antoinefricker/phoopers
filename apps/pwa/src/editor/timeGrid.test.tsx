@@ -5,7 +5,8 @@ import { ROOT, fixturePlay } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { SCRUBBER_AXIS_PX, TRANSPORT_ROW_HEIGHT_PX } from '../play2d/transportMath';
-import { gridTicks } from './timelineGeometry';
+import { gridTicks, leftPx } from './timelineGeometry';
+import { ZOOM_LEVELS } from './timelineScale';
 import { enterEditMode, renderEditor } from './testUtils/renderEditor';
 
 beforeEach(() => stubViewportWidth(1440));
@@ -41,26 +42,41 @@ describe('the time grid behind the timeline', () => {
     expect(Number(major?.style.opacity)).toBeGreaterThan(Number(minor?.style.opacity));
   });
 
-  it('places each line at its share of the duration', async () => {
+  it('places each line at its distance from the start of the play', async () => {
     const grid = await renderTimeline();
     const lines = within(grid).getAllByTestId(/^time-grid-(major|minor)$/);
     const lefts = lines.map((line) => line.style.left);
+    const ticks = gridTicks(DURATION);
 
-    expect(lefts[0]).toBe('0%');
-    expect(lefts.at(-1)).toBe('100%');
+    // A distance, not a share: at a fixed scale the last line is the play's own width away from
+    // the first, however wide the panel is.
+    expect(lefts[0]).toBe('0px');
+    expect(lefts.at(-1)).toBe(leftPx(ticks.at(-1)?.t ?? 0, ZOOM_LEVELS[0] ?? 24));
   });
 
   it('ends where the playhead does, although it is measured from further out', async () => {
-    // The two no longer share a parent: the playhead is inside the scroll viewport, which
+    // The two no longer share a parent: the playhead's area is inside the scroll viewport, which
     // already reserves the scrollbar's gutter, while the grid is outside it and has to reserve
     // that gutter itself. Their raw `right` therefore differ by exactly the gutter, and the
     // lines still land on the same x. Asserting them equal would pin the wrong thing.
     const grid = await renderTimeline();
-    const playhead = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
+    const area = screen.getByTestId('timeline-axis-area');
     const viewport = screen.getByTestId('timeline-viewport');
 
-    expect(grid.style.left).toBe(playhead.style.left);
-    expect(px(grid.style.right)).toBe(px(viewport.style.paddingRight) + px(playhead.style.right));
+    expect(grid.style.left).toBe(area.style.left);
+    expect(px(grid.style.right)).toBe(px(viewport.style.paddingRight) + px(area.style.right));
+  });
+
+  it('scrolls with the surfaces it is drawn behind', async () => {
+    // The grid sits outside the rows' scroll area, so nothing carries it along for free. At a
+    // fixed scale a line that stayed put while the markers moved would be worse than no grid:
+    // it would claim a time the markers beside it no longer have.
+    await renderTimeline();
+    const gridContent = screen.getByTestId('time-grid-window-content');
+    const rowContent = screen.getByTestId('step-ruler-window-content');
+
+    expect(gridContent.style.transform).toBe(rowContent.style.transform);
+    expect(gridContent.style.width).toBe(rowContent.style.width);
   });
 
   it('starts its lines on the scrubber axis, derived from the transport own height', async () => {
@@ -108,9 +124,12 @@ describe('the time grid behind the timeline', () => {
 
   it('keeps the playhead above the rows inside the timeline', async () => {
     await renderTimeline();
-    const playhead = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
+    // The area the playhead's window sits in, which is the layer: the window and its content
+    // carry no z-index of their own.
+    const playhead = screen.getByTestId('timeline-axis-area');
     const rows = screen.getByTestId('timeline-content');
 
+    expect(playhead.contains(screen.getByTestId('timeline-playhead'))).toBe(true);
     expect(Number(rows.style.zIndex)).toBeLessThan(Number(playhead.style.zIndex));
   });
 });

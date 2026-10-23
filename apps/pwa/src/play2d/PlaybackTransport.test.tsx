@@ -4,9 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Keyframe, Play, PlayerId, Step, StepId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
-import { PlaybackTransport } from './PlaybackTransport';
+import { PlaybackTransport, THUMB_SIZE_PX } from './PlaybackTransport';
+import { PlayView } from './PlayView';
+import { ZOOM_LEVELS, contentWidthPx } from '../editor/timelineScale';
+import { enterEditMode, renderEditor } from '../editor/testUtils/renderEditor';
+import { fixturePlay, ROOT } from '../engine/__fixtures__/play';
+import { resolveBranch } from '../engine';
+import { stubViewportWidth } from '../testUtils/viewport';
 import {
   TIME_GRID_S,
+  TRACK_INSET_PX,
   adjacentStep,
   sliderMax,
   snapToGrid,
@@ -292,6 +299,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  // The window-width stub is a spy on a prototype, which outlives the test that made it.
+  vi.restoreAllMocks();
 });
 
 const click = (element: HTMLElement) => fireEvent.click(element);
@@ -516,5 +525,131 @@ describe('transport icons', () => {
       expect(button.querySelector('svg')).toBeInTheDocument();
       expect(button.textContent).toBe('');
     }
+  });
+});
+
+describe('the scrubber', () => {
+  beforeEach(() => stubViewportWidth(1440));
+
+  const DURATION = resolveBranch(fixturePlay, ROOT).duration;
+  const [LEVEL_1 = 24] = ZOOM_LEVELS;
+  const SCALED_WIDTH = `${contentWidthPx(DURATION, LEVEL_1)}px`;
+
+  const renderWatching = () => renderEditor(fixturePlay, <PlayView />, { wrapPlayback: false });
+  const renderAuthoring = async () => {
+    const view = renderWatching();
+    await enterEditMode();
+
+    return view;
+  };
+
+  it('takes the timeline scale while authoring', async () => {
+    await renderAuthoring();
+
+    expect(screen.getByTestId('scrubber-window-content').style.width).toBe(SCALED_WIDTH);
+  });
+
+  it('scrolls with the tracks while authoring', async () => {
+    await renderAuthoring();
+    const strip = screen.getByTestId('timeline-scrollbar');
+    Object.defineProperty(strip, 'scrollLeft', { value: 120, configurable: true, writable: true });
+    fireEvent.scroll(strip);
+
+    expect(screen.getByTestId('scrubber-window-content').style.transform).toBe('translateX(-120px)');
+  });
+
+  // jsdom lays nothing out, so a clipped thumb cannot be seen; the computed style is the only
+  // thing to pin. At an end the view has reached, the clip must reach half a thumb past the axis,
+  // and the margin must give back what the padding took so the axis still begins TRACK_INSET_PX
+  // in, like the tracks'. Anywhere else the clip stays at the axis edge, as the other surfaces'
+  // does, or the track and the marks would spill into the gutter.
+  // Narrower than the fixture's 960px of play, so there is something to scroll.
+  const WINDOW_PX = 500;
+  const scrubberEdges = () => {
+    const style = getComputedStyle(screen.getByTestId('scrubber-window'));
+
+    return {
+      padding: [parseFloat(style.paddingLeft), parseFloat(style.paddingRight)],
+      margin: [parseFloat(style.marginLeft), parseFloat(style.marginRight)],
+    };
+  };
+  const scrollTo = (offset: number) => {
+    const strip = screen.getByTestId('timeline-scrollbar');
+    Object.defineProperty(strip, 'scrollLeft', { value: offset, configurable: true, writable: true });
+    fireEvent.scroll(strip);
+  };
+  const stubWindowWidth = () =>
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: WINDOW_PX,
+      bottom: 10,
+      width: WINDOW_PX,
+      height: 10,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+  it('keeps the thumb whole at the start without moving the axis', async () => {
+    stubWindowWidth();
+    await renderAuthoring();
+    const { padding, margin } = scrubberEdges();
+
+    expect(padding[0]).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
+    expect(margin[0]! + padding[0]!).toBe(TRACK_INSET_PX);
+    // The far end is out of view, so nothing hangs past the axis there.
+    expect(padding[1]).toBe(0);
+    expect(margin[1]).toBe(TRACK_INSET_PX);
+  });
+
+  it('keeps the thumb whole at the end of the play without moving the axis', async () => {
+    stubWindowWidth();
+    await renderAuthoring();
+    scrollTo(Number.MAX_SAFE_INTEGER);
+    const { padding, margin } = scrubberEdges();
+
+    expect(padding[1]).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
+    expect(margin[1]! + padding[1]!).toBe(TRACK_INSET_PX);
+    expect(padding[0]).toBe(0);
+  });
+
+  it('clips at the axis edge, like the tracks, anywhere in between', async () => {
+    stubWindowWidth();
+    await renderAuthoring();
+    scrollTo(120);
+    const { padding, margin } = scrubberEdges();
+
+    expect(padding).toEqual([0, 0]);
+    expect(margin).toEqual([TRACK_INSET_PX, TRACK_INSET_PX]);
+  });
+
+  it('stays elastic while watching', () => {
+    renderWatching();
+
+    // No window, hence no fixed width to scroll within and nothing to scroll with.
+    expect(screen.queryByTestId('scrubber-window')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('timeline-scrollbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('slider')).toBeInTheDocument();
+  });
+
+  it('still seeks with the arrow keys at a fixed scale', async () => {
+    await renderAuthoring();
+    const slider = screen.getByRole('slider');
+
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+
+    expect(slider).toHaveAttribute('aria-valuenow', String(TIME_GRID_S));
+  });
+
+  it('still shows a mark for every step in both modes', async () => {
+    const stepCount = resolveBranch(fixturePlay, ROOT).steps.length;
+    const { container, unmount } = renderWatching();
+    const marksWatching = container.querySelectorAll('.mantine-Slider-mark').length;
+    unmount();
+    const authoring = await renderAuthoring();
+
+    expect(marksWatching).toBe(stepCount);
+    expect(authoring.container.querySelectorAll('.mantine-Slider-mark')).toHaveLength(stepCount);
   });
 });

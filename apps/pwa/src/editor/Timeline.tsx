@@ -13,21 +13,41 @@ import { StepRuler } from './StepRuler';
 import { entityName } from './entityName';
 import { forkTimeOf } from './mutations';
 import { TimelineRow, LABEL_WIDTH } from './TimelineRow';
-import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX, fractionOf, rowsOf, timeFromClientX } from './timelineGeometry';
+import { TimeWindow } from './TimeWindow';
+import { TimelineScrollbar } from './TimelineScrollbar';
+import { SCROLLBAR_GUTTER_PX, leftPx, rowsOf, spanPx, timeFromClientX } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { DRAG_SLOP_PX } from './useTimeDrag';
+import { xOfTime } from './timelineScale';
+import { scrollToFollow } from './timelineScroll';
+import { useEdgeScroll } from './useEdgeScroll';
+import { useTimelineViewportContext } from './useTimelineViewportContext';
 
 export function Timeline() {
   const { t } = useTranslation();
   const { play, selection, select, removeKeyframe, movePlayer } = useEditorContext();
-  const { timeline, branchId, currentTimeRef, subscribe, seek, pause } = usePlaybackContext();
+  const { timeline, branchId, currentTimeRef, isPlaying, subscribe, seek, pause } = usePlaybackContext();
   const playheadRef = useRef<HTMLDivElement>(null);
-  // The overlay the playhead lives on IS the time axis: it is already inset to where t=0 and
-  // t=duration fall, so measuring it needs no arithmetic of its own. It takes no pointer events,
-  // which does not stop it being measured.
-  const axisRef = useRef<HTMLDivElement>(null);
+  // Two boxes, two questions, and they stopped having one answer the day the axis started
+  // scrolling. `axisAreaRef` is the fixed region to the right of the label column: it answers
+  // "was this press on the time axis at all". `axisContentRef` is the translated content inside
+  // it, whose left edge is t=0 wherever the view is scrolled to: it answers "which time". Asking
+  // the content both would scrub on a press in the gutter as soon as the view moved, the content
+  // then starting off screen to the left. Neither takes pointer events, which does not stop
+  // either being measured.
+  const axisAreaRef = useRef<HTMLDivElement>(null);
+  const axisContentRef = useRef<HTMLDivElement>(null);
   const scrubbing = useRef(false);
   const { duration } = timeline;
+  const { pxPerCell, scrollLeft, scrollTo, viewportWidthPx, contentWidthPx } = useTimelineViewportContext();
+  const edge = useEdgeScroll();
+  // What the follow reads each frame. Held in a ref so the subscription below does not tear
+  // down and re-subscribe whenever the view moves, and so a frame reads the latest offset
+  // without the clock re-rendering the rows to hand it one.
+  const followRef = useRef({ isPlaying, scrollLeft, viewportWidthPx, contentWidthPx, scrollTo });
+  useEffect(() => {
+    followRef.current = { isPlaying, scrollLeft, viewportWidthPx, contentWidthPx, scrollTo };
+  });
   const forkTime = forkTimeOf(play, branchId);
 
   // The playhead moves by writing its style directly, as the court tokens do, so a playing
@@ -35,14 +55,28 @@ export function Timeline() {
   useEffect(() => {
     const place = (time: number) => {
       if (playheadRef.current !== null) {
-        playheadRef.current.style.left = `${fractionOf(time, duration) * 100}%`;
+        playheadRef.current.style.left = leftPx(time, pxPerCell);
       }
+    };
+
+    // Only while the play runs: a seek is the coach pointing at a time, which is already where
+    // they are looking, and moving the view under their pointer would fight a scrub.
+    const follow = (time: number) => {
+      place(time);
+      const view = followRef.current;
+      if (!view.isPlaying) return;
+
+      const next = scrollToFollow(xOfTime(time, pxPerCell), view);
+      // A write only when the view has to move, so a playhead inside the band costs nothing.
+      if (next !== view.scrollLeft) view.scrollTo(next);
     };
 
     place(currentTimeRef.current);
 
-    return subscribe(place);
-  }, [currentTimeRef, subscribe, duration]);
+    return subscribe(follow);
+    // The scale, not the duration: a time's position is a distance from t=0 now, so a zoom is
+    // what moves the playhead without the clock ticking.
+  }, [currentTimeRef, subscribe, pxPerCell]);
 
   /**
    * Anywhere on the tracks or the ruler moves the playhead, and holding the button scrubs.
@@ -56,16 +90,24 @@ export function Timeline() {
   const scrubTo = (clientX: number, rect: DOMRect) => {
     // The grid, as the scrubber does: a step, a screen or a keyframe created here takes the time
     // the playhead reads, and a continuous one would put them between two cells.
-    seek(snapToGrid(timeFromClientX(clientX, rect, duration)));
+    seek(snapToGrid(timeFromClientX(clientX, rect, pxPerCell, duration)));
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     if ((event.target as HTMLElement).closest('button, a, input, textarea, select') !== null) return;
-    const rect = axisRef.current?.getBoundingClientRect();
-    // Outside the axis is the label column, whose width belongs to the names and not to time.
-    // A press there is left alone rather than clamped to t=0.
-    if (rect === undefined || event.clientX < rect.left || event.clientX > rect.right) return;
+    const area = axisAreaRef.current?.getBoundingClientRect();
+    const rect = axisContentRef.current?.getBoundingClientRect();
+    // Two edges refuse a press, for the same reason: neither side is the time axis.
+    // Left of the area is the label column, whose width belongs to the names and not to time.
+    // Right of the CONTENT is past the end of the play, which the window reaches whenever it is
+    // wider than the play is long — and there the spec says there is nothing: no grid, no track,
+    // nothing to click. A press there is left alone rather than seeking to the last instant.
+    // The clamp inside `timeFromClientX` is not the same rule and is deliberately kept: a drag
+    // already under way that runs past the end holds the playhead there rather than dropping it.
+    if (area === undefined || rect === undefined) return;
+    if (event.clientX < area.left || event.clientX > area.right) return;
+    if (event.clientX > rect.right) return;
 
     scrubbing.current = true;
     // Captured so the gesture survives the pointer leaving the panel, as a scrubber's does.
@@ -77,15 +119,24 @@ export function Timeline() {
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!scrubbing.current) return;
-    const rect = axisRef.current?.getBoundingClientRect();
-    // Clamped from here on, unlike the press: dragging past either end of the axis holds the
-    // playhead at that end, which `timeFromClientX` already does.
-    if (rect !== undefined) scrubTo(event.clientX, rect);
+    const measured = axisContentRef.current?.getBoundingClientRect();
+    if (measured === undefined) return;
+
+    // The same edge rule as every other drag: the playhead dragged to the window's edge carries
+    // the view with it, and keeps carrying it while held there. The window's left edge is the
+    // content's plus the offset, since the content is what slides.
+    const windowLeft = measured.left + scrollLeft;
+    const scrubAt = (scrolled: number) =>
+      // Clamped from here on, unlike the press: dragging past either end of the axis holds the
+      // playhead at that end, which `timeFromClientX` already does.
+      scrubTo(event.clientX, new DOMRect(windowLeft - scrolled, measured.top, measured.width, measured.height));
+    scrubAt(edge.follow(event.clientX, windowLeft, scrubAt));
   };
 
   const endScrub = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!scrubbing.current) return;
     scrubbing.current = false;
+    edge.release();
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   };
 
@@ -151,112 +202,122 @@ export function Timeline() {
   // The gutter is padded here rather than through `offsetScrollbars`, whose padding appears
   // only while the bar does: the scrubber above cannot follow that, so the two axes parted
   // company as soon as the rows overflowed. The transport reserves the same width always.
-  // On the viewport, not on the Box below it: an absolutely positioned child — the playhead,
-  // the pre-fork mask — is laid out against its container's PADDING box, so padding there
-  // would move the tracks and leave both of them behind.
+  // On the viewport, not on the Box below it: an absolutely positioned child — the playhead's
+  // area — is laid out against its container's PADDING box, so padding there would move the
+  // tracks and leave it behind.
+  // The horizontal scrollbar sits OUTSIDE this area, below it: it is reserved once for the whole
+  // surface, and inside the vertical scroll it would scroll away with the rows it drives.
   return (
-    <ScrollArea
-      type="auto"
-      // Cast because Mantine types this as plain div props, which reject a `data-` key on an
-      // object literal although JSX accepts them on the element itself.
-      viewportProps={{ 'data-testid': 'timeline-viewport' } as ComponentProps<'div'>}
-      styles={{ viewport: { paddingRight: SCROLLBAR_GUTTER_PX } }}
-    >
-      {/* Keys arrive from the focused marker button and bubble up to here. */}
-      {/* Same reason as the court: dragging a marker must not highlight the row labels or a
-          step name. Inputs below re-enable selection for the text they actually edit. */}
-      <Box
-        data-testid="timeline-surface"
-        style={{ position: 'relative', userSelect: 'none' }}
-        onKeyDown={onKeyDown}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endScrub}
-        onPointerCancel={endScrub}
+    <Box style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <ScrollArea
+        type="auto"
+        style={{ flex: 1, minHeight: 0 }}
+        // Cast because Mantine types this as plain div props, which reject a `data-` key on an
+        // object literal although JSX accepts them on the element itself.
+        viewportProps={{ 'data-testid': 'timeline-viewport' } as ComponentProps<'div'>}
+        styles={{ viewport: { paddingRight: SCROLLBAR_GUTTER_PX } }}
       >
-        {/* Positioned, and above the grid `PlayView` draws behind this whole region: the rows
+        {/* Keys arrive from the focused marker button and bubble up to here. */}
+        {/* Same reason as the court: dragging a marker must not highlight the row labels or a
+          step name. Inputs below re-enable selection for the text they actually edit. */}
+        <Box
+          data-testid="timeline-surface"
+          style={{ position: 'relative', userSelect: 'none' }}
+          onKeyDown={onKeyDown}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endScrub}
+          onPointerCancel={endScrub}
+        >
+          {/* Positioned, and above the grid `PlayView` draws behind this whole region: the rows
             and the ruler have no background of their own, so without a layer of their own the
             grid paints over their markers. The playhead's layer sits above both. */}
-        <Box data-testid="timeline-content" style={{ position: 'relative', zIndex: 1 }}>
-          <StepRuler />
-          {/* Only the players are sortable: the ball leads the list and is not one. `closestCenter`
+          <Box data-testid="timeline-content" style={{ position: 'relative', zIndex: 1 }}>
+            <StepRuler />
+            {/* Only the players are sortable: the ball leads the list and is not one. `closestCenter`
             over rows of equal height reads as "the row the pointer is over". Restricted to the
             vertical axis and to the list's own box, so a drag cannot wander across the time
             axis or out of the panel. */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-            onDragEnd={onDragEnd}
-            accessibility={{ announcements, screenReaderInstructions: { draggable: instructions } }}
-          >
-            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-              {rowsOf(timeline).map((row) => (
-                <TimelineRow
-                  key={row.entityId}
-                  row={row}
-                  duration={duration}
-                  screens={timeline.screens.filter((screen) => screen.screenerId === row.entityId)}
-                  selection={selection}
-                  onKeyframeRetimed={(entityId, fromT, toT) => {
-                    // The selection names a keyframe by its time, which the drag just changed.
-                    if (selection?.kind === 'keyframe' && selection.entityId === entityId && selection.t === fromT) {
-                      select({ kind: 'keyframe', entityId, t: toT });
-                    }
-                  }}
-                  onSelectKeyframe={(entityId, t) => {
-                    select({ kind: 'keyframe', entityId, t });
-                    seek(t);
-                  }}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-        </Box>
-        {/* Matches the tracks' inset on both sides, so the playhead and the mask stay aligned
-            with the markers rather than drifting by the inset at the far end. */}
-        <Box
-          ref={axisRef}
-          data-testid="timeline-axis"
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: `calc(${LABEL_WIDTH} + ${TRACK_INSET_PX}px)`,
-            right: TRACK_INSET_PX,
-            pointerEvents: 'none',
-            zIndex: 2,
-          }}
-        >
-          {/* Dims what the branch inherits and cannot change. Presentation only: the court layer
-              and the mutations refuse the same writes on their own. */}
-          {forkTime > 0 && (
-            <div
-              data-testid="pre-fork-mask"
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                left: 0,
-                width: `${fractionOf(forkTime, duration) * 100}%`,
-                background: 'var(--mantine-color-default-hover)',
-                opacity: 0.6,
-              }}
-            />
-          )}
-          <div
-            ref={playheadRef}
-            data-testid="timeline-playhead"
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+              onDragEnd={onDragEnd}
+              accessibility={{ announcements, screenReaderInstructions: { draggable: instructions } }}
+            >
+              <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+                {rowsOf(timeline).map((row) => (
+                  <TimelineRow
+                    key={row.entityId}
+                    row={row}
+                    duration={duration}
+                    screens={timeline.screens.filter((screen) => screen.screenerId === row.entityId)}
+                    selection={selection}
+                    onKeyframeRetimed={(entityId, fromT, toT) => {
+                      // The selection names a keyframe by its time, which the drag just changed.
+                      if (selection?.kind === 'keyframe' && selection.entityId === entityId && selection.t === fromT) {
+                        select({ kind: 'keyframe', entityId, t: toT });
+                      }
+                    }}
+                    onSelectKeyframe={(entityId, t) => {
+                      select({ kind: 'keyframe', entityId, t });
+                      seek(t);
+                    }}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          </Box>
+          {/* Starts where the gutter ends and runs to the panel's edge; its window then takes the
+            same inset the tracks' do, so the playhead and the mask stay aligned with the markers
+            rather than drifting by the inset at the far end. */}
+          <Box
+            ref={axisAreaRef}
+            data-testid="timeline-axis-area"
             style={{
               position: 'absolute',
               top: 0,
               bottom: 0,
-              width: 2,
-              background: 'var(--mantine-color-red-filled)',
+              left: LABEL_WIDTH,
+              right: 0,
+              display: 'flex',
+              pointerEvents: 'none',
+              zIndex: 2,
             }}
-          />
+          >
+            <TimeWindow testId="timeline-axis" contentRef={axisContentRef}>
+              {/* Dims what the branch inherits and cannot change. Presentation only: the court
+                layer and the mutations refuse the same writes on their own. */}
+              {forkTime > 0 && (
+                <div
+                  data-testid="pre-fork-mask"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    width: spanPx(0, forkTime, pxPerCell),
+                    background: 'var(--mantine-color-default-hover)',
+                    opacity: 0.6,
+                  }}
+                />
+              )}
+              <div
+                ref={playheadRef}
+                data-testid="timeline-playhead"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  background: 'var(--mantine-color-red-filled)',
+                }}
+              />
+            </TimeWindow>
+          </Box>
         </Box>
-      </Box>
-    </ScrollArea>
+      </ScrollArea>
+      <TimelineScrollbar />
+    </Box>
   );
 }

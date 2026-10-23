@@ -11,6 +11,11 @@ const PAGE_BACKGROUND = '#fafafa';
 const FONT_STACK = '"Roboto Condensed", system-ui, sans-serif';
 
 export const theme = createTheme({
+  // Every control is squared off to the same small radius, icon buttons included: ActionIcon
+  // used to be overridden to a full circle here, and the two shapes side by side in the
+  // editor's header read as two different toolbars. Set on the theme rather than per
+  // component so nothing added later has to remember it.
+  defaultRadius: 'sm',
   // Deliberately NOT the blue the offense wears. Mantine's default primary is blue,
   // which made the app's own chrome — the play button, the scrubber, a focus ring — the same
   // colour as one of the two teams, so blue meant both "this app" and "the attack". The teams
@@ -24,14 +29,6 @@ export const theme = createTheme({
   autoContrast: true,
   fontFamily: FONT_STACK,
   headings: { fontFamily: FONT_STACK },
-  components: {
-    ActionIcon: {
-      // Round, every one of them. Set as a style rather than through the `radius` prop: that
-      // prop resolves a token name or a pixel number, and a percentage is neither — it would
-      // emit `var(--mantine-radius-50%)`, which is not a variable that exists.
-      styles: { root: { borderRadius: '50%' } },
-    },
-  },
 });
 
 // Through Mantine's own variable rather than a stylesheet of our own: `--mantine-color-body` is

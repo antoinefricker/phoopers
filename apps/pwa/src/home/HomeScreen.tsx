@@ -16,7 +16,7 @@ interface DoorProps {
 /** One of the three ways in. They are equal on purpose: none is the primary action. */
 function Door({ title, description, children }: DoorProps) {
   return (
-    <Card withBorder padding="lg" radius="md">
+    <Card withBorder padding="lg">
       <Stack gap="sm" h="100%" justify="space-between">
         <Stack gap="xs">
           <Title order={2} size="h3">

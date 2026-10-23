@@ -262,7 +262,14 @@ describe('saving a system', () => {
     renderView();
     await openMenu();
 
-    expect(screen.getByRole('button', { name: /^Save/ })).toBeDisabled();
+    // Announced rather than natively disabled: the entry stays focusable so the tooltip can say
+    // why it cannot be used, so the assertion is that it says so AND that pressing it writes
+    // nothing — the attribute alone would not prove the second half.
+    const entry = screen.getByRole('button', { name: /^Save/ });
+    expect(entry).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(entry);
+    expect(playsApi.updatePlay).not.toHaveBeenCalled();
+    expect(playsApi.insertPlay).not.toHaveBeenCalled();
   });
 });
 

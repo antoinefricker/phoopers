@@ -8,6 +8,8 @@ import { IssuePanel } from '../editor/IssuePanel';
 import { PlayMenu } from '../editor/PlayMenu';
 import { TimeGrid } from '../editor/TimeGrid';
 import { Timeline } from '../editor/Timeline';
+import { TimelineZoomControls } from '../editor/TimelineZoomControls';
+import { TimelineViewportContextProvider } from '../editor/TimelineViewportContextProvider';
 import { extentOf } from '../engine';
 import { useEditorContext } from '../editor/useEditorContext';
 import { useModeShortcut } from '../editor/useModeShortcut';
@@ -18,6 +20,8 @@ import { FLOOR } from './Court';
 import { HiddenEntitiesContextProvider } from './HiddenEntitiesContextProvider';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
 import { PlaybackTransport } from './PlaybackTransport';
+import { usePlaybackContext } from './usePlaybackContext';
+import { GUTTER_WIDTH } from './transportMath';
 
 // Court (centre), transport (beneath) and the branch menu in the header. Which court is drawn is
 // the play's own business — `court` and `extent` — so there is no view control for it: one that
@@ -30,6 +34,11 @@ export function PlayView() {
   // Controlled rather than left to Mantine: picking a variant closes the menu, which the
   // uncontrolled popover has no way to do.
   const [branchesOpen, setBranchesOpen] = useState(false);
+  // A system with one variant has nothing to switch to, so while watching, the control is left
+  // out rather than shown dead: a system that never forks would otherwise carry a button that
+  // does nothing for its whole life. Authoring is the exception rather than a second condition —
+  // forking is how a second variant comes to exist, and it is reached from inside this menu.
+  const showBranches = mode === 'edit' || play.branches.length > 1;
 
   return (
     <PlaybackContextProvider key={play.id} play={play}>
@@ -45,6 +54,10 @@ export function PlayView() {
               padding is 0: the column around it is already padded. */}
           <AppHeader
             p={0}
+            // The menu and the wordmark take the timeline's gutter, so the header's left block
+            // is the same column as the row names and the transport's buttons beneath it,
+            // rather than a width of its own that lands near them and misses.
+            leadingWidth={GUTTER_WIDTH}
             // First in the header, ahead of the wordmark and the variants: what it does is to the
             // system as a whole — switch between watching and authoring it, create another one,
             // save this one — rather than to anything inside it. On a phone it also carries the
@@ -56,38 +69,43 @@ export function PlayView() {
             // icon-only: Popover gives it `aria-expanded`, and the dropdown repeats the name
             // as its heading.
             controls={
-              <Popover
-                opened={branchesOpen}
-                onChange={setBranchesOpen}
-                width={300}
-                position="bottom-start"
-                shadow="md"
-                trapFocus
-                // Below Mantine's Modal, which sits at 200. The fork and delete dialogs are
-                // rendered by the tree INSIDE this dropdown, and at Popover's default 300 the
-                // menu drew itself over their overlay and clipped the dialog. The menu stays
-                // open behind the dialog on purpose: closing it would unmount the dialog with it.
-                zIndex={190}
-              >
-                <Popover.Target>
-                  <ActionIcon
-                    variant="default"
-                    size={36}
-                    onClick={() => setBranchesOpen((open) => !open)}
-                    aria-label={t('play.branches.title', 'Branches')}
-                  >
-                    <IconGitBranch size={18} stroke={1.5} />
-                  </ActionIcon>
-                </Popover.Target>
-                <Popover.Dropdown>
-                  <Title order={6} mb="xs">
-                    {t('play.branches.title', 'Branches')}
-                  </Title>
-                  <ScrollArea.Autosize mah="min(60vh, 24rem)">
-                    <BranchTree play={play} onBranchSelected={() => setBranchesOpen(false)} />
-                  </ScrollArea.Autosize>
-                </Popover.Dropdown>
-              </Popover>
+              showBranches ? (
+                <Popover
+                  opened={branchesOpen}
+                  onChange={setBranchesOpen}
+                  width={300}
+                  position="bottom-start"
+                  shadow="md"
+                  trapFocus
+                  // Below Mantine's Modal, which sits at 200. The fork and delete dialogs are
+                  // rendered by the tree INSIDE this dropdown, and at Popover's default 300 the
+                  // menu drew itself over their overlay and clipped the dialog. The menu stays
+                  // open behind the dialog on purpose: closing it would unmount the dialog with it.
+                  zIndex={190}
+                >
+                  <Popover.Target>
+                    <ActionIcon
+                      variant="light"
+                      // Grey for the reason the system menu's is: picking a branch is not an
+                      // action on the play, and the primary is spent on the ones that are.
+                      color="gray"
+                      size={36}
+                      onClick={() => setBranchesOpen((open) => !open)}
+                      aria-label={t('play.branches.title', 'Branches')}
+                    >
+                      <IconGitBranch size={18} stroke={1.5} />
+                    </ActionIcon>
+                  </Popover.Target>
+                  <Popover.Dropdown>
+                    <Title order={6} mb="xs">
+                      {t('play.branches.title', 'Branches')}
+                    </Title>
+                    <ScrollArea.Autosize mah="min(60vh, 24rem)">
+                      <BranchTree play={play} onBranchSelected={() => setBranchesOpen(false)} />
+                    </ScrollArea.Autosize>
+                  </Popover.Dropdown>
+                </Popover>
+              ) : undefined
             }
           />
           {/* The time controls sit above the court, between it and the header. The scrubber stays
@@ -119,23 +137,7 @@ export function PlayView() {
                 time axis, and a grid running behind them would be noise.
                 `minHeight: 0` so the timeline's own scroll area takes the squeeze, which is what
                 this wrapper would otherwise refuse to pass on. */}
-            <Box style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              {mode === 'edit' && <TimeGrid />}
-              {/* Above the grid, and carrying the gap the region used to give these two. */}
-              <Box
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--mantine-spacing-sm)',
-                  minHeight: 0,
-                }}
-              >
-                <PlaybackTransport />
-                {mode === 'edit' && <Timeline />}
-              </Box>
-            </Box>
+            <TimeRegion mode={mode} />
             {mode === 'edit' && <SelectionActions />}
             {mode === 'edit' && <IssuePanel />}
           </Box>
@@ -162,5 +164,37 @@ export function PlayView() {
         </Stack>
       </HiddenEntitiesContextProvider>
     </PlaybackContextProvider>
+  );
+}
+
+// Inside the playback provider, since the viewport's width follows the resolved timeline's
+// duration. Mounted in both modes: the transport sits in it either way. The zoom level resets
+// whenever this mounts, which is what keeps it to one editor session.
+function TimeRegion({ mode }: { mode: 'play' | 'edit' }) {
+  const { timeline, currentTimeRef } = usePlaybackContext();
+
+  return (
+    <TimelineViewportContextProvider duration={timeline.duration} playheadTimeRef={currentTimeRef}>
+      {/* A row of its own, outside the box the grid fills: the grid's lines are measured from the
+          transport's top, so a row inside it would have them running behind the buttons. */}
+      {mode === 'edit' && <TimelineZoomControls />}
+      <Box style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {mode === 'edit' && <TimeGrid />}
+        {/* Above the grid, and carrying the gap the region used to give these two. */}
+        <Box
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--mantine-spacing-sm)',
+            minHeight: 0,
+          }}
+        >
+          <PlaybackTransport />
+          {mode === 'edit' && <Timeline />}
+        </Box>
+      </Box>
+    </TimelineViewportContextProvider>
   );
 }

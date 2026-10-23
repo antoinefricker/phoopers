@@ -18,7 +18,7 @@ import { HELD_BALL_OFFSET } from './PlayerSymbol';
 import { fullCourtViewBox } from './geometry/court';
 import { playheadTime } from '../testUtils/transport';
 
-function renderView(widthPx = 1440, auth: Partial<AuthContextValue> = {}) {
+function renderView(widthPx = 1440, auth: Partial<AuthContextValue> = {}, play = hornsPlay) {
   stubViewportWidth(widthPx);
   return render(
     <MantineProvider env="test">
@@ -34,7 +34,7 @@ function renderView(widthPx = 1440, auth: Partial<AuthContextValue> = {}) {
           }}
         >
           <MemoryRouter>
-            <EditorContextProvider initialPlay={hornsPlay}>
+            <EditorContextProvider initialPlay={play}>
               <DraftContextProvider initialOrigin={null}>
                 <PlayView />
               </DraftContextProvider>
@@ -231,6 +231,37 @@ describe('PlayView', () => {
 
       expect(screen.getByRole('button', { name: 'Variantes' })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Branches' })).not.toBeInTheDocument();
+    });
+
+    describe('a system with one variant', () => {
+      // The root alone: with nothing forked off it there is no second variant to switch to.
+      const soloPlay = { ...hornsPlay, branches: hornsPlay.branches.filter((b) => b.id === hornsPlay.rootBranchId) };
+      const missing = () => screen.queryByRole('button', { name: 'Branches' });
+
+      it('leaves the control out while watching, rather than showing it dead', () => {
+        renderView(1440, {}, soloPlay);
+
+        // A system that never forks would otherwise carry a button that does nothing for its
+        // whole life, on the one line where room is scarcest.
+        expect(missing()).not.toBeInTheDocument();
+      });
+
+      it('brings it back in edit mode, which is where a fork is made', async () => {
+        const user = userEvent.setup();
+        renderView(1440, {}, soloPlay);
+
+        await user.click(screen.getByRole('button', { name: 'System menu' }));
+        await user.click(await screen.findByRole('button', { name: /Edit mode/ }));
+
+        await user.click(await screen.findByRole('button', { name: 'Branches' }));
+        expect(await screen.findByRole('navigation', { name: 'Play branches' })).toBeInTheDocument();
+      });
+    });
+
+    it('stays in place while watching a system that has variants', () => {
+      renderView();
+
+      expect(trigger()).toBeInTheDocument();
     });
   });
 
