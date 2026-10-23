@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Alert, Divider, Group, Kbd, Loader, NavLink, Text, Tooltip } from '@mantine/core';
+import { Alert, Divider, Kbd, Loader, NavLink, Text, Tooltip, VisuallyHidden } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { AppMenu } from '../app/AppMenu';
-import { UnsavedDot } from '../app/UnsavedDot';
+import { UnsavedIndicator } from '../app/UnsavedIndicator';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { ConfirmDelete } from './ConfirmDelete';
 import { SavePlayDialog } from './SavePlayDialog';
@@ -105,15 +105,6 @@ export function PlayMenu() {
               />
               {mode === 'edit' && (
                 <>
-                  <NavLink
-                    component="button"
-                    type="button"
-                    label={t('play.menu.clear', 'Clear')}
-                    // The drawer stays open behind the confirmation: dismissing it must leave the
-                    // coach where they were, with the entry they nearly pressed still in front
-                    // of them.
-                    onClick={() => setClearing((c) => ({ opened: true, count: c.count + 1 }))}
-                  />
                   <Tooltip
                     label={t('play.save.unavailable', 'Saving needs an account, which this app is not set up for')}
                     disabled={!saving.disabled}
@@ -130,20 +121,28 @@ export function PlayMenu() {
                       mod={{ disabled: saving.disabled }}
                       aria-disabled={saving.disabled || undefined}
                       aria-keyshortcuts={SAVE_SHORTCUT.aria}
+                      // NavLink's body clips, so that a long label truncates with an ellipsis
+                      // rather than pushing the chord off the entry. The unsaved mark hangs a
+                      // few pixels above the word it sits on, which that clipping cut in half.
+                      // This label is one short word and has nothing to truncate.
+                      styles={{ body: { overflow: 'visible' } }}
                       onClick={() => {
                         if (saving.disabled) return;
                         // An overwrite has no dialog to report in, so the drawer stays open to
                         // say how it went.
                         if (saving.start()) close();
                       }}
-                      // The dot rides with the word rather than sitting at the far edge: it says
+                      // The mark rides on the word rather than sitting at the far edge: it says
                       // something about THIS entry — that there is something to save — and across
-                      // the gap it read as a third column of its own.
+                      // the gap it read as a third column of its own. The indicator is
+                      // decorative, so the words beside it are what a screen reader is told.
                       label={
-                        <Group component="span" gap={6} wrap="nowrap">
+                        <UnsavedIndicator dirty={saving.isDirty} inline>
                           {t('play.menu.save', 'Save')}
-                          {saving.isDirty && <UnsavedDot />}
-                        </Group>
+                          {saving.isDirty && (
+                            <VisuallyHidden> {t('play.save.unsaved', 'Unsaved changes')}</VisuallyHidden>
+                          )}
+                        </UnsavedIndicator>
                       }
                       // NavLink has no `loading` of its own, so the write in flight takes the
                       // place of the chord: the hint is of no use while the only thing to do is
@@ -164,6 +163,15 @@ export function PlayMenu() {
                       {t('play.save.error', 'The system could not be saved. Your work is kept here; try again.')}
                     </Alert>
                   )}
+                  <NavLink
+                    component="button"
+                    type="button"
+                    label={t('play.menu.clear', 'Clear')}
+                    // The drawer stays open behind the confirmation: dismissing it must leave the
+                    // coach where they were, with the entry they nearly pressed still in front
+                    // of them.
+                    onClick={() => setClearing((c) => ({ opened: true, count: c.count + 1 }))}
+                  />
                 </>
               )}
             </>

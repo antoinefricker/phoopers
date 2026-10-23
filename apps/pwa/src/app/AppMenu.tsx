@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ActionIcon, Divider, Drawer, Group, NavLink, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Divider, Drawer, NavLink, Stack, Text, Tooltip } from '@mantine/core';
 import { IconMenu2 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
@@ -7,7 +7,7 @@ import { DisplayNameDialog } from '../auth/DisplayNameDialog';
 import { useAuthContext } from '../auth/useAuthContext';
 import { useProfile } from '../auth/useProfile';
 import { CreateSystemDialog } from './CreateSystemDialog';
-import { UnsavedDot } from './UnsavedDot';
+import { UnsavedIndicator } from './UnsavedIndicator';
 
 export interface AppMenuProps {
   /**
@@ -76,22 +76,22 @@ export function AppMenu({ editing, dirty = false, opened: controlled, onOpenedCh
 
   return (
     <>
-      {/* Nothing is written on it, so `aria-label` is the whole of its name — and the dot adds
-          its own, which is how the burger says there is something to save without opening. */}
-      <ActionIcon
-        variant="light"
-        // Grey, not the primary: the colour marks what acts on the play — the transport, the
-        // add button — and this one leaves the play alone, as the drawer's own entries do.
-        color="gray"
-        size={36}
-        onClick={() => setOpened(true)}
-        aria-label={dirty ? t('app.menu.labelUnsaved', 'Menu, with unsaved changes') : t('app.menu.label', 'Menu')}
-      >
-        <Group component="span" gap={4} wrap="nowrap">
+      {/* The mark rides on the corner of the burger rather than inside it, so the glyph keeps
+          its own room. It is decorative, so the button's `aria-label` is what says there is
+          something to save — which is how the burger says it without being opened. */}
+      <UnsavedIndicator dirty={dirty}>
+        <ActionIcon
+          variant="light"
+          // Grey, not the primary: the colour marks what acts on the play — the transport, the
+          // add button — and this one leaves the play alone, as the drawer's own entries do.
+          color="gray"
+          size={36}
+          onClick={() => setOpened(true)}
+          aria-label={dirty ? t('app.menu.labelUnsaved', 'Menu, with unsaved changes') : t('app.menu.label', 'Menu')}
+        >
           <IconMenu2 size={18} stroke={1.5} />
-          {dirty && <UnsavedDot decorative />}
-        </Group>
-      </ActionIcon>
+        </ActionIcon>
+      </UnsavedIndicator>
       <Drawer
         opened={opened}
         onClose={close}
