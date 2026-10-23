@@ -23,12 +23,29 @@ export function TimelineScrollbar() {
   const { contentWidthPx, scrollLeft, scrollTo } = useTimelineViewportContext();
   const stripRef = useRef<HTMLDivElement>(null);
 
+  // The positions the strip reported that the context has not yet committed, oldest first. While
+  // the coach drags, the browser owns the position and React is always a step behind it: the
+  // commit for a report lands after the strip has reported (and moved to) a newer one, and
+  // writing that older offset back drags the bar backwards under the pointer. Comparing with the
+  // latest report alone is not enough for that reason — the committed value is already stale by
+  // then — so every report is kept until its own commit shows up.
+  const pendingRef = useRef<number[]>([]);
+
   // The offset also moves without this bar being touched — the playhead carries the view while
-  // the play runs, a zoom re-anchors it — so the strip follows the context rather than owning
-  // the position. Writing the same value back fires a scroll event that resolves to a no-op.
+  // the play runs, a zoom re-anchors it, a clamp pulls it back — so an offset the strip never
+  // reported is written onto it. Writing the same value back fires a scroll event that resolves
+  // to a no-op.
   useEffect(() => {
     const strip = stripRef.current;
-    if (strip !== null && strip.scrollLeft !== scrollLeft) strip.scrollLeft = scrollLeft;
+    if (strip === null) return;
+    const pending = pendingRef.current;
+    const reported = pending.indexOf(scrollLeft);
+    if (reported !== -1) {
+      pending.splice(0, reported + 1);
+      return;
+    }
+    pending.length = 0;
+    if (strip.scrollLeft !== scrollLeft) strip.scrollLeft = scrollLeft;
   }, [scrollLeft]);
 
   return (
@@ -36,7 +53,10 @@ export function TimelineScrollbar() {
       ref={stripRef}
       data-testid="timeline-scrollbar"
       aria-hidden
-      onScroll={(event) => scrollTo(event.currentTarget.scrollLeft)}
+      onScroll={(event) => {
+        pendingRef.current.push(event.currentTarget.scrollLeft);
+        scrollTo(event.currentTarget.scrollLeft);
+      }}
       style={{
         // Aligned with the axis it drives rather than with the panel: the gutter on the left
         // holds names, the inset at each end is room the axis does not span, and the rows'

@@ -109,4 +109,23 @@ describe('the timeline as one surface', () => {
     // off into empty space.
     expect(contentOf('step-ruler-window').style.transform).toBe(`translateX(-${FIXTURE_WIDTH}px)`);
   });
+
+  it('does not pull the strip back to a position it reported while the coach dragged on', async () => {
+    await renderTimeline();
+    const strip = screen.getByTestId('timeline-scrollbar');
+
+    // A real drag outruns React: the scroll event carries the offset the strip had when it was
+    // queued, and by the time the commit lands the browser has moved the strip further. The first
+    // read stands for the handler, every later one for the strip after the coach moved on.
+    let reads = 0;
+    const writes: number[] = [];
+    Object.defineProperty(strip, 'scrollLeft', {
+      configurable: true,
+      get: () => (reads++ === 0 ? 100 : 200),
+      set: (value: number) => writes.push(value),
+    });
+    fireEvent.scroll(strip);
+
+    expect(writes).toEqual([]);
+  });
 });
