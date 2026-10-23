@@ -13,4 +13,4 @@ Naming: `<index>-<DD-MM-YYYY>-<topic>.md`, matching the plans convention.
 | 004 | 14/10/2026 | [Step label display](004-14-10-2026-step-label-display.md)                  | 1c    | Implemented |
 | 005 | 17/10/2026 | [Creating a system](005-17-10-2026-system-creation.md)                      | 1d    | Implemented |
 | 006 | 18/10/2026 | [Accounts and persistence](006-18-10-2026-accounts-and-persistence.md)      | 1d    | Implemented |
-| 007 | 23/10/2026 | [Timeline scale and zoom](007-23-10-2026-timeline-scale.md)                 | 1c    | Approved    |
+| 007 | 23/10/2026 | [Timeline scale and zoom](007-23-10-2026-timeline-scale.md)                 | 1c    | Implemented |

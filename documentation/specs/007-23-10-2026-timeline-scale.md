@@ -40,6 +40,10 @@ The tracks, the step ruler, the time grid and the transport's scrubber share one
 they keep sharing it: all four take the same scale and scroll together, as one surface. A coach
 therefore never sees a whole system at once unless it happens to fit. That is the price of the
 alignment, paid deliberately.
+What it costs, measured, is in
+[limitations](../limitations.md#a-whole-system-can-no-longer-be-seen-at-once-unless-it-fits), and the one
+thing it leaves a keyboard unable to do in
+[limitations](../limitations.md#a-keyboard-user-cannot-scroll-the-time-axis).
 
 **The horizontal scrollbar's place is reserved whether or not it is in use**, as the vertical
 one's already is. A gutter that appeared with the bar would move the axis under the coach's

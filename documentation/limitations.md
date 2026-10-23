@@ -306,28 +306,6 @@ labelled "X1".."X5".
 name each token group, and give the paths text alternatives — then decide what a sensible
 reading order over a play actually is.
 
-### The time grid thins by window width, which nothing guards against
-
-`gridTicks` draws one line per `TIME_GRID_S` cell behind the transport, the ruler and the
-tracks, and gives up
-its sub-second lines only past `MAX_GRID_LINES` — a count, not a spacing. Nothing therefore
-reacts to the width the track is actually given, so the same play reads as a grid on a wide
-window and as hatching on a narrow one.
-
-Measured in a browser on the sample play (8s, so 81 lines, 72 of them minor): at a 1024px
-viewport the track is 788px and the lines fall 9.85px apart; at 768px the track is 532px and
-they fall 6.65px apart. The count guard does not engage in either case — at a 0.1s cell it first
-engages on a play longer than 24s, whatever the window.
-
-It was left because the two strengths carry the reading at these widths: the whole seconds stay
-legible as the cells between them close up, which is what the grid is for. A spacing guard also
-needs a measured width, and the component has none — the track is laid out by flex, so its width
-is known to the browser and not to React without a `ResizeObserver`.
-
-**Fix:** observe the track and drop the minor lines below a floor of about 8px of spacing, the
-same way `MAX_GRID_LINES` drops them by count. `gridTicks` already takes the whole decision in
-one place, so it would take a width argument and nothing else would move.
-
 ### Isolating an entity is reachable by pointer only, and nothing announces it
 
 Alt+click on a row's visibility button isolates that entity — it hides every other one, and a
@@ -430,6 +408,85 @@ follow.
 **Fix:** hold the offset in a ref plus a subscription, as the playback clock does, with each
 `TimeWindow` and the scrollbar registering to write its own transform; commit to state only when
 the play stops or a gesture moves the view.
+
+## Timeline
+
+### A long play shows no cell lines at any zoom
+
+`gridTicks` draws one line per 0.1 s cell and gives up the cells for whole seconds once the play
+would need more than `MAX_GRID_LINES` (240) of them. The cap counts lines, not pixels, so it
+does not know the zoom: a play past the cap loses its cell lines at level 1, where a cell is a
+comfortable 24 px, exactly as at level 4.
+
+Read from `gridTicks`: a **23.99 s** play keeps 240 lines (215 of them minor); a **24 s** play
+keeps 25, none minor, and every duration from 24 s up does the same. At level 1 a 24 s play is
+5760 px wide with a line only every 240 px.
+
+This is not a regression. The cap and its threshold are unchanged, and before the fixed scale
+the same play lost its cell lines the same way, because the cap never read the width either. What
+changed is that the fixed scale makes the loss visible as a loss: a coach at level 1 now sees
+cells large enough to aim at and no lines to aim by.
+
+It was not fixed because it is a decision about how the grid should thin, not a correction, and
+the spec left the grid's rules alone. The same section holds a second, smaller consequence of the
+fixed scale: at level 4 the cell lines of a play under 24 s fall **6 px** apart, which reads as
+hatching rather than as a grid.
+
+**Fix:** decide by spacing, not by count. `gridTicks` would take the zoom and draw the cells
+whenever `pxPerCell` stays at or above a floor of about 8 px, which keeps them at levels 1 to 3
+(24, 18 and 12 px) and drops them at level 4 (6 px) on any play. The line count is then bounded by
+the window the lines are drawn in rather than by the play, so the 240 cap goes.
+
+### A whole system can no longer be seen at once unless it fits
+
+The scrubber used to span the window and show the entire play. It now shares the fixed scale and
+scrolls with the tracks, so the coach has no overview: a play wider than the window can only be
+seen in part. [Spec 007](specs/007-23-10-2026-timeline-scale.md#scrolling) accepted this as the
+price of keeping the four time surfaces aligned.
+
+Measured by arithmetic from the layout in the code. The visible axis is the window less the
+page's 16 px padding each side (32), the 180 px label column, the 12 px scrollbar gutter, and 6 px
+of inset each end (12): **window − 236 px**. A play takes `duration × px per second`, which is 60
+px per second at level 4.
+
+| Window         | Visible axis | Longest play that fits at level 4 | At level 1 (240 px/s) |
+| -------------- | ------------ | --------------------------------- | --------------------- |
+| 1440 px laptop | 1204 px      | **20.07 s** (1204 / 60)           | 5.02 s                |
+| 390 px phone   | 154 px       | **2.57 s** (154 / 60)             | 0.64 s                |
+
+A new system is 8 s long, so it fits a laptop at level 4 (480 px) and not at level 1 (1920 px,
+37 % of it off screen at rest). On a phone nothing past 2.57 s fits even at the widest level, so
+an 8 s play shows about a third of its length at level 4.
+
+It was left because an overview and a shared scale are in tension: spec 007 chose alignment
+over overview, and lists a fit-to-window level and an overview strip as non-goals.
+
+**Fix:** an overview strip, a minimap of the whole play with the visible window marked on it,
+which is the one surface allowed to be elastic; or a fifth, fit-to-window level.
+
+### A keyboard user cannot scroll the time axis
+
+The scrollbar strip is `aria-hidden`, the view moves by a CSS transform, and the zoom buttons
+are the only keyboard route to a different view. Focusing a marker, bar or handle that sits
+outside the window does not bring it into view: nothing on the axis listens for focus. A
+keyboard user reaches a time outside the window by zooming out with the buttons until it is in
+view, and by nothing else.
+
+Measured by the same arithmetic. At level 1 a 1440 px window shows **5.02 s** of axis (1204 px
+at 240 px/s), so on the 8 s sample the last **2.98 s**, 37 % of the play, is off screen at rest.
+On a 390 px phone it shows **0.64 s**, so almost every marker is. At level 4 a 1440 px window
+shows 20.07 s and the same play fits whole. Whether the browser's own scroll-into-view on focus
+moves the clipped `TimeWindow` out of step with the transform was not tested in a browser.
+
+It was not fixed because a scroll-on-focus rule has to be designed across every focusable on
+the axis rather than patched in, and because the arrow keys already mean "nudge the selected
+object by 0.1 s", so a rule that also moved the view with them needs a decision first.
+
+**Fix:** a focus-driven scroll-into-view covering every focusable on the axis, the markers, the
+bars and the handles, that calls `scrollTo` through the viewport context with a margin so the
+target is not left against the edge. The arrow keys keep nudging the selected object only; the
+view follows the nudged object's new position through the same rule rather than through a
+second key binding.
 
 ## Accounts and persistence
 
