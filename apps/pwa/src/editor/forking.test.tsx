@@ -7,6 +7,8 @@ import { fixturePlay, P1, P2, ROOT, SWITCH } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { setKeyframe } from './mutations';
+import { spanPx } from './timelineGeometry';
+import { ZOOM_LEVELS } from './timelineScale';
 import {
   branchButton,
   branchMenu,
@@ -116,8 +118,9 @@ describe('the pre-fork lock', () => {
     await enterEditMode();
     await userEvent.click(await branchButton('Defence switches'));
 
-    // Forks at t = 2 of a 4 s branch.
-    expect(screen.getByTestId('pre-fork-mask').style.width).toBe('50%');
+    // Forks at t = 2, so the mask covers the first two seconds of the axis — a distance at the
+    // timeline's scale, not a share of the panel.
+    expect(screen.getByTestId('pre-fork-mask').style.width).toBe(spanPx(0, 2, ZOOM_LEVELS[0] ?? 24));
   });
 
   it('shows no mask on the root branch', async () => {

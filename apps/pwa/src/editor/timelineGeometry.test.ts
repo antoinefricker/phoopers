@@ -5,7 +5,6 @@ import {
   MARKER_WIDTH_PX,
   TRACK_INSET_PX,
   barResize,
-  fractionOf,
   gridTicks,
   leftPx,
   rowsOf,
@@ -13,20 +12,6 @@ import {
   timeFromClientX,
 } from './timelineGeometry';
 import { TIME_GRID_S, gridTime } from '../play2d/transportMath';
-
-describe('fractionOf', () => {
-  it('maps a time to its fraction of the duration', () => {
-    expect(fractionOf(2, 8)).toBe(0.25);
-  });
-
-  it('returns 0 for a zero duration rather than NaN', () => {
-    expect(fractionOf(0, 0)).toBe(0);
-  });
-
-  it('clamps a time beyond the duration to 1', () => {
-    expect(fractionOf(12, 8)).toBe(1);
-  });
-});
 
 describe('rowsOf', () => {
   const timeline = resolveBranch(fixturePlay, ROOT);

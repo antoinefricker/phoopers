@@ -60,12 +60,6 @@ export function gridTicks(duration: number): GridTick[] {
   return ticks;
 }
 
-export function fractionOf(t: number, duration: number): number {
-  if (!(duration > 0) || !Number.isFinite(t)) return 0;
-
-  return Math.min(Math.max(t / duration, 0), 1);
-}
-
 /** A time as a distance from the start of the timeline, ready for a bar's `left`. */
 export const leftPx = (t: number, pxPerCell: number): string => `${xOfTime(t, pxPerCell)}px`;
 

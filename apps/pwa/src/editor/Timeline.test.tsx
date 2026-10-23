@@ -5,9 +5,14 @@ import type { ReactNode } from 'react';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { TIME_GRID_S } from '../play2d/transportMath';
-import { TRACK_INSET_PX } from './timelineGeometry';
+import { TRACK_INSET_PX, leftPx, spanPx } from './timelineGeometry';
+import { ZOOM_LEVELS, xOfTime } from './timelineScale';
 import { Timeline } from './Timeline';
+import { LABEL_WIDTH } from './TimelineRow';
 import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch, trackOf } from './testUtils/renderEditor';
+
+// The level the editor opens at, which is the one every expectation below is written against.
+const [LEVEL_1 = 24] = ZOOM_LEVELS;
 
 const rowFor = (entityId: string) => screen.getByTestId(`timeline-row-${entityId}`);
 // Scoped to the track, not the whole row: the row's gutter carries the control that hides the
@@ -71,12 +76,12 @@ describe('Timeline', () => {
     expect(markerCountIn(P1)).toBe(0);
   });
 
-  it('places a marker at its fraction of the duration', () => {
+  it('places a marker at its distance from the start of the play', () => {
     renderEditor(fixturePlay, <Timeline />);
     const [, second] = markersIn(P1);
 
-    // P1 keyframe at t=2 of a 4s play.
-    expect(second?.style.left).toBe('50%');
+    // P1's keyframe at t=2, at 24px per 0.1s cell: a distance, not a share of the panel.
+    expect(second?.style.left).toBe(leftPx(2, LEVEL_1));
   });
 
   it('selects a keyframe when its marker is clicked', async () => {
@@ -95,10 +100,10 @@ describe('Timeline', () => {
     const [, second] = markersIn(P1);
     if (second === undefined) throw new Error('expected a second marker');
 
-    expect(screen.getByTestId('timeline-playhead').style.left).toBe('0%');
+    expect(screen.getByTestId('timeline-playhead').style.left).toBe(leftPx(0, LEVEL_1));
     await userEvent.click(second);
 
-    expect(screen.getByTestId('timeline-playhead').style.left).toBe('50%');
+    expect(screen.getByTestId('timeline-playhead').style.left).toBe(leftPx(2, LEVEL_1));
   });
 
   it('deletes the selected keyframe on Delete', async () => {
@@ -281,18 +286,23 @@ describe('Timeline', () => {
   });
 });
 
-// jsdom has no layout. Where a test needs real arithmetic, the timeline rows get this width, and
-// a draggable (a marker or a screen handle) is a zero-width box whose centre is `markerCentre`.
-// The drag helper presses at clientX 0 and releases at 120, so with the centre at 0 the grab
-// offset is 0 and the release lands at 120 / width of the duration.
-const withRowWidth = (width: number, markerCentre = 0) =>
+// jsdom has no layout. A width is no longer part of the arithmetic — a pointer's x is read
+// against the scale, not against the box — so what a test gives a row is its track's LEFT edge,
+// and a draggable (a marker or a screen handle) a zero-width box whose centre is `markerCentre`.
+const withTrackAt = (trackLeft: number, markerCentre = 0) =>
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
     const draggable = this.tagName === 'BUTTON' || (this.dataset['testid'] ?? '').startsWith('screen-handle');
-    const left = draggable ? markerCentre : 0;
-    const w = draggable ? 0 : width;
+    const left = draggable ? markerCentre : trackLeft;
 
-    return { left, width: w, right: left + w, top: 0, bottom: 0, height: 0, x: left, y: 0, toJSON: () => ({}) };
+    return { left, width: 0, right: left, top: 0, bottom: 0, height: 0, x: left, y: 0, toJSON: () => ({}) };
   });
+
+// `dragElement` presses at clientX 0 and releases at 120. A track whose left edge is this far to
+// the LEFT therefore takes that release at t = 2.4 — the time the cases below drop a marker on.
+// A negative left is what a scrolled timeline genuinely reports: the start of the play is off
+// the left of the window, and the pointer is still measured from it.
+const DROP_T = 2.4;
+const TRACK_LEFT = 120 - xOfTime(DROP_T, LEVEL_1);
 
 const secondMarker = (entityId: string) => {
   const marker = markersIn(entityId)[1];
@@ -321,26 +331,27 @@ describe('retiming', () => {
 
     await dragElement(secondMarker(P1));
 
-    // Without layout the drop maps to t=0, which the neighbour bound pushes just above the
-    // keyframe at 0. The exact 0.001 proves the keyframe MOVED; the length proves none was added.
+    // Every box is at x=0 in jsdom, so the release at clientX 120 is 120px along the axis: half
+    // a second at 24px a cell. The exact time proves the keyframe MOVED; the length proves none
+    // was added.
     const times = trackOf(readProbe().play, ROOT, P1).map((k) => k.t);
     expect(times).toHaveLength(3);
-    expect(times[1]).toBeCloseTo(0.001, 6);
+    expect(times[1]).toBeCloseTo(0.5, 6);
   });
 
-  it('commits the pixel-derived time when the row has layout', async () => {
-    withRowWidth(200);
+  it('commits the time the scale reads from the track own left edge', async () => {
+    withTrackAt(TRACK_LEFT);
     renderEditor(fixturePlay, <Timeline />);
 
     await dragElement(secondMarker(P1));
 
-    // clientX 120 of a 200px row across a 4s play.
-    // 120 / 200 * 4 = 2.4s, which is already on the grid.
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
+    // The same release as the case above, on a track that starts further left: the pointer is a
+    // distance from the START OF THE PLAY, so the time it lands on moves with that edge.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, DROP_T, 4]);
   });
 
   it('never lets a keyframe cross its neighbour', async () => {
-    withRowWidth(200);
+    withTrackAt(TRACK_LEFT);
     renderEditor(fixturePlay, <Timeline />);
 
     // Drag the first marker (t=0) rightwards to 2.4s: it must stop short of the keyframe at 2.
@@ -355,8 +366,8 @@ describe('retiming', () => {
   });
 
   it('snaps to a nearby step', async () => {
-    // clientX 120 of 480px is 1.0s of a 4s play; a step at 1.03 is inside the 0.08s threshold.
-    withRowWidth(480);
+    // The release lands on 1.0s; a step at 1.03 is inside the 0.08s threshold.
+    withTrackAt(120 - xOfTime(1, LEVEL_1));
     const withNearbyStep = withBranch(fixturePlay, ROOT, (b) => ({
       ...b,
       steps: [...b.steps, { id: 'near' as StepId, t: 1.03, name: 'Near' }],
@@ -373,7 +384,7 @@ describe('retiming', () => {
     const user = userEvent.setup();
     const second = secondMarker(P1);
     const before = JSON.stringify(readProbe().play);
-    expect(second.style.left).toBe('50%');
+    expect(second.style.left).toBe(leftPx(2, LEVEL_1));
 
     await user.pointer([
       { keys: '[MouseLeft>]', target: second },
@@ -381,7 +392,7 @@ describe('retiming', () => {
     ]);
 
     // The marker followed the pointer (so the gesture is live) yet nothing was committed.
-    expect(second.style.left).not.toBe('50%');
+    expect(second.style.left).not.toBe(leftPx(2, LEVEL_1));
     expect(JSON.stringify(readProbe().play)).toBe(before);
   });
 
@@ -459,7 +470,7 @@ describe('retiming', () => {
   });
 
   it('keeps the selection on the keyframe it dragged', async () => {
-    withRowWidth(200);
+    withTrackAt(TRACK_LEFT);
     renderEditor(fixturePlay, <Timeline />);
     await userEvent.click(secondMarker(P1));
     expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2 });
@@ -467,7 +478,7 @@ describe('retiming', () => {
     // The keyframe being dragged is the selected one, so selecting must follow it to its new time.
     await dragElement(secondMarker(P1));
 
-    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: 2.4 });
+    expect(readProbe().selection).toEqual({ kind: 'keyframe', entityId: P1, t: DROP_T });
   });
 });
 
@@ -489,11 +500,11 @@ describe('drag feel', () => {
 
   it('moves by the pointer delta, not its absolute position, when grabbed off-centre', async () => {
     // Marker centre at 20px; pressed at 50px (30px right of centre), released at 150px. The
-    // marker lands where its CENTRE would be: (150 - 30) / 200 * 4 = 2.4s — not
-    // 150 / 200 * 4 = 3s.
-    // The grab has to be wider than half a grid cell, or both readings round to the same
-    // answer and the case stops telling them apart.
-    withRowWidth(200, 20);
+    // marker lands where its CENTRE would be, 150 - 30 = 120px along the axis, which the track's
+    // left edge puts at 2.4s — not at the 2.5s that reading the pointer's absolute x would give.
+    // The grab has to be wider than half a grid cell (12px at this level), or both readings
+    // round to the same answer and the case stops telling them apart.
+    withTrackAt(TRACK_LEFT, 20);
     renderEditor(fixturePlay, <Timeline />);
     const user = userEvent.setup();
 
@@ -504,11 +515,10 @@ describe('drag feel', () => {
       { keys: '[/MouseLeft]', target: secondMarker(P1) },
     ]);
 
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.4, 4]);
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, DROP_T, 4]);
   });
 
   it('treats a twitch under the slop as a click, not a retime', async () => {
-    withRowWidth(200);
     renderEditor(gap, <Timeline />);
     const user = userEvent.setup();
     const first = markersIn(P1)[0];
@@ -525,7 +535,6 @@ describe('drag feel', () => {
   });
 
   it('starts dragging once the pointer clears the slop', async () => {
-    withRowWidth(200);
     renderEditor(gap, <Timeline />);
     const user = userEvent.setup();
     const first = markersIn(P1)[0];
@@ -537,9 +546,10 @@ describe('drag feel', () => {
       { keys: '[/MouseLeft]', target: first },
     ]);
 
-    // 4px of 200px across 4s is 0.08s, one cell once the grid rounds it: the drag cleared the
-    // slop, so it was placed and committed rather than read as a click.
-    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0.1, 2, 4]);
+    // 4px is under a sixth of a cell, which the grid rounds to zero: the keyframe moved from 1
+    // to 0, so the drag cleared the slop and was placed and committed rather than read as the
+    // click that would have left it where it was.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2, 4]);
   });
 });
 
@@ -569,7 +579,7 @@ describe('inherited markers', () => {
   });
 
   it('does not move the selection when an inherited marker is dragged', async () => {
-    withRowWidth(200);
+    withTrackAt(TRACK_LEFT);
     await viewSwitch();
     const forkAnchor = markersIn(P1)[1];
     if (forkAnchor === undefined) throw new Error('expected the fork anchor');
@@ -582,7 +592,7 @@ describe('inherited markers', () => {
   });
 
   it('still lets the branch own marker be dragged', async () => {
-    withRowWidth(200);
+    withTrackAt(TRACK_LEFT);
     await viewSwitch();
     const own = markersIn(P1)[2];
     if (own === undefined) throw new Error('expected the own marker');
@@ -590,7 +600,7 @@ describe('inherited markers', () => {
     await dragElement(own);
 
     // Released at 2.4s, inside the branch's bounds (floor 2).
-    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([2.4]);
+    expect(trackOf(readProbe().play, SWITCH, P1).map((k) => k.t)).toEqual([DROP_T]);
   });
 });
 
@@ -603,20 +613,20 @@ describe('screen bars', () => {
     renderEditor(fixturePlay, <Timeline />);
     const bar = within(rowFor(P2)).getByTestId(`screen-bar-${SCREEN_1}`);
 
-    // The fixture's screen: P2 screens for P1, from t=2 for 1s, of a 4s play.
-    expect(bar.style.left).toBe('50%');
-    expect(bar.style.width).toBe('25%');
+    // The fixture's screen: P2 screens for P1, from t=2 for 1s.
+    expect(bar.style.left).toBe(leftPx(2, LEVEL_1));
+    expect(bar.style.width).toBe(spanPx(2, 3, LEVEL_1));
     expect(within(rowFor(P1)).queryByTestId(`screen-bar-${SCREEN_1}`)).toBeNull();
   });
 
   it('sets the duration by dragging the right edge', async () => {
-    withRowWidth(200);
+    withTrackAt(TRACK_LEFT);
     renderEditor(fixturePlay, <Timeline />);
 
     await dragElement(within(rowFor(P2)).getByTestId(`screen-handle-${SCREEN_1}`));
 
-    // clientX 120 of 200px is 2.4s, already on the grid; the screen starts at 2s.
-    expect(screensOfRoot()[0]?.duration).toBeCloseTo(0.4, 6);
+    // The edge is released at 2.4s and the screen starts at 2s.
+    expect(screensOfRoot()[0]?.duration).toBeCloseTo(DROP_T - 2, 6);
   });
 
   it('shows an ancestor screen on a descendant branch without a handle or a remove control', async () => {
@@ -642,34 +652,44 @@ describe('screen bars', () => {
 
     await dragElement(within(rowFor(P2)).getByTestId(`screen-handle-${SCREEN_1}`));
 
-    // No layout: the drop maps to t=0, before the screen starts. It floors at one grid cell,
+    // No layout: the drop maps to 0.5s, before the screen starts. It floors at one grid cell,
     // rather than being refused (which would leave 1), so the drag demonstrably acted.
     expect(screensOfRoot()[0]?.duration).toBeCloseTo(TIME_GRID_S, 6);
   });
 });
 
 describe('track alignment', () => {
-  it('insets the row track, the ruler track and the overlay by the same amount', () => {
+  it('insets the row window, the ruler window and the overlay window by the same amount', () => {
     // jsdom has no layout, so it cannot see the overflow this inset exists to prevent. What it
-    // CAN pin is that the three containers sharing one time axis agree: if a later change insets
+    // CAN pin is that the three windows sharing one time axis agree: if a later change insets
     // the rows but not the overlay, the playhead drifts from the markers by that amount.
+    // The inset lives on the WINDOW rather than on the track inside it: inside, it would be a
+    // distance the scrolling content carried and the axis would start half a marker late.
     renderEditor(fixturePlay, <Timeline />);
 
     // By test id, not by child order: the row also holds the always-mounted dialog that
-    // confirms removing a screen, which is a sibling of the track.
-    const rowTrack = screen.getByTestId(`timeline-track-${P1}`);
-    const rulerTrack = screen.getByTestId('step-ruler-track');
-    const overlay = screen.getByTestId('timeline-playhead').parentElement as HTMLElement;
+    // confirms removing a screen, which is a sibling of the window.
+    const windows = [
+      screen.getByTestId(`timeline-window-${P1}`),
+      screen.getByTestId('step-ruler-window'),
+      screen.getByTestId('timeline-axis'),
+    ];
 
     // Both sides take the same inset now: with the time readout gone the scrubber runs the
     // full width, so nothing extra is reserved on the right.
-    const right = `${TRACK_INSET_PX}px`;
-    expect(rowTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
-    expect(rowTrack.style.marginRight).toBe(right);
-    expect(rulerTrack.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
-    expect(rulerTrack.style.marginRight).toBe(right);
-    expect(overlay.style.right).toBe(right);
-    expect(overlay.style.left).toContain(`${TRACK_INSET_PX}px`);
+    for (const surface of windows) {
+      expect(surface.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
+      expect(surface.style.marginRight).toBe(`${TRACK_INSET_PX}px`);
+    }
+  });
+
+  it('starts the overlay where the gutter ends', () => {
+    // The gutter holds the names and does not scroll, so every window begins where it ends. The
+    // rows and the ruler get there by laying the gutter out beside them; the overlay, being
+    // absolutely positioned over both, has to say so itself.
+    renderEditor(fixturePlay, <Timeline />);
+
+    expect(screen.getByTestId('timeline-axis-area').style.left).toBe(LABEL_WIDTH);
   });
 });
 
@@ -707,18 +727,26 @@ describe('the ball row for a screen reader', () => {
   });
 });
 
-// The axis overlay is the element the scrub measures, and jsdom gives it no layout. It is placed
-// away from x=0 on purpose, so a press in the label column to its left is a real case here.
+// A scrub reads two boxes, and jsdom lays out neither. The axis AREA is the fixed region beside
+// the label column: it decides whether a press was on the time axis at all, so it is given a
+// width and placed away from x=0, which makes a press in the label column to its left a real
+// case here. The CONTENT inside it is the play, and its left edge is t=0 — the distance from
+// there is what the scale turns into a time.
 const AXIS_LEFT = 40;
-const AXIS_WIDTH = 100;
+// Wide enough to hold the whole fixture play, so every press below lands inside the region.
+const AXIS_WIDTH = 1000;
 const withAxis = () =>
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-    const axis = this.dataset['testid'] === 'timeline-axis';
-    const left = axis ? AXIS_LEFT : 0;
-    const width = axis ? AXIS_WIDTH : 0;
+    const id = this.dataset['testid'];
+    const onAxis = id === 'timeline-axis-area' || id === 'timeline-axis-content';
+    const left = onAxis ? AXIS_LEFT : 0;
+    const width = id === 'timeline-axis-area' ? AXIS_WIDTH : 0;
 
     return { left, width, right: left + width, top: 0, bottom: 0, height: 0, x: left, y: 0, toJSON: () => ({}) };
   });
+
+/** The clientX at which a time falls, on the stubbed axis above. */
+const atTime = (t: number) => AXIS_LEFT + xOfTime(t, LEVEL_1);
 
 /** Press, optionally drag through `through`, and release — all on the timeline surface. */
 const scrub = async (clientX: number, through: number[] = []) => {
@@ -739,28 +767,29 @@ describe('scrubbing the timeline', () => {
     withAxis();
     renderLive(fixturePlay);
 
-    // A quarter along a four-second play is t=1, which the grid keeps exactly.
-    await scrub(AXIS_LEFT + AXIS_WIDTH / 4);
+    await scrub(atTime(1));
 
-    expect(playheadLeft()).toBe('25%');
+    expect(playheadLeft()).toBe(leftPx(1, LEVEL_1));
   });
 
   it('follows the pointer while the button is held', async () => {
     withAxis();
     renderLive(fixturePlay);
 
-    await scrub(AXIS_LEFT + AXIS_WIDTH / 4, [AXIS_LEFT + AXIS_WIDTH / 2, AXIS_LEFT + (AXIS_WIDTH * 3) / 4]);
+    await scrub(atTime(1), [atTime(2), atTime(3)]);
 
-    expect(playheadLeft()).toBe('75%');
+    expect(playheadLeft()).toBe(leftPx(3, LEVEL_1));
   });
 
   it('holds the playhead at the end when the drag runs past the axis', async () => {
     withAxis();
     renderLive(fixturePlay);
 
-    await scrub(AXIS_LEFT + AXIS_WIDTH / 2, [AXIS_LEFT + AXIS_WIDTH * 3]);
+    // Past the last second of the play, where there is nothing: the playhead stops at the end
+    // rather than running on into the empty space beside it.
+    await scrub(atTime(2), [atTime(4) + 500]);
 
-    expect(playheadLeft()).toBe('100%');
+    expect(playheadLeft()).toBe(leftPx(4, LEVEL_1));
   });
 
   it('leaves the playhead alone for a press in the label column', async () => {
@@ -769,7 +798,7 @@ describe('scrubbing the timeline', () => {
 
     await scrub(AXIS_LEFT - 10);
 
-    expect(playheadLeft()).toBe('0%');
+    expect(playheadLeft()).toBe(leftPx(0, LEVEL_1));
   });
 
   it('leaves the playhead alone when a control inside the timeline is pressed', async () => {
@@ -779,6 +808,18 @@ describe('scrubbing the timeline', () => {
     // Not a drag gesture, so nothing stops the event reaching the surface: the guard does.
     await userEvent.click(within(rowFor(P1)).getByRole('button', { name: /^Actions for/ }));
 
-    expect(playheadLeft()).toBe('0%');
+    expect(playheadLeft()).toBe(leftPx(0, LEVEL_1));
+  });
+
+  it('leaves the playhead alone for a press past the end of the play', async () => {
+    // Past the end of the play there is nothing — no grid, no track, nothing to click — but the
+    // area still reaches there when the window is wider than the play. A press in that empty
+    // space is not a seek to the last instant, it is a press on nothing.
+    withAxis();
+    renderLive(fixturePlay);
+
+    await scrub(AXIS_LEFT + AXIS_WIDTH + 10);
+
+    expect(playheadLeft()).toBe(leftPx(0, LEVEL_1));
   });
 });

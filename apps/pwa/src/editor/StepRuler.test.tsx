@@ -5,7 +5,12 @@ import type { StepId } from '../engine';
 import { fixturePlay, ROOT, STEP_ENTRY, SWITCH } from '../engine/__fixtures__/play';
 import { TIME_GRID_S } from '../play2d/transportMath';
 import { StepRuler } from './StepRuler';
+import { leftPx, spanPx } from './timelineGeometry';
+import { ZOOM_LEVELS, xOfTime } from './timelineScale';
 import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch } from './testUtils/renderEditor';
+
+// The level the editor opens at, which is the one every expectation below is written against.
+const [LEVEL_1 = 24] = ZOOM_LEVELS;
 
 const renderLive = () =>
   renderEditor(
@@ -54,11 +59,11 @@ describe('StepRuler', () => {
     expect(screen.getByText('Entry pass')).toBeInTheDocument();
   });
 
-  it('starts a bar at its fraction of the duration', () => {
+  it('starts a bar at its distance from the start of the play', () => {
     renderEditor(fixturePlay, <StepRuler />);
 
-    // Step at t=2 of a 4s play.
-    expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`).style.left).toBe('50%');
+    // Step at t=2, at 24px per 0.1s cell: a distance, not a share of the panel.
+    expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`).style.left).toBe(leftPx(2, LEVEL_1));
   });
 
   it('renames a step', async () => {
@@ -117,8 +122,9 @@ describe('StepRuler', () => {
 
     await dragElement(screen.getByTestId(`step-bar-${STEP_ENTRY}`));
 
-    // No layout: the drop maps to t=0, the root branch has no fork floor above 0.
-    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(0);
+    // jsdom puts every box at x=0, so the release at clientX 120 is 120px along the axis — half
+    // a second at 24px a cell. The root branch has no fork floor above 0 to stop it.
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(0.5, 6);
   });
 
   it('opens no editor after a drag', async () => {
@@ -182,21 +188,18 @@ describe('StepRuler', () => {
   });
 
   it('stops a fork step at its child branch first keyframe when dragged later', async () => {
-    // A 100px ruler over a 4s play: the release at clientX 120 clamps to the end, t=4.
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
-      left: 0,
-      top: 0,
-      width: 100,
-      height: 20,
-      right: 100,
-      bottom: 20,
-      x: 0,
-      y: 0,
-      toJSON: () => ({}),
-    });
     renderEditor(fixturePlay, <StepRuler />);
+    const user = userEvent.setup();
+    const bar = screen.getByTestId(`step-bar-${STEP_ENTRY}`);
 
-    await dragElement(screen.getByTestId(`step-bar-${STEP_ENTRY}`));
+    // Dragged to 3.5s, well past where it may go. No stub: every box is at x=0 in jsdom, so a
+    // clientX IS a distance along the axis, and the scale turns it into a time.
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: bar, coords: { clientX: 0, clientY: 0 } },
+      { target: bar, coords: { clientX: xOfTime(2.5, LEVEL_1), clientY: 0 } },
+      { target: bar, coords: { clientX: xOfTime(3.5, LEVEL_1), clientY: 0 } },
+      { keys: '[/MouseLeft]', target: bar, coords: { clientX: xOfTime(3.5, LEVEL_1), clientY: 0 } },
+    ]);
 
     // SWITCH forks from this step and its first keyframe is at 2: moving the step later would
     // put that keyframe before its own fork.
@@ -253,7 +256,7 @@ describe('step label bars', () => {
     // The fixture's play is 4s and its only step sits at 2.
     renderEditor(fixturePlay, <StepRuler />);
 
-    expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`).style.width).toBe('50%');
+    expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`).style.width).toBe(spanPx(2, 4, LEVEL_1));
   });
 
   it('spans to the next step when one follows', () => {
@@ -263,13 +266,13 @@ describe('step label bars', () => {
     ]);
     renderEditor(play, <StepRuler />);
 
-    expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`).style.width).toBe('25%');
+    expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`).style.width).toBe(spanPx(1, 2, LEVEL_1));
   });
 
   it('spans its duration when it has one', () => {
     renderEditor(withSteps([{ id: STEP_ENTRY, t: 2, name: 'Entry pass', duration: 1 }]), <StepRuler />);
 
-    expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`).style.width).toBe('25%');
+    expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`).style.width).toBe(spanPx(2, 3, LEVEL_1));
   });
 
   it('gives an inherited step a bar with no handle and no controls', async () => {
@@ -311,10 +314,15 @@ describe('step label bars', () => {
   it('moves a bar by the pointer delta, not by where its centre is', async () => {
     // A bar's LEFT edge is its time, while a marker is centred on its own. Measuring the grab
     // from the centre made the bar jump half a window to the right on the first move.
+    // The bar is given the box it really has: a step at t=2 lasting 1s starts 480px along the
+    // axis and is 240px wide. Everything else keeps jsdom's own x=0, the track included, so a
+    // clientX is a distance along the axis.
+    const BAR_LEFT = xOfTime(2, LEVEL_1);
+    const BAR_WIDTH = xOfTime(1, LEVEL_1);
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       const bar = this.getAttribute('data-testid')?.startsWith('step-bar-') === true;
-      const left = bar ? 50 : 0;
-      const width = bar ? 25 : 100;
+      const left = bar ? BAR_LEFT : 0;
+      const width = bar ? BAR_WIDTH : 0;
 
       return { left, top: 0, width, height: 20, right: left + width, bottom: 20, x: left, y: 0, toJSON: () => ({}) };
     });
@@ -328,16 +336,16 @@ describe('step label bars', () => {
     const user = userEvent.setup();
     const bar = screen.getByTestId(`step-bar-${STEP_ENTRY}`);
 
-    // Grab 5px into the bar and move 10px right: a 100px track over 4s, so 0.4s, which is
-    // already on the grid.
+    // Grabbed 20px into the bar and moved 30px right, so the step lands at 2.1s. Read from the
+    // bar's CENTRE instead, the same release would put it at 2.6s — half the bar's width out.
     await user.pointer([
-      { keys: '[MouseLeft>]', target: bar, coords: { clientX: 55, clientY: 10 } },
-      { target: bar, coords: { clientX: 60, clientY: 10 } },
-      { target: bar, coords: { clientX: 65, clientY: 10 } },
-      { keys: '[/MouseLeft]', target: bar, coords: { clientX: 65, clientY: 10 } },
+      { keys: '[MouseLeft>]', target: bar, coords: { clientX: BAR_LEFT + 20, clientY: 10 } },
+      { target: bar, coords: { clientX: BAR_LEFT + 35, clientY: 10 } },
+      { target: bar, coords: { clientX: BAR_LEFT + 50, clientY: 10 } },
+      { keys: '[/MouseLeft]', target: bar, coords: { clientX: BAR_LEFT + 50, clientY: 10 } },
     ]);
 
-    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(2.4, 6);
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBeCloseTo(2.1, 6);
   });
 
   it('does not retime the step when the duration handle is nudged', async () => {
@@ -396,7 +404,9 @@ describe('step label bars', () => {
 
     await dragElement(screen.getByTestId(`step-handle-${STEP_ENTRY}`));
 
-    expect(screen.getByTestId('step-ruler-track').style.width).toBe('');
+    // The track fills its window, and the drag must leave it filling it: a width in pixels here
+    // is the bar's own width written onto the surface every bar sits on.
+    expect(screen.getByTestId('step-ruler-track').style.width).toBe('100%');
   });
 
   it('clips a long step name instead of letting it leave the bar', () => {
@@ -413,7 +423,6 @@ describe('step label bars', () => {
   });
 
   it('stops the handle at the next step', async () => {
-    stubLayout();
     renderEditor(
       withSteps([
         { id: STEP_ENTRY, t: 1, name: 'Entry pass' },
@@ -424,9 +433,17 @@ describe('step label bars', () => {
       </LivePlayback>,
       { wrapPlayback: false },
     );
+    const user = userEvent.setup();
+    const handle = screen.getByTestId(`step-handle-${STEP_ENTRY}`);
 
-    // The drag asks for the far right of the track; the cap is the next step at t=2.
-    await dragElement(screen.getByTestId(`step-handle-${STEP_ENTRY}`));
+    // The drag asks for 3.5s, far past where the window may end; the cap is the next step at
+    // t=2, so the first step's label window is exactly one second long.
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: handle, coords: { clientX: 0, clientY: 0 } },
+      { target: handle, coords: { clientX: xOfTime(2.5, LEVEL_1), clientY: 0 } },
+      { target: handle, coords: { clientX: xOfTime(3.5, LEVEL_1), clientY: 0 } },
+      { keys: '[/MouseLeft]', target: handle, coords: { clientX: xOfTime(3.5, LEVEL_1), clientY: 0 } },
+    ]);
 
     expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.duration).toBeCloseTo(1, 6);
   });
