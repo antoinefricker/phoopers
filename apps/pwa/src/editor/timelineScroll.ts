@@ -29,7 +29,8 @@ export const FOLLOW_BAND_MIN = 0.1;
 export const FOLLOW_BAND_MAX = 0.9;
 
 // A pointer within this many pixels of either edge of the window pulls the view along. It is a
-// fixed step per call rather than a speed, so the drag keeps its direction without a timer.
+// fixed step per call rather than a speed: this rule stays pure, and the caller repeats it
+// (`useEdgeScroll`) for as long as the pointer is held, which is what makes it a speed.
 export const EDGE_SCROLL_PX = 24;
 
 // A non-finite input has no position to act on. It reads as zero so the arithmetic below stays

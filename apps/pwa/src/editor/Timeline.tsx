@@ -20,6 +20,7 @@ import { useEditorContext } from './useEditorContext';
 import { DRAG_SLOP_PX } from './useTimeDrag';
 import { xOfTime } from './timelineScale';
 import { scrollToFollow } from './timelineScroll';
+import { useEdgeScroll } from './useEdgeScroll';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 
 export function Timeline() {
@@ -39,6 +40,7 @@ export function Timeline() {
   const scrubbing = useRef(false);
   const { duration } = timeline;
   const { pxPerCell, scrollLeft, scrollTo, viewportWidthPx, contentWidthPx } = useTimelineViewportContext();
+  const edge = useEdgeScroll();
   // What the follow reads each frame. Held in a ref so the subscription below does not tear
   // down and re-subscribe whenever the view moves, and so a frame reads the latest offset
   // without the clock re-rendering the rows to hand it one.
@@ -117,15 +119,24 @@ export function Timeline() {
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!scrubbing.current) return;
-    const rect = axisContentRef.current?.getBoundingClientRect();
-    // Clamped from here on, unlike the press: dragging past either end of the axis holds the
-    // playhead at that end, which `timeFromClientX` already does.
-    if (rect !== undefined) scrubTo(event.clientX, rect);
+    const measured = axisContentRef.current?.getBoundingClientRect();
+    if (measured === undefined) return;
+
+    // The same edge rule as every other drag: the playhead dragged to the window's edge carries
+    // the view with it, and keeps carrying it while held there. The window's left edge is the
+    // content's plus the offset, since the content is what slides.
+    const windowLeft = measured.left + scrollLeft;
+    const scrubAt = (scrolled: number) =>
+      // Clamped from here on, unlike the press: dragging past either end of the axis holds the
+      // playhead at that end, which `timeFromClientX` already does.
+      scrubTo(event.clientX, new DOMRect(windowLeft - scrolled, measured.top, measured.width, measured.height));
+    scrubAt(edge.follow(event.clientX, windowLeft, scrubAt));
   };
 
   const endScrub = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!scrubbing.current) return;
     scrubbing.current = false;
+    edge.release();
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   };
 

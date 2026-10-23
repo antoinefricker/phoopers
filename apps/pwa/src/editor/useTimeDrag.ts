@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import type { KeyboardEvent, PointerEvent, RefObject } from 'react';
 import { timeFromClientX } from './timelineGeometry';
-import { scrollForEdgeDrag } from './timelineScroll';
+import { useEdgeScroll } from './useEdgeScroll';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 import { TIME_GRID_S, snapToGrid } from '../play2d/transportMath';
 
@@ -51,7 +51,8 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
     null,
   );
   const dragged = useRef(false);
-  const { pxPerCell, scrollLeft, scrollTo, viewportWidthPx, contentWidthPx } = useTimelineViewportContext();
+  const { pxPerCell, scrollLeft } = useTimelineViewportContext();
+  const edge = useEdgeScroll();
 
   const bind = (gesture: TimeGesture) => ({
     onPointerDown: (event: PointerEvent<HTMLElement>) => {
@@ -85,29 +86,31 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       // The view moves BEFORE the time is read, so the time the gesture resolves is the one under
       // the pointer once the view has moved, not the one it had just left. The track is the
       // translated content, so the window's own left edge is its left plus the offset.
-      const box = { scrollLeft, viewportWidthPx, contentWidthPx };
-      // A window with no measured width has no edge to be at: until its first measurement lands
-      // (and in a harness that never lays anything out) every pointer would read as past it.
-      const scrolled =
-        viewportWidthPx > 0 ? scrollForEdgeDrag(event.clientX - (measured.left + scrollLeft), box) : scrollLeft;
-      if (scrolled !== scrollLeft) scrollTo(scrolled);
-      // The rect was measured before the move and the DOM has not caught up with it yet, so the
-      // content's left edge is shifted by hand by the distance the view just travelled.
-      const rect = new DOMRect(measured.left - (scrolled - scrollLeft), measured.top, measured.width, measured.height);
-      // Snapped to the grid BEFORE the gesture constrains it, never after: a constraint stops a
-      // keyframe just short of its neighbour, and rounding that result would land it on top of
-      // the thing the constraint exists to keep it off. The bound keeps the last word, so a
-      // value that meets one can sit off the grid.
-      drag.value = drag.gesture.resolve(
-        snapToGrid(timeFromClientX(event.clientX - drag.grab, rect, pxPerCell, duration)),
-        true,
-      );
-      drag.gesture.place(event.currentTarget, drag.value);
+      const windowLeft = measured.left + scrollLeft;
+      const element = event.currentTarget;
+      // Also run by each frame while the pointer is held at the edge, when no move event comes.
+      const retime = (clientX: number, scrolled: number) => {
+        // The content's left edge is worked out from the window's rather than re-measured: the
+        // DOM has not caught up with the offset just written.
+        const rect = new DOMRect(windowLeft - scrolled, measured.top, measured.width, measured.height);
+        // Snapped to the grid BEFORE the gesture constrains it, never after: a constraint stops a
+        // keyframe just short of its neighbour, and rounding that result would land it on top of
+        // the thing the constraint exists to keep it off. The bound keeps the last word, so a
+        // value that meets one can sit off the grid.
+        drag.value = drag.gesture.resolve(
+          snapToGrid(timeFromClientX(clientX - drag.grab, rect, pxPerCell, duration)),
+          true,
+        );
+        drag.gesture.place(element, drag.value);
+      };
+      const scrolled = edge.follow(event.clientX, windowLeft, (next) => retime(event.clientX, next));
+      retime(event.clientX, scrolled);
     },
     onPointerUp: (event: PointerEvent<HTMLElement>) => {
       event.stopPropagation();
       const drag = active.current;
       active.current = null;
+      edge.release();
       // A press with no movement is a click, not a retime.
       if (drag === null || !drag.moved) return;
 
@@ -119,6 +122,7 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       event.stopPropagation();
       const drag = active.current;
       active.current = null;
+      edge.release();
       if (drag?.moved) drag.gesture.restore(event.currentTarget);
     },
     // The keyboard route to the same constraint. It writes the model on every press rather than

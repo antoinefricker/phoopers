@@ -36,7 +36,7 @@ beforeEach(() => {
     const el = this as HTMLElement;
     const id = el.getAttribute('data-testid') ?? '';
     const shift = /translateX\((-?[\d.]+)px\)/.exec(el.style.transform)?.[1] ?? '0';
-    const width = id.endsWith('-window') || id === 'step-ruler-window' ? WINDOW_PX : 0;
+    const width = id.endsWith('-window') || id === 'step-ruler-window' || id === 'timeline-axis-area' ? WINDOW_PX : 0;
 
     // A keyframe marker sits at its time along the content, wherever the view has carried it.
     const at = /^Keyframe at ([\d.]+)s$/.exec(el.getAttribute('aria-label') ?? '')?.[1];
@@ -49,6 +49,9 @@ beforeEach(() => {
 
       return new DOMRect(Number(at) * PX_PER_SECOND + offset, 0, 12, 18);
     }
+
+    // The playhead's content is as wide as the play, so a press on it is on the axis.
+    if (id === 'timeline-axis-content') return new DOMRect(Number(shift), 0, 960, 0);
 
     return new DOMRect(id.endsWith('-content') ? Number(shift) : 0, 0, width, 0);
   });
@@ -176,6 +179,83 @@ describe('the view during a drag', () => {
     // 18.25 cells, so 1.8 s), not the one under it before (390px, 16.25 cells, so 1.6 s). Both sit
     // well off a half cell, so a change to how ties round cannot flip this.
     expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toContain(1.8);
+  });
+});
+
+describe('the view while a drag is held at the edge', () => {
+  const pressAtEdge = async () => {
+    await renderTimeline();
+    const user = userEvent.setup();
+    const marker = keyframe(2);
+
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: marker, coords: { clientX: 0, clientY: 0 } },
+      { target: marker, coords: { clientX: WINDOW_PX - 10, clientY: 0 } },
+    ]);
+
+    return { user, marker };
+  };
+
+  it('keeps scrolling on every frame without the pointer moving', async () => {
+    await pressAtEdge();
+    expect(offsetOf()).toBe('translateX(-24px)');
+
+    advance(16);
+    advance(16);
+
+    expect(offsetOf()).toBe('translateX(-72px)');
+  });
+
+  it('stops when the pointer is released in the edge zone', async () => {
+    const { user, marker } = await pressAtEdge();
+    advance(16);
+
+    await user.pointer({ keys: '[/MouseLeft]', target: marker });
+    const released = offsetOf();
+    advance(16);
+    advance(16);
+
+    expect(offsetOf()).toBe(released);
+    expect(frames.size).toBe(0);
+  });
+
+  it('stops when the pointer leaves the zone', async () => {
+    const { user, marker } = await pressAtEdge();
+
+    await user.pointer({ target: marker, coords: { clientX: 200, clientY: 0 } });
+    const left = offsetOf();
+    advance(16);
+    advance(16);
+
+    expect(offsetOf()).toBe(left);
+  });
+
+  it('stops at the end of the content', async () => {
+    await pressAtEdge();
+
+    // 960px of content in a 400px window: 560px is the furthest it goes, 24 steps in.
+    for (let i = 0; i < 40; i++) advance(16);
+
+    expect(offsetOf()).toBe('translateX(-560px)');
+    expect(frames.size).toBe(0);
+  });
+
+  it('carries the playhead dragged along the surface', async () => {
+    await renderTimeline();
+    const surface = screen.getByTestId('timeline-surface');
+
+    fireEvent.pointerDown(surface, { button: 0, clientX: 100, clientY: 0 });
+    fireEvent.pointerMove(surface, { clientX: WINDOW_PX - 10, clientY: 0 });
+    expect(offsetOf()).toBe('translateX(-24px)');
+
+    advance(16);
+    expect(offsetOf()).toBe('translateX(-48px)');
+
+    fireEvent.pointerUp(surface);
+    advance(16);
+
+    expect(offsetOf()).toBe('translateX(-48px)');
+    expect(frames.size).toBe(0);
   });
 });
 
