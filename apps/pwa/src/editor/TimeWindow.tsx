@@ -21,6 +21,16 @@ interface Props {
    * ever, each write re-rendering the other.
    */
   measure?: boolean;
+  /**
+   * How far something drawn ON the axis's ends reaches past them, in px: the scrubber's thumb is
+   * centred on t = 0 and t = duration, so half of it sits outside the axis. The window's clip
+   * normally stops at the axis's edge and would cut it. With this set the clip moves out by that
+   * much — as padding, with the margin giving the same back — so the axis still starts exactly
+   * `TRACK_INSET_PX` from the gutter and stays aligned with every other surface. The default, 0,
+   * leaves the window exactly as it was. Only the horizontal clip is kept: a hover label rises
+   * above the thumb and would be cut by a vertical one.
+   */
+  overhangPx?: number;
 }
 
 /**
@@ -39,7 +49,7 @@ interface Props {
  * A transform rather than a real `scrollLeft`: one offset in the context drives every surface,
  * and native scrolling would mean four scrollbars and four scroll events to keep damped.
  */
-export function TimeWindow({ children, testId, contentRef, measure = false }: Props) {
+export function TimeWindow({ children, testId, contentRef, measure = false, overhangPx = 0 }: Props) {
   const { scrollLeft, contentWidthPx, setViewportWidthPx } = useTimelineViewportContext();
 
   // A ref callback, not an effect: `react-hooks/set-state-in-effect` forbids a setter in an
@@ -71,8 +81,14 @@ export function TimeWindow({ children, testId, contentRef, measure = false }: Pr
         height: '100%',
         overflow: 'hidden',
         position: 'relative',
-        marginLeft: TRACK_INSET_PX,
-        marginRight: TRACK_INSET_PX,
+        marginLeft: TRACK_INSET_PX - overhangPx,
+        marginRight: TRACK_INSET_PX - overhangPx,
+        ...(overhangPx > 0 && {
+          paddingLeft: overhangPx,
+          paddingRight: overhangPx,
+          overflowX: 'clip',
+          overflowY: 'visible',
+        }),
       }}
     >
       <Box

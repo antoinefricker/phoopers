@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Keyframe, Play, PlayerId, Step, StepId } from '../engine';
 import { hornsPlay } from '../samples/horns';
 import { PlaybackContextProvider } from './PlaybackContextProvider';
-import { PlaybackTransport } from './PlaybackTransport';
+import { PlaybackTransport, THUMB_SIZE_PX } from './PlaybackTransport';
 import { PlayView } from './PlayView';
 import { ZOOM_LEVELS, contentWidthPx } from '../editor/timelineScale';
 import { enterEditMode, renderEditor } from '../editor/testUtils/renderEditor';
@@ -13,6 +13,7 @@ import { resolveBranch } from '../engine';
 import { stubViewportWidth } from '../testUtils/viewport';
 import {
   TIME_GRID_S,
+  TRACK_INSET_PX,
   adjacentStep,
   sliderMax,
   snapToGrid,
@@ -553,6 +554,21 @@ describe('the scrubber', () => {
     fireEvent.scroll(strip);
 
     expect(screen.getByTestId('scrubber-window-content').style.transform).toBe('translateX(-120px)');
+  });
+
+  // jsdom lays nothing out, so a clipped thumb cannot be seen; the computed style is the only
+  // thing to pin. The clip must reach half a thumb past the axis, and the margin must give back
+  // what the padding took so the axis still begins TRACK_INSET_PX in, like the tracks'.
+  it('keeps the thumb whole at both ends without moving the axis', async () => {
+    await renderAuthoring();
+    const window = getComputedStyle(screen.getByTestId('scrubber-window'));
+    const left = parseFloat(window.paddingLeft);
+    const right = parseFloat(window.paddingRight);
+
+    expect(left).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
+    expect(right).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
+    expect(parseFloat(window.marginLeft) + left).toBe(TRACK_INSET_PX);
+    expect(parseFloat(window.marginRight) + right).toBe(TRACK_INSET_PX);
   });
 
   it('stays elastic while watching', () => {

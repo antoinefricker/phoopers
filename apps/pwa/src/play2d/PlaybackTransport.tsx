@@ -28,7 +28,7 @@ import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 
 // Big enough to see and to grab. It may overhang the track: the margin on the Box absorbs part
 // of it, and the gutter beside it the rest.
-const THUMB_SIZE_PX = 16;
+export const THUMB_SIZE_PX = 16;
 
 const SNAP_THRESHOLD = 0.25;
 
@@ -77,8 +77,8 @@ export function PlaybackTransport() {
   // The thumb's size is deliberately NOT tied to the track inset: what has to line up across the
   // three surfaces is the TRACK, and the thumb only overhangs it. Tying them once meant the thumb
   // shrank to 8px — invisible against an 8px bar — the moment the inset followed the markers
-  // down to 4. While authoring, the window clips that overhang at its own edge, so the thumb is
-  // cut where it passes t = 0 or the end of the play.
+  // down to 4. While authoring the window would clip that overhang, so it is told how far the thumb
+  // reaches (`overhangPx`) and widens its clip without moving the axis.
   const slider = (
     <Slider
       thumbSize={THUMB_SIZE_PX}
@@ -191,7 +191,7 @@ export function PlaybackTransport() {
         // branch puts on its Box is not repeated here. Its content is as wide as the play at the
         // timeline's zoom and scrolls with the shared offset, which keeps the thumb and the step
         // dots on the same x as the rows below.
-        <TimeWindow testId="scrubber-window">
+        <TimeWindow testId="scrubber-window" overhangPx={THUMB_SIZE_PX / 2}>
           <Box
             h="100%"
             style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
