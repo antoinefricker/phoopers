@@ -99,12 +99,25 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
   // `entityName` is shared with the court and the selection bar, so a renamed player reads the
   // same everywhere and the fallback cannot drift between them.
   const rowName = entityName(row, t);
+  // A selected keyframe names its entity, so its row reads as selected too.
+  const rowSelected = editorSelection?.entityId === row.entityId;
 
   return (
     <Box
       data-testid={`timeline-row-${row.entityId}`}
+      data-selected={rowSelected ? 'true' : undefined}
       ref={setNodeRef}
+      // On the press, not the click: the timeline captures the pointer to scrub, which would
+      // retarget the click away from the row. The controls keep their own meaning, and a marker
+      // binds its own press and stops it, so only the row's bare surface selects.
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        if (!event.currentTarget.contains(event.target as Node)) return;
+        if ((event.target as HTMLElement).closest('button, a, input, textarea, select') !== null) return;
+        select({ kind: 'entity', entityId: row.entityId });
+      }}
       style={{
+        background: rowSelected ? 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))' : undefined,
         display: 'flex',
         alignItems: 'center',
         height: '2rem',
