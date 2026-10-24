@@ -80,7 +80,7 @@ export function CourtEditLayer() {
     }
 
     // Selecting is not a write, so it is not subject to the fork rule below.
-    if (entityId !== 'ball') select({ kind: 'entity', entityId });
+    select({ kind: 'entity', entityId });
     // Presentation half of the fork rule. The mutation refuses the same write independently.
     if (currentTimeRef.current < forkTimeOf(play, branchId)) return;
 
