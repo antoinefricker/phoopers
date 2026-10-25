@@ -1,9 +1,14 @@
 import { useContext, useLayoutEffect, useRef } from 'react';
 import { ballCarryAt, stateAt } from '../engine';
 import type { PlayerId } from '../engine';
+import { EditorContext } from '../editor/useEditorContext';
 import { usePlaybackContext } from './usePlaybackContext';
 import { HiddenEntitiesContext, NOTHING_HIDDEN } from './useHiddenEntitiesContext';
 import { BallSymbol, HELD_BALL_OFFSET, PlayerSymbol } from './PlayerSymbol';
+
+// CSS pixels, not court metres: a filter length on an SVG element is not scaled by the viewBox
+// (measured: 0.5 drew nothing visible), so the shadow keeps its look at every court size.
+const SELECTED_STYLE = { filter: 'drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6))' };
 
 const translate = (x: number, y: number): string => `translate(${x} ${y})`;
 
@@ -20,6 +25,7 @@ export function TokenLayer() {
   // a provider around them (the 1b tests do), and then nothing is hidden because nothing
   // offers to hide it. `PlayCanvas` reads `EditorContext` the same way, for the same reason.
   const hidden = useContext(HiddenEntitiesContext)?.hidden ?? NOTHING_HIDDEN;
+  const selectedId = useContext(EditorContext)?.selection?.entityId;
   const playerRefs = useRef(new Map<PlayerId, SVGGElement>());
   const ballRef = useRef<SVGGElement | null>(null);
 
@@ -75,6 +81,8 @@ export function TokenLayer() {
           key={player.id}
           data-testid="token"
           data-player-id={player.id}
+          data-selected={selectedId === player.id ? 'true' : undefined}
+          style={selectedId === player.id ? SELECTED_STYLE : undefined}
           ref={(node) => {
             if (node === null) {
               playerRefs.current.delete(player.id);
@@ -87,7 +95,12 @@ export function TokenLayer() {
         </g>
       ))}
       {hasBall && (
-        <g data-testid="ball-token" ref={ballRef}>
+        <g
+          data-testid="ball-token"
+          data-selected={selectedId === 'ball' ? 'true' : undefined}
+          style={selectedId === 'ball' ? SELECTED_STYLE : undefined}
+          ref={ballRef}
+        >
           <BallSymbol />
         </g>
       )}
