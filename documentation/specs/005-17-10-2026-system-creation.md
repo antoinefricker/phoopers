@@ -95,8 +95,9 @@ the stored play are the same with or without the turn.
 `ResolvedTimeline.duration` becomes `max(play.duration, last keyframe t)` instead of the
 last keyframe's `t` alone. A system with nothing moving is therefore `play.duration` long;
 one whose animation runs past it is as long as its animation, exactly as today. Nothing
-else in the engine reads `play.duration`: sampling, resolution and validation are
-unchanged.
+else in the engine reads `play.duration` but validation, which measures the end of the play
+the same way when it judges whether a step's label window outlasts it: sampling and resolution
+are unchanged.
 
 A system created through the form has `duration: 8`.
 

@@ -55,12 +55,29 @@ instant. The bar carries:
 - a **handle on its right edge**, dragged to set the duration, floored at the same minimum a
   screen's duration is floored at and capped at the next step's `t`, or at the end of the play
   for a last step;
+- a **handle on its left edge**, dragged to set where the window starts: the step is retimed
+  and the window keeps ending where it did, so the duration becomes what is left. It stays
+  within the step's own retime bounds (the fork floor of the branch that owns it and its
+  ceiling), no earlier than the previous window ends, and leaves the minimum duration before
+  the end that stays put. Where the previous step has no duration, its window runs until this
+  step starts, so it is left that minimum rather than none. A step with no duration of its
+  own gets an explicit one, ending where its implicit window did. The retime and the new
+  duration are one change: a start the model refuses leaves the duration alone;
 - an **edit** control and a **delete** control at the bar's end, inside it. Inside, because a
   window ending where the play does would otherwise push them off the panel, which then grows a
   horizontal scrollbar.
 
+Each handle fills one grid cell, the bar's first for the left handle and its last for the right
+one, so it occupies the interval whose edge it sets, as a keyframe's marker does. It is a cell
+wide at every zoom and never more than half the bar, which keeps the two apart on a window as
+short as the minimum, one cell. The name and the controls sit between them rather than under
+them. A handle is grabbed by the edge it sets, so a pointer that takes it away from that edge
+does not shift the edge by the distance. A screen's bar, which this one shares its component
+with, gives its right-edge handle the same cell.
+
 Dragging the bar itself still retimes the step, as dragging its tick did, under the fork
-constraints that already govern a step's `t`. A step with no duration draws its implicit window
+constraints that already govern a step's `t`; that moves the window whole, where the left
+handle moves only its start. A step with no duration draws its implicit window
 the same way; dragging its handle is what gives it an explicit one.
 
 A retime moves the window with the step and does not shorten it, and a step may be added inside
@@ -80,7 +97,8 @@ Sharing the component is what lets the two be changed together later.
 
 - a `duration` that is not a finite number, or is not greater than zero;
 - a window that runs past the next step's `t` on the same branch;
-- a window that runs past the end of the play.
+- a window that runs past the end of the play, which is the later of the last keyframe and the
+  system's own `duration`, as the timeline it is drawn on measures it.
 
 A step without a duration is never reported: it has no window of its own to be wrong.
 
