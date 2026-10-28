@@ -90,6 +90,10 @@ export function TokenLayer() {
           key={player.id}
           data-testid="token"
           data-player-id={player.id}
+          // Which entity this node draws. The edit layer drains its colour while a copy is dragged,
+          // by writing its filter, so this node carries no `style` of its own for React to
+          // overwrite. The selection shadow is a filter too, but on the wrapper inside.
+          data-token-of={player.id}
           data-selected={selectedId === player.id ? 'true' : undefined}
           ref={(node) => {
             if (node === null) {
@@ -105,7 +109,12 @@ export function TokenLayer() {
         </g>
       ))}
       {hasBall && (
-        <g data-testid="ball-token" data-selected={selectedId === 'ball' ? 'true' : undefined} ref={ballRef}>
+        <g
+          data-testid="ball-token"
+          data-token-of="ball"
+          data-selected={selectedId === 'ball' ? 'true' : undefined}
+          ref={ballRef}
+        >
           <g transform={upright} style={selectedId === 'ball' ? SELECTED_STYLE : undefined}>
             <BallSymbol />
           </g>

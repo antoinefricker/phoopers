@@ -2,7 +2,8 @@ import { useContext, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, Player, PlayerId } from '../engine';
 import { ballCarryAt, stateAt } from '../engine';
-import { DIAMOND_SIDE, HELD_BALL_OFFSET, TOKEN_SIZE } from '../play2d/PlayerSymbol';
+import { BallSymbol, DIAMOND_SIDE, HELD_BALL_OFFSET, PlayerSymbol, TOKEN_SIZE } from '../play2d/PlayerSymbol';
+import { CourtTurnContext } from '../play2d/useCourtTurnContext';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { snapToGrid } from '../play2d/transportMath';
 import { SettingsContext } from '../settings/useSettingsContext';
@@ -16,9 +17,10 @@ import { useEditorContext } from './useEditorContext';
 /** Court metres: a little over a token's own radius, so a drop that visually lands on a player attaches. */
 export const BALL_SNAP_RADIUS = 1.2;
 
-// A player's reactive area is its drawn symbol (see `HitShape`), so this radius only sizes the
-// drag ghost, which marks where the token will land.
-const PLAYER_GHOST_RADIUS = 0.7;
+// What the token left behind looks like while a copy of it is being moved: drained of its colour,
+// not made see-through, so it keeps its shape and its place for the coach to see where it was and
+// is plainly not the one under the pointer. Its shape alone still says which team it is.
+const FADED_FILTER = 'grayscale(1)';
 // A little over the drawn ball's own radius (0.18), so it is easy to grab; a held ball sits half
 // over its carrier, and anything much wider covers the carrier and makes it hard to select.
 const BALL_HIT_RADIUS = 0.3;
@@ -40,8 +42,9 @@ export function CourtEditLayer() {
     useEditorContext();
   const { timeline, branchId, currentTimeRef, subscribe } = usePlaybackContext();
   const layerRef = useRef<SVGGElement | null>(null);
+  // What follows the pointer while a token is dragged: a copy of that token's own symbol, at full
+  // colour, with the token it was taken from drained of its own where it stands.
   const ghostRef = useRef<SVGGElement | null>(null);
-  const ghostCircleRef = useRef<SVGCircleElement | null>(null);
   // The in-flight gesture. A ref, not state: it changes per pointer move and must not render.
   // `moved` flips once the pointer leaves the slop circle: until then it is a click, which selects
   // and writes nothing.
@@ -53,6 +56,10 @@ export function CourtEditLayer() {
   // Read with `useContext` rather than `useSettingsContext`: the layer still renders without a
   // provider (its tests do), and then the setting is its default.
   const showHitAreas = useContext(SettingsContext)?.settings.showHitAreas ?? DEFAULT_SETTINGS.showHitAreas;
+  // A turned court is drawn through a rotated group, so a symbol copied into it is turned back, as
+  // the token layer does, or its number would read sideways.
+  const turn = useContext(CourtTurnContext) ?? 0;
+  const upright = turn === 0 ? undefined : `rotate(${-turn})`;
 
   const hitPlayers = timeline.players.filter((player) => (timeline.anchors[player.id]?.length ?? 0) > 0);
   const hasBall = (timeline.anchors['ball']?.length ?? 0) > 0;
@@ -83,7 +90,29 @@ export function CourtEditLayer() {
 
   const pointOf = (event: React.PointerEvent) => courtPointFromEvent(event, layerRef.current, play);
 
-  const hideGhost = () => ghostRef.current?.setAttribute('visibility', 'hidden');
+  // The token the drag took the copy from, drawn by the token layer underneath this one. Found by
+  // its entity rather than held, because that layer owns the node and may replace it.
+  const tokenOf = (entityId: EntityId): SVGGElement | undefined =>
+    Array.from(layerRef.current?.ownerSVGElement?.querySelectorAll<SVGGElement>('[data-token-of]') ?? []).find(
+      (node) => node.dataset['tokenOf'] === entityId,
+    );
+
+  /** Starts showing the copy and fading the original. Only once the press has become a drag. */
+  const showGhost = (entityId: EntityId) => {
+    for (const symbol of ghostRef.current?.querySelectorAll<SVGGElement>('[data-ghost-of]') ?? []) {
+      symbol.setAttribute('display', symbol.dataset['ghostOf'] === entityId ? 'inline' : 'none');
+    }
+    ghostRef.current?.setAttribute('visibility', 'visible');
+    const original = tokenOf(entityId);
+    if (original !== undefined) original.style.filter = FADED_FILTER;
+  };
+
+  /** Ends whatever `showGhost` started, however the drag ended. */
+  const hideGhost = (entityId: EntityId | undefined) => {
+    ghostRef.current?.setAttribute('visibility', 'hidden');
+    const original = entityId === undefined ? undefined : tokenOf(entityId);
+    if (original !== undefined) original.style.filter = '';
+  };
 
   const onPointerDown = (event: React.PointerEvent<SVGGElement>) => {
     const entityId = event.currentTarget.dataset['entity'] as EntityId;
@@ -105,7 +134,6 @@ export function CourtEditLayer() {
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
     dragRef.current = { entityId, startX: event.clientX, startY: event.clientY, moved: false };
-    ghostCircleRef.current?.setAttribute('r', String(entityId === 'ball' ? BALL_HIT_RADIUS : PLAYER_GHOST_RADIUS));
     const point = pointOf(event);
     ghostRef.current?.setAttribute('transform', translate(point.x, point.y));
   };
@@ -116,7 +144,7 @@ export function CourtEditLayer() {
     // Both axes: the court is two-dimensional.
     if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > DRAG_SLOP_PX) {
       drag.moved = true;
-      ghostRef.current?.setAttribute('visibility', 'visible');
+      showGhost(drag.entityId);
     }
     if (!drag.moved) return;
 
@@ -127,7 +155,7 @@ export function CourtEditLayer() {
   const onPointerUp = (event: React.PointerEvent) => {
     const drag = dragRef.current;
     dragRef.current = null;
-    hideGhost();
+    hideGhost(drag?.moved === true ? drag.entityId : undefined);
     if (drag === null || !drag.moved) return;
 
     // The clock is continuous while a play runs, so a keyframe dropped mid-playback would sit
@@ -148,8 +176,9 @@ export function CourtEditLayer() {
   };
 
   const onPointerCancel = () => {
+    const drag = dragRef.current;
     dragRef.current = null;
-    hideGhost();
+    hideGhost(drag?.moved === true ? drag.entityId : undefined);
   };
 
   const hitTarget = (entityId: EntityId, shape: HitShape, label: string) => {
@@ -203,15 +232,20 @@ export function CourtEditLayer() {
         ),
       )}
       {hasBall && hitTarget('ball', 'ball', t('play.editor.dragBall', 'Move the ball'))}
+      {/* One copy of each token's own symbol, all hidden, and the drag shows the one it took. The
+          court's turn is undone on each, as it is on the tokens themselves, so a number still
+          reads upright. Nothing here takes the pointer: the hit targets above do. */}
       <g ref={ghostRef} data-testid="edit-ghost" visibility="hidden" pointerEvents="none">
-        <circle
-          ref={ghostCircleRef}
-          r={PLAYER_GHOST_RADIUS}
-          fill="none"
-          stroke="var(--mantine-primary-color-filled)"
-          strokeWidth={0.1}
-          strokeDasharray="0.3 0.2"
-        />
+        {hitPlayers.map((player) => (
+          <g key={player.id} data-ghost-of={player.id} display="none" transform={upright}>
+            <PlayerSymbol team={player.team} number={player.number} />
+          </g>
+        ))}
+        {hasBall && (
+          <g data-ghost-of="ball" display="none" transform={upright}>
+            <BallSymbol />
+          </g>
+        )}
       </g>
     </g>
   );
