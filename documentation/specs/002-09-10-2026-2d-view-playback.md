@@ -127,8 +127,10 @@ stops back to it.
 
 - The scrubber spans `[0, end]` in continuous time: where the content stops while watching, the
   whole timeline while authoring.
-- Each step from `stepsOf(timeline)` renders as a labelled tick. Dragging within a snap
-  threshold of a tick lands exactly on that step's time.
+- Each step from `stepsOf(timeline)` renders as a labelled tick. The scrubber follows the
+  pointer on the 0.1 s grid and is **not** pulled onto a tick: a pull of a quarter second either
+  side held the playhead on a step across half a second of travel and then let it jump, which
+  read as odd rounding. A step is reached with the prev/next-step buttons.
 - Prev/next-step buttons jump to the adjacent step time. At the ends they clamp.
 - Play from the end restarts from zero.
 
@@ -222,7 +224,8 @@ testable here. See
    and the ball.
 2. Pressing play animates tokens along their drawn paths and stops at the end.
 3. Scrubbing moves every token to the sampled position for that time, and pauses playback.
-4. Prev/next-step lands exactly on a step time; dragging near a tick snaps to it.
+4. Prev/next-step lands exactly on a step time; dragging the scrubber follows the grid and is
+   not pulled onto a tick.
 5. Selecting a branch replays the shared opening and diverges after the fork.
 6. A half-court system changes the frame, the clip and the turn only — no stored data and no
    path geometry changes.

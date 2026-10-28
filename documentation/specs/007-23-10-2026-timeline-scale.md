@@ -81,8 +81,9 @@ with no scrolling and no zoom buttons. A coach who only wants to watch keeps the
 in front of them. The scale therefore belongs to the editor, not to playback.
 
 **In edit mode the scrubber keeps everything it does today** — its thumb, its marks on the
-steps, seeking with the arrow keys, the value shown on hover, and its snap to a nearby step. It
-changes scale and it scrolls; it loses nothing.
+steps, seeking with the arrow keys and the value shown on hover. It changes scale and it scrolls.
+It does not snap to a nearby step: [spec 002](002-09-10-2026-2d-view-playback.md#transport-behaviour)
+takes that away, the playhead following the pointer on the grid.
 
 **Past the end of the play there is nothing.** The rows run to the end and stop; the space
 beyond, when the window is wider than the play, is empty — no grid, no track, nothing to click.
