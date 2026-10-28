@@ -1,5 +1,14 @@
 import { COURT_DIMENSIONS } from '../engine';
-import { APRON, LINE_WIDTH, courtMarkings, type CourtType } from './geometry/court';
+import {
+  APRON,
+  LINE_WIDTH,
+  courtMarkings,
+  halfCourtMarkingsRegion,
+  halfCourtRegion,
+  type CourtRegion,
+  type CourtSide,
+  type CourtType,
+} from './geometry/court';
 
 // The floor's wood tone, still being tuned between looks and legibility.
 //
@@ -15,11 +24,31 @@ export const FLOOR = '#d5c49a';
 
 interface Props {
   court: CourtType;
+  /**
+   * Draw only this half of the floor. The frame alone does not do it: an svg whose frame is
+   * narrower than its panel shows whatever lies past the frame, so a half court showed the
+   * other half beside it.
+   */
+  side?: CourtSide;
 }
 
-export function Court({ court }: Props) {
+function Clip({ id, region }: { id: string; region: CourtRegion }) {
+  return (
+    <clipPath id={id}>
+      <rect x={region.x} y={region.y} width={region.width} height={region.height} />
+    </clipPath>
+  );
+}
+
+export function Court({ court, side }: Props) {
   return (
     <>
+      {side !== undefined && (
+        <defs>
+          <Clip id="court-floor-clip" region={halfCourtRegion(court, side)} />
+          <Clip id="court-markings-clip" region={halfCourtMarkingsRegion(court, side)} />
+        </defs>
+      )}
       {/* The floor covers the playing surface and the apron around it, which is exactly what
           every viewBox frames — so the wood reaches the edge of the picture on every side and
           no sliver of page shows through. */}
@@ -30,10 +59,17 @@ export function Court({ court }: Props) {
         width={COURT_DIMENSIONS[court].length + APRON * 2}
         height={COURT_DIMENSIONS[court].width + APRON * 2}
         fill={FLOOR}
+        clipPath={side === undefined ? undefined : 'url(#court-floor-clip)'}
       />
       {/* Full opacity: a line at 0.6 washes out against the floor, and the whole point of the
           white is that the markings read. */}
-      <g data-testid="court" fill="none" stroke="var(--mantine-color-white)" strokeWidth={LINE_WIDTH}>
+      <g
+        data-testid="court"
+        fill="none"
+        stroke="var(--mantine-color-white)"
+        strokeWidth={LINE_WIDTH}
+        clipPath={side === undefined ? undefined : 'url(#court-markings-clip)'}
+      >
         {courtMarkings(court).map((marking, index) => {
           const key = `${marking.kind}-${index}`;
           switch (marking.kind) {

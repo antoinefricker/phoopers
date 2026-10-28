@@ -4,6 +4,7 @@ import type { PlayerId } from '../engine';
 import { EditorContext } from '../editor/useEditorContext';
 import { usePlaybackContext } from './usePlaybackContext';
 import { HiddenEntitiesContext, NOTHING_HIDDEN } from './useHiddenEntitiesContext';
+import { CourtTurnContext } from './useCourtTurnContext';
 import { BallSymbol, HELD_BALL_OFFSET, PlayerSymbol } from './PlayerSymbol';
 
 // Court metres, not CSS pixels: a filter length on an SVG element is in the element's user
@@ -27,6 +28,13 @@ export function TokenLayer() {
   // offers to hide it. `PlayCanvas` reads `EditorContext` the same way, for the same reason.
   const hidden = useContext(HiddenEntitiesContext)?.hidden ?? NOTHING_HIDDEN;
   const selectedId = useContext(EditorContext)?.selection?.entityId;
+  // A turned court is drawn through a rotated group, and every token is turned back inside it,
+  // so what a token holds is upright on screen: its number reads, and its shadow falls down the
+  // screen. The turn is undone on a wrapper rather than aimed for in the filter's offset, because
+  // a drop shadow whose own space is rotated is drawn far from its token (measured: a 0.15 m
+  // offset landed about 0.8 m away on a quarter-turned court).
+  const turn = useContext(CourtTurnContext) ?? 0;
+  const upright = turn === 0 ? undefined : `rotate(${-turn})`;
   const playerRefs = useRef(new Map<PlayerId, SVGGElement>());
   const ballRef = useRef<SVGGElement | null>(null);
 
@@ -83,7 +91,6 @@ export function TokenLayer() {
           data-testid="token"
           data-player-id={player.id}
           data-selected={selectedId === player.id ? 'true' : undefined}
-          style={selectedId === player.id ? SELECTED_STYLE : undefined}
           ref={(node) => {
             if (node === null) {
               playerRefs.current.delete(player.id);
@@ -92,17 +99,16 @@ export function TokenLayer() {
             }
           }}
         >
-          <PlayerSymbol team={player.team} number={player.number} />
+          <g transform={upright} style={selectedId === player.id ? SELECTED_STYLE : undefined}>
+            <PlayerSymbol team={player.team} number={player.number} />
+          </g>
         </g>
       ))}
       {hasBall && (
-        <g
-          data-testid="ball-token"
-          data-selected={selectedId === 'ball' ? 'true' : undefined}
-          style={selectedId === 'ball' ? SELECTED_STYLE : undefined}
-          ref={ballRef}
-        >
-          <BallSymbol />
+        <g data-testid="ball-token" data-selected={selectedId === 'ball' ? 'true' : undefined} ref={ballRef}>
+          <g transform={upright} style={selectedId === 'ball' ? SELECTED_STYLE : undefined}>
+            <BallSymbol />
+          </g>
         </g>
       )}
     </g>

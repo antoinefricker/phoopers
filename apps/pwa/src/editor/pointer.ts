@@ -16,17 +16,20 @@ export function clampToCourt(point: Vec2, play: CourtChoice): Vec2 {
   };
 }
 
-// The SVG viewBox is in court metres, so the inverse screen CTM maps a client point straight
-// into court space with no scale factor of our own. Without layout (jsdom, or a hidden
-// canvas) there is no CTM, and clampToCourt turns the resulting NaN into the centre of what
-// is shown.
+// Measured from the edit layer's own group rather than from the svg: that group sits inside
+// whatever turn and frame the court has, so its inverse screen CTM maps a client point straight
+// into court metres with no scale or rotation of our own. The svg's CTM would stop at the
+// viewBox, which for a turned half court is not court space. Without layout (jsdom, or a hidden
+// canvas) there is no CTM, and clampToCourt turns the resulting NaN into the centre of what is
+// shown.
 export function courtPointFromEvent(
   event: { clientX: number; clientY: number },
-  svg: SVGSVGElement | null,
+  layer: SVGGraphicsElement | null,
   play: CourtChoice,
 ): Vec2 {
-  const ctm = svg?.getScreenCTM?.()?.inverse();
-  if (svg === null || ctm === undefined || ctm === null) {
+  const ctm = layer?.getScreenCTM?.()?.inverse();
+  const svg = layer?.ownerSVGElement;
+  if (layer === null || svg === null || svg === undefined || ctm === undefined || ctm === null) {
     return clampToCourt({ x: Number.NaN, y: Number.NaN }, play);
   }
 
