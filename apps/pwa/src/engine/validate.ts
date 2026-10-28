@@ -99,10 +99,15 @@ function checkKeyframes(
 
 function collectIssues(play: Play, issues: Issue[]): void {
   const knownPlayers = new Set<string>(play.players.map((p) => p.id));
-  // How long the play is: its last keyframe. A label window may not outlast it, there being no
-  // time past it for the transport to reach.
+  // How long the play is, as the timeline reads it: its last keyframe, or the length the system
+  // was created with if that is longer (`duration` is a floor, see `resolveBranch`). A label
+  // window may not outlast it, there being no time past it for the transport to reach. Measured
+  // by the last keyframe alone, a window reaching the floor of a new, still empty system was
+  // reported as overrunning the very timeline it is drawn on.
+  const floor = typeof play.duration === 'number' && Number.isFinite(play.duration) ? play.duration : 0;
   const playDuration = Math.max(
     0,
+    floor,
     ...play.branches.flatMap((b) => Object.values(b.tracks).flatMap((track) => track.map((k) => k.t))),
   );
 

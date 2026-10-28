@@ -127,3 +127,53 @@ export function scrollForEdgeDrag(pointerOffsetX: number, box: ViewportBox): num
 
   return clampScroll(finite(box.scrollLeft) + step, box);
 }
+
+// A wheel notch reported in lines, which is what a notched wheel sends in Firefox and what a
+// browser sends for a keyboard-set scroll. A line is taken as this many pixels: three lines
+// to a notch then travel about what a pixel-reporting browser's notch does.
+const WHEEL_LINE_PX = 40;
+
+/**
+ * A wheel delta in pixels, whatever unit the browser reported it in.
+ *
+ * `deltaMode` 0 is pixels, 1 is lines and 2 is pages; a page is the width of the window, which is
+ * what a page of horizontal scrolling means here. A delta that is not a number moves nothing.
+ */
+export function wheelDeltaPx(delta: number, deltaMode: number, viewportWidthPx: number): number {
+  const amount = finite(delta);
+
+  if (deltaMode === 1) return amount * WHEEL_LINE_PX;
+  if (deltaMode === 2) return amount * finite(viewportWidthPx);
+
+  return amount;
+}
+
+/**
+ * The vertical offset that brings a row fully into the window, moving it no further than it has
+ * to. A row already inside is left where it is, so a click on something in sight never moves
+ * the view; one above is brought to the top edge and one below to the bottom edge. A row taller
+ * than the window is aligned by its top, which is the part that names it.
+ *
+ * Every argument is a screen coordinate except `scrollTop`, the window's current offset, which
+ * is what the answer is relative to. A coordinate that is not a number leaves the offset alone.
+ */
+export function scrollTopToReveal(
+  row: { top: number; bottom: number },
+  window: { top: number; bottom: number },
+  scrollTop: number,
+): number {
+  const offset = finite(scrollTop);
+  if (![row.top, row.bottom, window.top, window.bottom].every(Number.isFinite)) return offset;
+
+  if (row.top < window.top) return Math.max(0, offset - (window.top - row.top));
+  if (row.bottom > window.bottom) {
+    // Aligned by the bottom, unless the row is taller than the window: then the top would be
+    // pushed out of sight, and the top is what says which row it is.
+    const down = row.bottom - window.bottom;
+    const room = row.top - window.top;
+
+    return offset + Math.min(down, room);
+  }
+
+  return offset;
+}

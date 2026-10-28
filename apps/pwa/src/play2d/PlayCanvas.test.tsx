@@ -50,45 +50,76 @@ describe('PlayCanvas', () => {
     expect(screen.getByRole('img')).toHaveAttribute('viewBox', fullCourtViewBox('fiba'));
   });
 
-  it('switches only the viewBox for half court', () => {
+  it('frames, clips and turns the half court without touching the play', () => {
     const full = renderCanvas(false);
     const fullViewBox = screen.getByRole('img').getAttribute('viewBox');
     const fullPaths = snapshotPaths(full.container);
-    const fullInner = screen.getByRole('img').innerHTML;
+    expect(screen.getByTestId('court-turn')).not.toHaveAttribute('transform');
+    expect(full.container.querySelector('clipPath')).toBeNull();
     full.unmount();
 
     const half = renderCanvas(true);
     const halfViewBox = screen.getByRole('img').getAttribute('viewBox');
 
     expect(fullPaths.length).toBeGreaterThan(10);
-    // A half-court system always shows the right half, where the attacked basket is.
+    // A half-court system always shows the right half, where the attacked basket is, turned a
+    // quarter so that it is in landscape with the basket at the top.
     expect(halfViewBox).toBe(halfCourtViewBox('fiba', 'right'));
     expect(halfViewBox).not.toBe(fullViewBox);
-    // Every path's geometry and symbol attributes are identical, as is all the markup inside the svg.
+    expect(screen.getByTestId('court-turn')).toHaveAttribute('transform', 'rotate(-90)');
+    // Only that half is drawn: the floor and the markings are both clipped to it.
+    expect(screen.getByTestId('court-floor')).toHaveAttribute('clip-path', 'url(#court-floor-clip)');
+    expect(screen.getByTestId('court')).toHaveAttribute('clip-path', 'url(#court-markings-clip)');
+    // The turn and the clip are the view's: every path's geometry and symbol are the full court's.
     expect(snapshotPaths(half.container)).toEqual(fullPaths);
-    expect(screen.getByRole('img').innerHTML).toBe(fullInner);
+  });
+
+  it('draws each token upright inside a turned court, and leaves a full court alone', () => {
+    const full = renderCanvas(false);
+    const fullTurns = Array.from(full.container.querySelectorAll('[data-testid="token"] > g')).map((g) =>
+      g.getAttribute('transform'),
+    );
+    full.unmount();
+
+    const half = renderCanvas(true);
+    const halfTurns = Array.from(half.container.querySelectorAll('[data-testid="token"] > g')).map((g) =>
+      g.getAttribute('transform'),
+    );
+
+    expect(fullTurns.length).toBeGreaterThan(0);
+    expect(fullTurns.every((turn) => turn === null)).toBe(true);
+    expect(halfTurns).toHaveLength(fullTurns.length);
+    expect(halfTurns.every((turn) => turn === 'rotate(90)')).toBe(true);
+    expect(screen.getByTestId('ball-token').firstElementChild).toHaveAttribute('transform', 'rotate(90)');
   });
 
   it.each([
     ['root', hornsPlay.rootBranchId],
     ['switch', HORNS_SWITCH],
   ])('shows every entity inside the half-court viewBox at the start and end (%s branch)', (_name, branchId) => {
-    // Read the viewBox off the rendered svg, not off halfCourtViewBox: a function compared to
-    // itself cannot disagree with itself, which is how the wrong half once shipped.
+    // Read the viewBox and the turn off the rendered svg, not off the geometry helpers: a
+    // function compared to itself cannot disagree with itself, which is how the wrong half once
+    // shipped. An entity's court position goes through the turn the court is drawn with.
     const branch = resolveBranch(hornsPlay, branchId);
     renderCanvas(true);
     const [x, y, w, h] = (screen.getByRole('img').getAttribute('viewBox') ?? '').split(' ').map(Number);
     if (x === undefined || y === undefined || w === undefined || h === undefined) throw new Error('bad viewBox');
+    const degrees = Number(
+      /rotate\((-?[\d.]+)\)/.exec(screen.getByTestId('court-turn').getAttribute('transform') ?? '')?.[1],
+    );
+    const radians = (degrees * Math.PI) / 180;
 
     for (const t of [0, branch.duration]) {
       const state = stateAt(branch, t);
       const points = [...Object.values(state.players).map((p) => p.position), state.ball.position];
       expect(points.length).toBe(branch.players.length + 1);
       for (const p of points) {
-        expect(p.x).toBeGreaterThanOrEqual(x);
-        expect(p.x).toBeLessThanOrEqual(x + w);
-        expect(p.y).toBeGreaterThanOrEqual(y);
-        expect(p.y).toBeLessThanOrEqual(y + h);
+        const screenX = p.x * Math.cos(radians) - p.y * Math.sin(radians);
+        const screenY = p.x * Math.sin(radians) + p.y * Math.cos(radians);
+        expect(screenX).toBeGreaterThanOrEqual(x);
+        expect(screenX).toBeLessThanOrEqual(x + w);
+        expect(screenY).toBeGreaterThanOrEqual(y);
+        expect(screenY).toBeLessThanOrEqual(y + h);
       }
     }
   });

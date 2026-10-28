@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixturePlay, P1, P2 } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
+import { SettingsContext } from '../settings/useSettingsContext';
+import { BALL_RADIUS, DIAMOND_SIDE, TOKEN_SIZE } from '../play2d/PlayerSymbol';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { enterEditMode, readProbe, renderEditor } from './testUtils/renderEditor';
 
@@ -91,5 +93,74 @@ describe('selecting an entity on the court', () => {
 
     expect(row(P2)).toHaveAttribute('data-selected', 'true');
     expect(token(P2)).toHaveAttribute('data-selected', 'true');
+  });
+});
+
+describe('outlining the reactive area on the court', () => {
+  const outline = (entityId: string) =>
+    screen.getByTestId(`edit-token-${entityId}`).querySelector('circle')?.getAttribute('stroke');
+
+  it('outlines a target only while the pointer is over it', async () => {
+    await renderView();
+    expect(outline(P1)).toBe('none');
+
+    await userEvent.hover(screen.getByTestId(`edit-token-${P1}`));
+    expect(outline(P1)).toBe('var(--mantine-primary-color-filled)');
+    expect(outline(P2)).toBe('none');
+
+    await userEvent.unhover(screen.getByTestId(`edit-token-${P1}`));
+    expect(outline(P1)).toBe('none');
+  });
+
+  it('draws no outline while the showHitAreas setting is off', async () => {
+    const off = { settings: { showHitAreas: false }, setSetting: () => undefined };
+    renderEditor(
+      fixturePlay,
+      <SettingsContext value={off}>
+        <PlayView />
+      </SettingsContext>,
+      { wrapPlayback: false },
+    );
+    await enterEditMode();
+
+    await userEvent.hover(screen.getByTestId(`edit-token-${P1}`));
+
+    expect(outline(P1)).toBe('none');
+  });
+
+  it('outlines the ball the same way', async () => {
+    await renderView();
+
+    await userEvent.hover(screen.getByTestId('edit-token-ball'));
+
+    expect(outline('ball')).toBe('var(--mantine-primary-color-filled)');
+  });
+});
+
+describe('the shape of a reactive area', () => {
+  const area = (entityId: string) => screen.getByTestId(`edit-token-${entityId}`).firstElementChild!;
+
+  it('is the offense disc for an offensive player and a larger disc for the ball', async () => {
+    await renderView();
+
+    expect(area(P1).tagName).toBe('circle');
+    expect(area(P1)).toHaveAttribute('r', String(TOKEN_SIZE / 2));
+    expect(area('ball').tagName).toBe('circle');
+    expect(Number(area('ball').getAttribute('r'))).toBeGreaterThan(BALL_RADIUS);
+  });
+
+  it('is the turned square of a defender', async () => {
+    const defended = {
+      ...fixturePlay,
+      players: fixturePlay.players.map((player) =>
+        player.id === P2 ? { ...player, team: 'defense' as const } : player,
+      ),
+    };
+    renderEditor(defended, <PlayView />, { wrapPlayback: false });
+    await enterEditMode();
+
+    expect(area(P2).tagName).toBe('rect');
+    expect(area(P2)).toHaveAttribute('width', String(DIAMOND_SIDE));
+    expect(area(P2)).toHaveAttribute('transform', 'rotate(45)');
   });
 });

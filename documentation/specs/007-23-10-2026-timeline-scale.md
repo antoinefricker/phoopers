@@ -29,8 +29,12 @@ Time is measured in pixels per 0.1 s cell — the authoring grid of
 Level 1 is where the timeline opens and the finest it goes: the ladder runs outwards only. The
 levels are the whole of the scale — there is no continuous zoom and no fit-to-window level.
 
-**A track is as wide as the play is long**, `duration × px per second`, plus the inset each end
-of the axis already keeps for a marker centred on `t = 0` or `t = duration`. It is no longer a
+**A track is as wide as the play is long**, `duration × px per second`, plus the room the axis
+keeps at each end: 6 px at the start and 24 px at the end. A keyframe fills the cell that begins
+at its time, so one on the last time hangs a whole cell past the axis, and the end keeps the
+widest cell (level 1's) at every level, so the axis does not move as the coach zooms. The tracks
+move their clip out by that cell at the end the view has reached; nothing hangs past the start.
+It is no longer a
 share of anything, so a time's position is `t × px per second` rather than a percentage, and the
 map from a pointer's x back to a time is the same arithmetic inverted.
 
@@ -50,6 +54,14 @@ one's already is. A gutter that appeared with the bar would move the axis under 
 pointer the moment a play grew past the window. It is reserved **once**, below the shared
 surface, and not under each of the four: the vertical budget of the time region is tight, and
 four gutters would spend it four times over.
+
+**Shift + the mouse wheel scrolls the axis sideways**, over the scrubber, the ruler, the tracks
+or the grid: one offset, so all of them go together. The wheel's delta is the distance, taken
+from whichever axis the browser sends it on and read in pixels, lines or pages. It stops at both
+ends of the play. A wheel without Shift keeps scrolling the rows, one with Ctrl, Cmd or Alt is
+left to the browser, and while the whole play fits the window nothing is taken, so the page keeps
+what it would have done. The axis is moved by a transform rather than scrolled natively, which is
+why the wheel has to be asked for.
 
 **The gutter does not scroll.** The 180 px column holding the transport's buttons and every
 row's name, symbol, hide toggle and menu stays where it is; only the time axis to its right

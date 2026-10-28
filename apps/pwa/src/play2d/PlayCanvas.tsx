@@ -7,7 +7,8 @@ import { usePlaybackContext } from './usePlaybackContext';
 import { Court } from './Court';
 import { PathLayer } from './PathLayer';
 import { TokenLayer } from './TokenLayer';
-import { fullCourtViewBox, halfCourtViewBox } from './geometry/court';
+import { CourtTurnContextProvider } from './CourtTurnContextProvider';
+import { fullCourtViewBox, halfCourtTurn, halfCourtViewBox } from './geometry/court';
 
 interface Props {
   /**
@@ -28,14 +29,17 @@ export function PlayCanvas({ extent, playName }: Props) {
   // `BranchTree` reads it the same way, for the same reason; `useEditorContext` is for the
   // components that only exist inside an editor.
   const editing = useContext(EditorContext)?.mode === 'edit';
+  // Always the right-hand half: the attacked basket is on the right by convention, and
+  // inferring the side from where the offense stands opens an empty system on the wrong one.
+  const half = extent === 'half';
+  const turn = half ? halfCourtTurn('right') : 0;
 
   return (
     <svg
       role="img"
       aria-label={t('play.canvas.label', 'Court diagram: {{name}}', { name: playName })}
-      // Always the right-hand half: the attacked basket is on the right by convention, and
-      // inferring the side from where the offense stands opens an empty system on the wrong one.
-      viewBox={extent === 'half' ? halfCourtViewBox(court, 'right') : fullCourtViewBox(court)}
+      // The half is framed as it is drawn, turned a quarter to landscape with its basket up.
+      viewBox={half ? halfCourtViewBox(court, 'right') : fullCourtViewBox(court)}
       // block: an inline svg sits on the text baseline and leaves a descender gap below it.
       // It fills a panel whose height its container decides, and keeps its own aspect ratio
       // inside it — a court wider or taller than the drawing shows the floor's colour either
@@ -62,10 +66,17 @@ export function PlayCanvas({ extent, playName }: Props) {
           <path d="M 0 0 L 4 2 L 0 4 z" fill="context-stroke" />
         </marker>
       </defs>
-      <Court court={court} />
-      <PathLayer />
-      <TokenLayer />
-      {editing && <CourtEditLayer />}
+      {/* Everything on the court shares one frame, so one turn on one group turns it all: the
+          floor, the paths, the tokens and the edit layer, whose pointer maths reads this group's
+          own transform. Engine coordinates stay the full court's, turned or not. */}
+      <g data-testid="court-turn" transform={half ? `rotate(${turn})` : undefined}>
+        <CourtTurnContextProvider turn={turn}>
+          <Court court={court} side={half ? 'right' : undefined} />
+          <PathLayer />
+          <TokenLayer />
+          {editing && <CourtEditLayer />}
+        </CourtTurnContextProvider>
+      </g>
     </svg>
   );
 }

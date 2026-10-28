@@ -1,13 +1,29 @@
 import { useState, type ReactNode } from 'react';
-import { ActionIcon, Divider, Drawer, NavLink, Stack, Text, Tooltip } from '@mantine/core';
-import { IconMenu2 } from '@tabler/icons-react';
+import { ActionIcon, Divider, Drawer, Image, NavLink, Stack, Text, Tooltip } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
+import { IconChevronRight, IconMenu2 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
+import wordmark from '../assets/phoopers.png';
 import { DisplayNameDialog } from '../auth/DisplayNameDialog';
 import { useAuthContext } from '../auth/useAuthContext';
 import { useProfile } from '../auth/useProfile';
+import { DRAWER_HEADER_STYLES } from '../settings/drawerHeader';
+import { SettingsDrawer } from '../settings/SettingsDrawer';
 import { CreateSystemDialog } from './CreateSystemDialog';
 import { UnsavedIndicator } from './UnsavedIndicator';
+
+/** What Mantine's `xs` drawer measures, named so the settings drawer can sit exactly beside it. */
+const MENU_DRAWER_SIZE = '20rem';
+
+/** Two drawers of that width side by side: 40em. Under it this is a phone, and the drawers overlap. */
+const BOTH_DRAWERS_FIT = '(min-width: 40em)';
+
+// Mantine's own modal layer is 200. The menu keeps it; its overlay drops two below and the
+// settings drawer sits between, so the page is dimmed under the settings and the settings slide
+// out from behind the menu. Left to the defaults all three share a layer and the last rendered
+// wins, which put the settings over the menu and the overlay over both.
+const MENU_Z_INDEX = 200;
 
 export interface AppMenuProps {
   /**
@@ -61,8 +77,14 @@ export function AppMenu({ editing, dirty = false, opened: controlled, onOpenedCh
   // so their fields reset on a fresh instance rather than through an effect.
   const [creating, setCreating] = useState({ opened: false, count: 0 });
   const [naming, setNaming] = useState({ opened: false, count: 0 });
+  const [settingsOpened, setSettingsOpened] = useState(false);
+  // Beside the menu when two drawers fit across the screen, over it when they do not.
+  const roomForBoth = useMediaQuery(BOTH_DRAWERS_FIT) ?? false;
 
-  const close = () => setOpened(false);
+  const close = () => {
+    setSettingsOpened(false);
+    setOpened(false);
+  };
   /** Every entry closes the drawer: a panel left open over the page it just left is in the way. */
   const pick = (act: () => void) => () => {
     close();
@@ -95,18 +117,28 @@ export function AppMenu({ editing, dirty = false, opened: controlled, onOpenedCh
       <Drawer
         opened={opened}
         onClose={close}
+        // While the settings are open beside it, they own the keyboard: Escape closes them, not
+        // both, and two focus traps would take focus back from each other.
+        closeOnEscape={!settingsOpened}
+        trapFocus={!settingsOpened}
         position="left"
-        size="xs"
+        size={MENU_DRAWER_SIZE}
+        zIndex={MENU_Z_INDEX}
+        overlayProps={{ zIndex: MENU_Z_INDEX - 2 }}
         padding="md"
-        // No `title`: Mantine renders one as a heading, and on the editor the system's name is
-        // already the header's own `h2`. The close button keeps its own label.
-        aria-label={t('app.menu.label', 'Menu')}
+        // The wordmark is the title, as it is the header's: the page behind it is dimmed, and
+        // this says whose menu it is. The ✕ is for a phone only: beside the page the overlay and
+        // Escape close it, and the arrow in the settings drawer's header goes back, but where the
+        // drawer fills the screen there is little overlay left to press.
+        title={<Image src={wordmark} alt={t('app.name', 'phoopers')} h={28} w="auto" />}
+        withCloseButton={!roomForBoth}
         closeButtonProps={{ 'aria-label': t('app.menu.close', 'Close the menu') }}
+        styles={DRAWER_HEADER_STYLES}
       >
         <Stack gap={0}>
           {editing !== undefined && (
             <>
-              <Divider label={t('app.menu.editing', 'Editing')} labelPosition="left" mb="xs" />
+              <Divider label={t('app.menu.editing', 'Editing')} labelPosition="left" my="xs" />
               {editing(close)}
             </>
           )}
@@ -154,6 +186,15 @@ export function AppMenu({ editing, dirty = false, opened: controlled, onOpenedCh
               onClick={mineUnavailable ? undefined : go('/mine')}
             />
           </Tooltip>
+          <NavLink
+            component="button"
+            type="button"
+            label={t('app.menu.settings', 'Settings')}
+            // Not `pick`: this entry goes one level deeper rather than leaving, so the menu stays
+            // open underneath. The chevron is what says so.
+            rightSection={<IconChevronRight size={14} stroke={1.5} />}
+            onClick={() => setSettingsOpened(true)}
+          />
           <Divider label={t('app.menu.account', 'Account')} labelPosition="left" my="xs" />
           {!configured ? (
             <Text size="sm" c="dimmed" px="sm">
@@ -188,6 +229,17 @@ export function AppMenu({ editing, dirty = false, opened: controlled, onOpenedCh
           )}
         </Stack>
       </Drawer>
+      {/* Open only while the menu is: closing the menu from outside, as the editor's save chord
+          does, must not leave this one behind. */}
+      <SettingsDrawer
+        opened={opened && settingsOpened}
+        onClose={() => setSettingsOpened(false)}
+        inset={roomForBoth ? MENU_DRAWER_SIZE : undefined}
+        // Under the menu so it slides out from behind it; over it on a phone, where it covers the
+        // menu instead of sitting beside it and would otherwise open out of sight.
+        zIndex={roomForBoth ? MENU_Z_INDEX - 1 : MENU_Z_INDEX + 1}
+        withCloseButton={!roomForBoth}
+      />
       <CreateSystemDialog
         key={`create-${creating.count}`}
         opened={creating.opened}

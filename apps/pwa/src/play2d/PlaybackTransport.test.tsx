@@ -13,7 +13,8 @@ import { resolveBranch } from '../engine';
 import { stubViewportWidth } from '../testUtils/viewport';
 import {
   TIME_GRID_S,
-  TRACK_INSET_PX,
+  TRACK_INSET_END_PX,
+  TRACK_INSET_START_PX,
   adjacentStep,
   sliderMax,
   snapToGrid,
@@ -560,7 +561,7 @@ describe('the scrubber', () => {
 
   // jsdom lays nothing out, so a clipped thumb cannot be seen; the computed style is the only
   // thing to pin. At an end the view has reached, the clip must reach half a thumb past the axis,
-  // and the margin must give back what the padding took so the axis still begins TRACK_INSET_PX
+  // and the margin must give back what the padding took so the axis still begins TRACK_INSET_START_PX
   // in, like the tracks'. Anywhere else the clip stays at the axis edge, as the other surfaces'
   // does, or the track and the marks would spill into the gutter.
   // Narrower than the fixture's 960px of play, so there is something to scroll.
@@ -597,10 +598,10 @@ describe('the scrubber', () => {
     const { padding, margin } = scrubberEdges();
 
     expect(padding[0]).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
-    expect(margin[0]! + padding[0]!).toBe(TRACK_INSET_PX);
+    expect(margin[0]! + padding[0]!).toBe(TRACK_INSET_START_PX);
     // The far end is out of view, so nothing hangs past the axis there.
     expect(padding[1]).toBe(0);
-    expect(margin[1]).toBe(TRACK_INSET_PX);
+    expect(margin[1]).toBe(TRACK_INSET_END_PX);
   });
 
   it('keeps the thumb whole at the end of the play without moving the axis', async () => {
@@ -610,7 +611,7 @@ describe('the scrubber', () => {
     const { padding, margin } = scrubberEdges();
 
     expect(padding[1]).toBeGreaterThanOrEqual(THUMB_SIZE_PX / 2);
-    expect(margin[1]! + padding[1]!).toBe(TRACK_INSET_PX);
+    expect(margin[1]! + padding[1]!).toBe(TRACK_INSET_END_PX);
     expect(padding[0]).toBe(0);
   });
 
@@ -621,7 +622,7 @@ describe('the scrubber', () => {
     const { padding, margin } = scrubberEdges();
 
     expect(padding).toEqual([0, 0]);
-    expect(margin).toEqual([TRACK_INSET_PX, TRACK_INSET_PX]);
+    expect(margin).toEqual([TRACK_INSET_START_PX, TRACK_INSET_END_PX]);
   });
 
   it('stays elastic while watching', () => {

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { dialogIsOpen, isTyping } from './shortcutGuards';
 
 export interface Shortcut {
   /**
@@ -15,14 +16,6 @@ export interface Shortcut {
   letter: string;
   /** The chord in the spelling `aria-keyshortcuts` asks for. */
   aria: string;
-}
-
-/** Whether the key is going into text, where a letter is a letter and not a command. */
-function isTyping(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-
-  return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
 }
 
 /**
@@ -56,10 +49,7 @@ export function useEditorShortcut(shortcut: Shortcut, onTrigger: () => void, ena
       // Mid-composition an IME sends keys that are not yet the character being chosen.
       if (event.isComposing) return;
       if (isTyping(event.target)) return;
-      // A dialog or a menu is open — including this app's popovers, which carry the same role.
-      // What is behind it is not what the coach is addressing, and the menu offers these
-      // actions as entries anyway.
-      if (document.querySelector('[role="dialog"]') !== null) return;
+      if (dialogIsOpen()) return;
 
       onTrigger();
     };

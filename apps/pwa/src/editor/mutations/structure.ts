@@ -88,6 +88,25 @@ export function setStepDuration(play: Play, stepId: StepId, duration: number): P
   }));
 }
 
+/**
+ * Moves the start of a step's display window to `t` while the window keeps ending at `end`: the
+ * step is retimed, and its duration becomes what is left between the two.
+ *
+ * One mutation rather than a `moveStep` and a `setStepDuration` from the caller, so the two land
+ * together or not at all. Apart, a start the model refuses (before the branch's fork, past the
+ * step's ceiling) would still have had its duration rewritten, and the window's end would have
+ * moved with a start that did not. A window with no length left, an `end` at or before `t`, is
+ * refused for the same reason `setStepDuration` refuses a duration of zero.
+ */
+export function resizeStepStart(play: Play, stepId: StepId, t: number, end: number): Play {
+  if (!Number.isFinite(t) || !Number.isFinite(end) || end <= t) return play;
+
+  const moved = moveStep(play, stepId, t);
+  if (moved === play) return play;
+
+  return setStepDuration(moved, stepId, end - t);
+}
+
 export function setScreenDuration(play: Play, screenId: ScreenId, duration: number): Play {
   if (!Number.isFinite(duration) || duration <= 0) return play;
 

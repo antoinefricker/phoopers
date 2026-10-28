@@ -5,6 +5,7 @@ import type { StepId } from '../engine';
 import { fixturePlay, ROOT, STEP_ENTRY, SWITCH } from '../engine/__fixtures__/play';
 import { TIME_GRID_S } from '../play2d/transportMath';
 import { StepRuler } from './StepRuler';
+import { MIN_SCREEN_DURATION } from './TimelineRow';
 import { leftPx, spanPx } from './timelineGeometry';
 import { ZOOM_LEVELS, xOfTime } from './timelineScale';
 import { dragElement, LivePlayback, readProbe, renderEditor, SelectBranch } from './testUtils/renderEditor';
@@ -54,8 +55,8 @@ describe('StepRuler', () => {
     renderEditor(fixturePlay, <StepRuler />);
     const ruler = screen.getByTestId('step-ruler');
 
-    // The duration handle, edit and remove. Adding a step moved to the transport.
-    expect(within(ruler).getAllByRole('button')).toHaveLength(3);
+    // The start handle, the duration handle, edit and remove. Adding a step moved to the transport.
+    expect(within(ruler).getAllByRole('button')).toHaveLength(4);
     expect(screen.getByText('Entry pass')).toBeInTheDocument();
   });
 
@@ -158,6 +159,7 @@ describe('StepRuler', () => {
     expect(window.getComputedStyle(bar).pointerEvents).toBe('none');
     expect(bar).not.toHaveAttribute('tabindex');
     expect(screen.queryByTestId(`step-handle-${STEP_ENTRY}`)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(`step-start-handle-${STEP_ENTRY}`)).not.toBeInTheDocument();
 
     expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.t).toBe(2);
     expect(screen.queryByRole('textbox', { name: 'Step name' })).not.toBeInTheDocument();
@@ -248,6 +250,7 @@ describe('step label bars', () => {
 
     expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`)).toBeInTheDocument();
     expect(screen.getByTestId(`step-handle-${STEP_ENTRY}`)).toBeInTheDocument();
+    expect(screen.getByTestId(`step-start-handle-${STEP_ENTRY}`)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edit Entry pass' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove Entry pass' })).toBeInTheDocument();
   });
@@ -288,6 +291,7 @@ describe('step label bars', () => {
 
     expect(screen.getByTestId(`step-bar-${STEP_ENTRY}`)).toHaveAttribute('data-inherited', 'true');
     expect(screen.queryByTestId(`step-handle-${STEP_ENTRY}`)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(`step-start-handle-${STEP_ENTRY}`)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Remove Entry pass' })).not.toBeInTheDocument();
   });
 
@@ -446,5 +450,189 @@ describe('step label bars', () => {
     ]);
 
     expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.duration).toBeCloseTo(1, 6);
+  });
+});
+
+describe('the start handle of a step label bar', () => {
+  const START_ID = `step-start-handle-${STEP_ENTRY}`;
+  const withSteps = (steps: { id: StepId; t: number; name: string; duration?: number }[]) => ({
+    ...fixturePlay,
+    branches: fixturePlay.branches.filter((b) => b.id === ROOT).map((b) => ({ ...b, steps })),
+  });
+  const stepOf = (id: StepId) => stepsOfRoot().find((s) => s.id === id);
+
+  // jsdom lays nothing out, so the handle is given the box it really has: on the bar's left edge,
+  // at the step's time. Everything else keeps x = 0, so a clientX is a distance along the axis.
+  const handleAt = (t: number) =>
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const handle = this.getAttribute('data-testid') === START_ID;
+      const left = handle ? xOfTime(t, LEVEL_1) : 0;
+
+      return { left, top: 0, width: 0, height: 20, right: left, bottom: 20, x: left, y: 0, toJSON: () => ({}) };
+    });
+
+  const dragStart = async (from: number, to: number) => {
+    const user = userEvent.setup();
+    const handle = screen.getByTestId(START_ID);
+
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: handle, coords: { clientX: xOfTime(from, LEVEL_1), clientY: 0 } },
+      { target: handle, coords: { clientX: xOfTime((from + to) / 2, LEVEL_1), clientY: 0 } },
+      { target: handle, coords: { clientX: xOfTime(to, LEVEL_1), clientY: 0 } },
+      { keys: '[/MouseLeft]', target: handle, coords: { clientX: xOfTime(to, LEVEL_1), clientY: 0 } },
+    ]);
+  };
+
+  const render = (steps: { id: StepId; t: number; name: string; duration?: number }[]) =>
+    renderEditor(
+      withSteps(steps),
+      <LivePlayback>
+        <StepRuler />
+      </LivePlayback>,
+      { wrapPlayback: false },
+    );
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('moves the start later and keeps the end where it was', async () => {
+    handleAt(2);
+    render([{ id: STEP_ENTRY, t: 2, name: 'Entry pass', duration: 2 }]);
+
+    await dragStart(2, 2.5);
+
+    // The window ran 2 to 4 and now runs 2.5 to 4: the step moved and its duration is what is left.
+    expect(stepOf(STEP_ENTRY)?.t).toBeCloseTo(2.5, 6);
+    expect(stepOf(STEP_ENTRY)?.duration).toBeCloseTo(1.5, 6);
+  });
+
+  it('moves the start earlier, which lengthens the window up to the same end', async () => {
+    handleAt(3);
+    render([{ id: STEP_ENTRY, t: 3, name: 'Entry pass', duration: 1 }]);
+
+    await dragStart(3, 2.5);
+
+    expect(stepOf(STEP_ENTRY)?.t).toBeCloseTo(2.5, 6);
+    expect(stepOf(STEP_ENTRY)?.duration).toBeCloseTo(1.5, 6);
+  });
+
+  it('gives a step with no duration an explicit one that ends where its window did', async () => {
+    handleAt(2);
+    render([{ id: STEP_ENTRY, t: 2, name: 'Entry pass' }]);
+
+    await dragStart(2, 3);
+
+    // A last step with no duration runs to the end of the play, 4s here.
+    expect(stepOf(STEP_ENTRY)?.t).toBeCloseTo(3, 6);
+    expect(stepOf(STEP_ENTRY)?.duration).toBeCloseTo(1, 6);
+  });
+
+  it('stops at the minimum duration before the end that stays put', async () => {
+    handleAt(2);
+    render([{ id: STEP_ENTRY, t: 2, name: 'Entry pass', duration: 2 }]);
+
+    await dragStart(2, 4);
+
+    expect(stepOf(STEP_ENTRY)?.t).toBeCloseTo(4 - MIN_SCREEN_DURATION, 6);
+    expect(stepOf(STEP_ENTRY)?.duration).toBeCloseTo(MIN_SCREEN_DURATION, 6);
+  });
+
+  it('stops where the previous window ends, so two windows never overlap', async () => {
+    handleAt(3);
+    render([
+      { id: 'first' as StepId, t: 1, name: 'First', duration: 1 },
+      { id: STEP_ENTRY, t: 3, name: 'Entry pass', duration: 1 },
+    ]);
+
+    await dragStart(3, 0.5);
+
+    // The first window ends at 2s. The second may start no earlier, with its end still at 4s.
+    expect(stepOf(STEP_ENTRY)?.t).toBeCloseTo(2, 6);
+    expect(stepOf(STEP_ENTRY)?.duration).toBeCloseTo(2, 6);
+  });
+
+  it('leaves a previous window with no duration of its own the minimum it needs', async () => {
+    handleAt(3);
+    render([
+      { id: 'first' as StepId, t: 1, name: 'First' },
+      { id: STEP_ENTRY, t: 3, name: 'Entry pass', duration: 1 },
+    ]);
+
+    await dragStart(3, 0.5);
+
+    // The first step's window runs until this one starts, so it is left the minimum rather than none.
+    expect(stepOf(STEP_ENTRY)?.t).toBeCloseTo(1 + MIN_SCREEN_DURATION, 6);
+  });
+
+  it('nudges the start by one grid cell per arrow press, the end staying put', async () => {
+    render([{ id: STEP_ENTRY, t: 2, name: 'Entry pass', duration: 2 }]);
+    screen.getByTestId(START_ID).focus();
+
+    await userEvent.keyboard('{ArrowRight}');
+
+    expect(stepOf(STEP_ENTRY)?.t).toBeCloseTo(2 + TIME_GRID_S, 6);
+    expect(stepOf(STEP_ENTRY)?.duration).toBeCloseTo(2 - TIME_GRID_S, 6);
+  });
+
+  it('writes nothing for a press that does not move', async () => {
+    handleAt(2);
+    render([{ id: STEP_ENTRY, t: 2, name: 'Entry pass', duration: 2 }]);
+    const before = stepOf(STEP_ENTRY);
+
+    await dragStart(2, 2);
+
+    expect(stepOf(STEP_ENTRY)).toEqual(before);
+  });
+});
+
+describe('the end handle of a step label bar', () => {
+  const END_ID = `step-handle-${STEP_ENTRY}`;
+  const CELL = LEVEL_1;
+
+  it('is grabbed by its right edge, which is the end it sets, not by its middle', async () => {
+    // The handle fills the bar's last cell: 24px wide, its right edge at 3s. A pointer that takes
+    // it 20px in has not taken the end. Measured from the middle instead, the end would land
+    // half a cell off on the very first move.
+    const right = xOfTime(3, LEVEL_1);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const handle = this.getAttribute('data-testid') === END_ID;
+      const edge = handle ? right : 0;
+      const width = handle ? CELL : 0;
+
+      return {
+        left: edge - width,
+        top: 0,
+        width,
+        height: 20,
+        right: edge,
+        bottom: 20,
+        x: edge - width,
+        y: 0,
+        toJSON: () => ({}),
+      };
+    });
+    renderEditor(
+      {
+        ...fixturePlay,
+        branches: fixturePlay.branches
+          .filter((b) => b.id === ROOT)
+          .map((b) => ({ ...b, steps: [{ id: STEP_ENTRY, t: 1, name: 'Entry pass', duration: 2 }] })),
+      },
+      <LivePlayback>
+        <StepRuler />
+      </LivePlayback>,
+      { wrapPlayback: false },
+    );
+    const handle = screen.getByTestId(END_ID);
+    const grabX = right - 20;
+
+    await userEvent.setup().pointer([
+      { keys: '[MouseLeft>]', target: handle, coords: { clientX: grabX, clientY: 0 } },
+      { target: handle, coords: { clientX: grabX + 24, clientY: 0 } },
+      { target: handle, coords: { clientX: grabX + 48, clientY: 0 } },
+      { keys: '[/MouseLeft]', target: handle, coords: { clientX: grabX + 48, clientY: 0 } },
+    ]);
+
+    // 48px is two cells: the end moves by what the pointer did, from 3s to 3.2s.
+    expect(stepsOfRoot().find((s) => s.id === STEP_ENTRY)?.duration).toBeCloseTo(2.2, 6);
   });
 });

@@ -8,7 +8,7 @@ import { constrainStepRetime } from './constraints';
 import { TimelineBar } from './TimelineBar';
 import { TimeWindow } from './TimeWindow';
 import { LABEL_WIDTH, MIN_SCREEN_DURATION } from './TimelineRow';
-import { barResize, leftPx, spanPx } from './timelineGeometry';
+import { barResize, barResizeStart, cellPx, leftPx, spanPx } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
@@ -68,7 +68,7 @@ function StepEditor({ step, onDone }: EditorProps) {
  */
 export function StepRuler() {
   const { t } = useTranslation();
-  const { play, moveStep, removeStep, setStepDuration } = useEditorContext();
+  const { play, moveStep, removeStep, setStepDuration, resizeStepStart } = useEditorContext();
   const { timeline, branchId } = usePlaybackContext();
   const [openId, setOpenId] = useState<StepId | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -99,7 +99,18 @@ export function StepRuler() {
         <Box data-testid="step-ruler-track" style={{ position: 'relative', width: '100%', height: '100%' }}>
           {ordered.map((step, index) => {
             const others = steps.filter((s) => s.id !== step.id);
-            const barWidth = spanPx(step.t, windowEnd(step, index), pxPerCell);
+            const end = windowEnd(step, index);
+            const barWidth = spanPx(step.t, end, pxPerCell);
+            // The earliest the start may go. The previous step's window ends where it ends, and
+            // two windows may never overlap; a previous step with no duration of its own runs
+            // until this one starts, so it is left the minimum a window can have rather than none.
+            const before = ordered[index - 1];
+            const startFloor =
+              before === undefined
+                ? 0
+                : before.duration === undefined
+                  ? before.t + MIN_SCREEN_DURATION
+                  : windowEnd(before, index - 1);
 
             // The app's own colour, through the primary variables rather than a named green: a
             // step is the product's way of annotating a play, not something either team owns, and
@@ -152,11 +163,44 @@ export function StepRuler() {
                     },
                     commit: (value) => moveStep(step.id, value),
                   })}
+                  handleWidth={cellPx(pxPerCell)}
+                  startHandle={{
+                    testId: `step-start-handle-${step.id}`,
+                    label: t('play.editor.stepStart', 'Label start'),
+                    bind: bind({
+                      current: step.t,
+                      // The handle sits on the bar's left edge, which is the step's time.
+                      anchor: 'start',
+                      // The step's own retime bounds first (the fork floor, its ceiling, the step
+                      // marks it snaps to), then the window's: no earlier than the previous
+                      // window ends, and a minimum duration left before the end that stays put.
+                      resolve: (rawT, snap) =>
+                        Math.max(
+                          startFloor,
+                          Math.min(
+                            constrainStepRetime(
+                              play,
+                              step.id,
+                              step.t,
+                              rawT,
+                              others,
+                              snap ? snapRadiusSeconds(pxPerCell) : 0,
+                            ),
+                            end - MIN_SCREEN_DURATION,
+                          ),
+                        ),
+                      ...barResizeStart(end, step.t, pxPerCell),
+                      commit: (value) => resizeStepStart(step.id, value, end),
+                    }),
+                  }}
                   handle={{
                     testId: `step-handle-${step.id}`,
                     label: t('play.editor.stepDuration', 'Label duration'),
                     bind: bind({
                       current: windowEnd(step, index),
+                      // The handle sits inside the bar's last cell, and the end it sets is its
+                      // right edge, not its middle.
+                      anchor: 'end',
                       // Floored at a screen's minimum and capped at the next step, or at the end
                       // of the play for a last step: two windows may never overlap.
                       resolve: (rawT) =>

@@ -147,13 +147,63 @@ export const fullCourtViewBox = (court: CourtType): string => {
 
 export type CourtSide = 'left' | 'right';
 
-/** The half of the floor on `side`. Which half to show is the caller's call. */
-export const halfCourtViewBox = (court: CourtType, side: CourtSide): string => {
+/** A rectangle of the floor, in court metres. */
+export interface CourtRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * The half of the floor on `side`, apron included. Which half to show is the caller's call.
+ *
+ * The halfway cut carries the apron too, unlike the outer edges' reason for one: there is no
+ * line to keep whole there, but a player may stand a metre the other side of it — a defender
+ * dropping back out of a half-court set — and the frame has to show them.
+ */
+export const halfCourtRegion = (court: CourtType, side: CourtSide): CourtRegion => {
   const spec = COURT_SPEC[court];
   const half = spec.length / 2;
-  // The halfway cut carries the apron too, unlike the outer edges' reason for one: there is no
-  // line to keep whole there, but a player may stand a metre the other side of it — a defender
-  // dropping back out of a half-court set — and the frame has to show them.
-  const x = side === 'left' ? -APRON : half - APRON;
-  return `${x} ${-APRON} ${half + APRON * 2} ${spec.width + APRON * 2}`;
+
+  return {
+    x: side === 'left' ? -APRON : half - APRON,
+    y: -APRON,
+    width: half + APRON * 2,
+    height: spec.width + APRON * 2,
+  };
+};
+
+/**
+ * Where the markings of the half on `side` are drawn: the half itself, and no further than the
+ * halfway line. The floor runs on past it, into the apron, so that a token standing there is
+ * shown; the markings do not, or a half court would carry the other half's centre circle and
+ * sidelines into the margin. The cut sits half a line's width before the halfway line, so that
+ * line, centred on the cut, still draws whole.
+ */
+export const halfCourtMarkingsRegion = (court: CourtType, side: CourtSide): CourtRegion => {
+  const half = COURT_SPEC[court].length / 2;
+  const floor = halfCourtRegion(court, side);
+  const reach = half + APRON + LINE_WIDTH / 2;
+
+  return { ...floor, x: side === 'left' ? -APRON : half - LINE_WIDTH / 2, width: reach };
+};
+
+/**
+ * The quarter turn, in degrees, that puts a half court in landscape with its basket at the top.
+ *
+ * The right half has its basket at the right, so it turns anticlockwise, which takes court
+ * `(x, y)` to screen `(y, -x)`; the left half's basket is at the left and it turns clockwise,
+ * which takes `(x, y)` to `(-y, x)`. Either way the court's width runs across the screen and its
+ * length up it, and the turn is a rotation, not a mirror, so left and right stay the players'.
+ * The data never turns: this is how the half is drawn, not where anything is.
+ */
+export const halfCourtTurn = (side: CourtSide): number => (side === 'right' ? -90 : 90);
+
+/** The frame of the half court on `side`, as it appears once turned by `halfCourtTurn`. */
+export const halfCourtViewBox = (court: CourtType, side: CourtSide): string => {
+  const { x, y, width, height } = halfCourtRegion(court, side);
+  // The region's corners through the turn: its height becomes the frame's width and its width
+  // the frame's height.
+  return side === 'right' ? `${y} ${-(x + width)} ${height} ${width}` : `${-(y + height)} ${x} ${height} ${width}`;
 };

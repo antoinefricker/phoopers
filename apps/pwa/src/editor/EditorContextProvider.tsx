@@ -92,6 +92,9 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
   const setStepDuration = useCallback<EditorContextValue['setStepDuration']>((stepId, duration) => {
     setPlay((current) => mutations.setStepDuration(current, stepId, duration));
   }, []);
+  const resizeStepStart = useCallback<EditorContextValue['resizeStepStart']>((stepId, t, end) => {
+    setPlay((current) => mutations.resizeStepStart(current, stepId, t, end));
+  }, []);
   const removeScreen = useCallback<EditorContextValue['removeScreen']>((screenId) => {
     setPlay((current) => mutations.removeScreen(current, screenId));
   }, []);
@@ -169,6 +172,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       addScreen,
       setScreenDuration,
       setStepDuration,
+      resizeStepStart,
       removeScreen,
       forkBranch,
       removeBranch,
@@ -200,6 +204,7 @@ export function EditorContextProvider({ initialPlay, children }: Props) {
       addScreen,
       setScreenDuration,
       setStepDuration,
+      resizeStepStart,
       removeScreen,
       forkBranch,
       removeBranch,

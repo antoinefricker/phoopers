@@ -13,6 +13,7 @@ export {
   removeScreen,
   removeStep,
   renameStep,
+  resizeStepStart,
   setScreenDuration,
   setStepDuration,
 } from './structure';

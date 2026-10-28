@@ -69,13 +69,35 @@ where the offense stands and falls back to the left half when there is no offens
 open an empty half-court system on the wrong side with its ball off-screen. `PlayCanvas`
 stops calling it.
 
+### Drawing the half
+
+The half is drawn alone and in landscape, with the attacked basket at the top. Three things
+make that so, and none of them touches the model:
+
+- **Clip.** The floor is clipped to the half plus the apron, and the markings to the half
+  itself, cut half a line's width before the halfway line so that line draws whole. The centre
+  circle therefore shows as a half circle on the halfway line. A frame alone is not enough: an
+  svg narrower than its panel shows whatever lies past the frame, so the other half appeared
+  beside the one framed.
+- **Turn.** The court group is rotated a quarter anticlockwise, which takes court `(x, y)` to
+  screen `(y, -x)`: the court's width runs across the screen and its length up it. It is a
+  rotation, not a mirror, so left and right stay the players'. `halfCourtTurn(side)` returns the
+  angle, `-90` for the right half and `90` for the left.
+- **Frame.** `halfCourtViewBox` frames the half as turned, so it is wider than it is tall: the
+  court's width plus two aprons across, the half's length plus two aprons up.
+
+Coordinates in the play stay as written above — attacked basket on the right, the full-court
+plane — whether `extent` is `'full'` or `'half'`. Editing bounds, the starting placements and
+the stored play are the same with or without the turn.
+
 ### Duration as a floor
 
 `ResolvedTimeline.duration` becomes `max(play.duration, last keyframe t)` instead of the
 last keyframe's `t` alone. A system with nothing moving is therefore `play.duration` long;
 one whose animation runs past it is as long as its animation, exactly as today. Nothing
-else in the engine reads `play.duration`: sampling, resolution and validation are
-unchanged.
+else in the engine reads `play.duration` but validation, which measures the end of the play
+the same way when it judges whether a step's label window outlasts it: sampling and resolution
+are unchanged.
 
 A system created through the form has `duration: 8`.
 
@@ -198,8 +220,9 @@ in strings that exist today.
 The feature is done when, in a browser:
 
 - The menu opens, "Save" is visibly disabled, "Create a new system" opens the dialog.
-- Submitting with a name, FIBA half court and 5 on 5 closes the dialog, draws a half court
-  with ten players and a loose ball, and shows the name in the header.
+- Submitting with a name, FIBA half court and 5 on 5 closes the dialog, draws only the
+  attacking half, in landscape with the basket at the top, with ten players and a loose
+  ball, and shows the name in the header.
 - The timeline of that system is eight seconds wide and accepts a new keyframe immediately,
   with nothing dragged first.
 - Reopening the dialog with that system open shows the discard warning; cancelling leaves
@@ -207,7 +230,8 @@ The feature is done when, in a browser:
 - The half/full control is gone, and the sample `hornsPlay` still loads on a full court.
 - On that half-court system, a player dropped from the editor lands in the middle of the
   shown half, a player can be dragged a metre past the baseline and stays visible there, and
-  no drag can put one where it cannot be clicked again.
+  no drag can put one where it cannot be clicked again. Dragging a token down the screen moves
+  it away from the basket, and dragging it right moves it along the court's width.
 
 ## Open to the implementer
 

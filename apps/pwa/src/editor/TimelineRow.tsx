@@ -11,7 +11,7 @@ import { entityName } from './entityName';
 import { RenamePlayer } from './RenamePlayer';
 import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
-import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, barResize, leftPx, rowsOf, spanPx } from './timelineGeometry';
+import { MARKER_HEIGHT_PX, barResize, cellPx, leftPx, rowsOf, spanPx } from './timelineGeometry';
 import { TimeWindow } from './TimeWindow';
 import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
@@ -117,10 +117,18 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         select({ kind: 'entity', entityId: row.entityId });
       }}
       style={{
-        background: rowSelected ? 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))' : undefined,
+        // Mostly transparent (40% of the colour), and on the colour rather than on the row, so the
+        // markers, the names and the grid lines behind keep their full strength: enough to mark
+        // the row, not enough to compete with what is on it.
+        background: rowSelected
+          ? 'light-dark(color-mix(in srgb, var(--mantine-color-gray-1) 40%, transparent), color-mix(in srgb, var(--mantine-color-dark-6) 40%, transparent))'
+          : undefined,
         display: 'flex',
         alignItems: 'center',
         height: '2rem',
+        // One line under every row, across the gutter and the track, so each entity's row reads as
+        // a band of its own. Inside the 2rem (the box is border-box), so the rows keep their pitch.
+        borderBottom: '1px solid var(--mantine-color-default-border)',
         // Written by dnd-kit while a row is in flight, undefined at rest. Only y is used: the
         // drag is restricted to the vertical axis, so `@dnd-kit/utilities` would be a fourth
         // package to turn one number into one string.
@@ -266,23 +274,13 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
       </Box>
       {/* The track is as wide as the play is long and the window clips it, so a row that runs
           past the fold is scrolled to rather than squeezed. The window carries the inset a
-          marker centred on t=0 or t=duration needs, as the ruler's and the playhead's do: the
+          marker on the last time needs at the end, as the ruler's and the playhead's do: the
           three have to agree, or the playhead drifts from the markers. */}
-      <TimeWindow testId={`timeline-window-${row.entityId}`} contentRef={trackRef}>
+      <TimeWindow testId={`timeline-window-${row.entityId}`} contentRef={trackRef} overhangEndPx={pxPerCell}>
         <Box
           data-testid={`timeline-track-${row.entityId}`}
           style={{ position: 'relative', width: '100%', height: '100%' }}
         >
-          <Box
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: '50%',
-              height: 1,
-              background: 'var(--mantine-color-default-border)',
-            }}
-          />
           {screens.map((screen) => (
             <TimelineBar
               key={screen.id}
@@ -293,6 +291,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               // The offense's blue: a block reads as belonging to the attack rather than carrying
               // a colour of its own. The bar makes its own fill and handle from it.
               color="blue"
+              handleWidth={cellPx(pxPerCell)}
               handle={
                 ownScreenIds.has(screen.id)
                   ? {
@@ -300,6 +299,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                       label: t('play.editor.screenDuration', 'Screen duration'),
                       bind: bind({
                         current: screen.t + screen.duration,
+                        // The handle fills the bar's last cell, and the end it sets is its right edge.
+                        anchor: 'end',
                         // The edge cannot go left of the screen's own start: it floors at a minimum duration.
                         resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
                         ...barResize(screen.t, screen.t + screen.duration, pxPerCell),
@@ -431,6 +432,9 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 {...(owned
                   ? bind({
                       current: k.t,
+                      // The block's left edge is its time, not its middle: measuring the grab from
+                      // the middle would shift it half a cell on the first move.
+                      anchor: 'start',
                       resolve: (rawT, snap) =>
                         constrainRetime(
                           play,
@@ -459,12 +463,14 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   top: '50%',
                   left: leftPx(k.t, pxPerCell),
                   touchAction: owned ? 'none' : undefined,
-                  width: MARKER_WIDTH_PX,
+                  // The cell that begins at its time, so the block fills the interval the keyframe
+                  // occupies on the grid, from its line to the next, at every zoom.
+                  width: cellPx(pxPerCell),
                   height: MARKER_HEIGHT_PX,
                   padding: 0,
                   borderRadius: 2,
                   cursor: owned ? 'grab' : 'pointer',
-                  transform: 'translate(-50%, -50%)',
+                  transform: 'translateY(-50%)',
                   // Selection is the border: the app's own colour and thicker, since a white fill
                   // leaves nothing else to carry it. The PRIMARY, not a named blue: it used to be
                   // `blue-filled`, which is byte for byte the blue an offense token wears, so a

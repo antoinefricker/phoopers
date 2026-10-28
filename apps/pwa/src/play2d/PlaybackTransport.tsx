@@ -13,7 +13,8 @@ import {
   GUTTER_WIDTH,
   SCROLLBAR_GUTTER_PX,
   TIME_GRID_S,
-  TRACK_INSET_PX,
+  TRACK_INSET_END_PX,
+  TRACK_INSET_START_PX,
   TRANSPORT_ROW_HEIGHT_PX,
   adjacentStep,
   sliderMax,
@@ -23,6 +24,7 @@ import {
 } from './transportMath';
 import { TimeWindow } from '../editor/TimeWindow';
 import { EditorContext } from '../editor/useEditorContext';
+import { usePlayPauseShortcut } from './usePlayPauseShortcut';
 import { usePlaybackContext } from './usePlaybackContext';
 import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 
@@ -35,6 +37,9 @@ const SNAP_THRESHOLD = 0.25;
 export function PlaybackTransport() {
   const { t } = useTranslation();
   const { timeline, branchId, currentTimeRef, isPlaying, play, pause, seek } = usePlaybackContext();
+  const togglePlayback = isPlaying ? pause : play;
+  // Beside the button it mirrors, so the key and the click cannot come to mean different things.
+  usePlayPauseShortcut(togglePlayback);
   const { displayTime } = usePlaybackTimeContext();
   const max = sliderMax(timeline.duration);
 
@@ -174,7 +179,8 @@ export function PlaybackTransport() {
           <IconPlayerSkipBack size={18} stroke={1.5} />
         </ActionIcon>
         <ActionIcon
-          onClick={isPlaying ? pause : play}
+          onClick={togglePlayback}
+          aria-keyshortcuts="Space"
           aria-label={isPlaying ? t('play.transport.pause', 'Pause') : t('play.transport.play', 'Play')}
           variant="filled"
         >
@@ -201,7 +207,12 @@ export function PlaybackTransport() {
           </Box>
         </TimeWindow>
       ) : (
-        <Box flex="1 1 14rem" miw={0} style={{ marginInline: TRACK_INSET_PX }} onKeyDownCapture={noteKeyboardMove}>
+        <Box
+          flex="1 1 14rem"
+          miw={0}
+          style={{ marginLeft: TRACK_INSET_START_PX, marginRight: TRACK_INSET_END_PX }}
+          onKeyDownCapture={noteKeyboardMove}
+        >
           {slider}
         </Box>
       )}

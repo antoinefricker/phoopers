@@ -22,10 +22,11 @@ export interface TimeGesture {
   current: number;
   /**
    * Which part of the element sits at `current`. A marker and a tick are centred on their own
-   * time; a bar's LEFT EDGE is its time and it extends to the right. Measuring the grab from
-   * the wrong one makes the element jump by half its width on the first move.
+   * time; a bar's LEFT EDGE is its time and it extends to the right; a handle on a bar's right
+   * edge sets the bar's END, which is that handle's own right edge. Measuring the grab from the
+   * wrong one makes the element jump by up to its width on the first move.
    */
-  anchor?: 'centre' | 'start';
+  anchor?: 'centre' | 'start' | 'end';
   /**
    * Turns a raw time into the value the gesture may actually take (the constraint). `snap` is
    * true for the pointer, which benefits from landing on a step, and false for the keyboard,
@@ -64,7 +65,8 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       // Where on the element it was grabbed. The element follows the pointer's DELTA, not its
       // absolute position, so grabbing a marker off-centre does not make it jump on the first move.
       const box = event.currentTarget.getBoundingClientRect();
-      const anchorX = gesture.anchor === 'start' ? box.left : box.left + box.width / 2;
+      const anchorX =
+        gesture.anchor === 'start' ? box.left : gesture.anchor === 'end' ? box.right : box.left + box.width / 2;
       const grab = event.clientX - anchorX;
       active.current = {
         gesture,

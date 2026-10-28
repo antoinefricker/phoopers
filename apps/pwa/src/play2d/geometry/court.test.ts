@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { APRON, COURT_SPEC, courtMarkings, fullCourtViewBox, halfCourtViewBox } from './court';
+import {
+  APRON,
+  COURT_SPEC,
+  LINE_WIDTH,
+  courtMarkings,
+  fullCourtViewBox,
+  halfCourtMarkingsRegion,
+  halfCourtRegion,
+  halfCourtTurn,
+  halfCourtViewBox,
+} from './court';
 import { courtBounds } from '../../editor/bounds';
 import { TOKEN_REACH } from '../PlayerSymbol';
 import type { CourtType, Marking } from './court';
@@ -197,27 +207,99 @@ describe('viewBoxes', () => {
 
   // The property the apron exists for. Walking the bounds the editor clamps to, rather than
   // repeating the arithmetic, is what makes this fail if either side moves without the other.
+  // A half court is framed as it is drawn, turned, so the bounds go through the same turn first.
   it('shows every token that editing is allowed to place, whole', () => {
     for (const court of COURTS) {
       for (const extent of ['full', 'half'] as const) {
         const bounds = courtBounds({ court, extent });
         const box = extent === 'half' ? halfCourtViewBox(court, 'right') : fullCourtViewBox(court);
+        const degrees = extent === 'half' ? halfCourtTurn('right') : 0;
         const [x, y, w, h] = box.split(' ').map(Number);
         if (x === undefined || y === undefined || w === undefined || h === undefined) {
           throw new Error(`bad viewBox ${box}`);
         }
 
-        expect(bounds.minX - TOKEN_REACH).toBeGreaterThanOrEqual(x - EPSILON);
-        expect(bounds.maxX + TOKEN_REACH).toBeLessThanOrEqual(x + w + EPSILON);
-        expect(bounds.minY - TOKEN_REACH).toBeGreaterThanOrEqual(y - EPSILON);
-        expect(bounds.maxY + TOKEN_REACH).toBeLessThanOrEqual(y + h + EPSILON);
+        const corners = [
+          { x: bounds.minX - TOKEN_REACH, y: bounds.minY - TOKEN_REACH },
+          { x: bounds.maxX + TOKEN_REACH, y: bounds.minY - TOKEN_REACH },
+          { x: bounds.minX - TOKEN_REACH, y: bounds.maxY + TOKEN_REACH },
+          { x: bounds.maxX + TOKEN_REACH, y: bounds.maxY + TOKEN_REACH },
+        ].map((corner) => turned(corner, degrees));
+
+        for (const corner of corners) {
+          expect(corner.x).toBeGreaterThanOrEqual(x - EPSILON);
+          expect(corner.x).toBeLessThanOrEqual(x + w + EPSILON);
+          expect(corner.y).toBeGreaterThanOrEqual(y - EPSILON);
+          expect(corner.y).toBeLessThanOrEqual(y + h + EPSILON);
+        }
       }
     }
   });
 
   it('measures the halves of an NBA floor from its own length', () => {
-    expect(halfCourtViewBox('nba', 'right')).toBe(
-      `${28.65 / 2 - APRON} ${-APRON} ${28.65 / 2 + APRON * 2} ${15.24 + APRON * 2}`,
-    );
+    const half = 28.65 / 2;
+
+    // Turned anticlockwise, the half's width runs across the frame and its length up it.
+    const [x, y, w, h] = halfCourtViewBox('nba', 'right').split(' ').map(Number);
+
+    expect(x).toBeCloseTo(-APRON, 9);
+    expect(y).toBeCloseTo(-(half * 2 + APRON), 9);
+    expect(w).toBeCloseTo(15.24 + APRON * 2, 9);
+    expect(h).toBeCloseTo(half + APRON * 2, 9);
+  });
+
+  it('frames a half court in landscape, on both courts and both sides', () => {
+    for (const court of COURTS) {
+      for (const side of ['left', 'right'] as const) {
+        const [, , w, h] = halfCourtViewBox(court, side).split(' ').map(Number);
+
+        expect(w).toBeGreaterThan(h ?? Infinity);
+      }
+    }
+  });
+
+  it('turns each side so that its basket is at the top', () => {
+    for (const side of ['left', 'right'] as const) {
+      const spec = COURT_SPEC.fiba;
+      const basket = {
+        x: side === 'right' ? spec.length - spec.basketFromBaseline : spec.basketFromBaseline,
+        y: spec.width / 2,
+      };
+      const halfway = { x: spec.length / 2, y: spec.width / 2 };
+      const degrees = halfCourtTurn(side);
+
+      expect(turned(basket, degrees).y).toBeLessThan(turned(halfway, degrees).y);
+    }
+  });
+
+  it('keeps a turned half court a rotation, not a mirror', () => {
+    // Facing the basket, the right-hand side stays the right on screen: a point further along the
+    // court's width ends further along the frame's width.
+    const near = turned({ x: 21, y: 4 }, halfCourtTurn('right'));
+    const far = turned({ x: 21, y: 11 }, halfCourtTurn('right'));
+
+    expect(far.x).toBeGreaterThan(near.x);
+  });
+
+  it('cuts the markings at the halfway line, and keeps the floor on past it', () => {
+    const half = COURT_SPEC.fiba.length / 2;
+    const markings = halfCourtMarkingsRegion('fiba', 'right');
+    const floor = halfCourtRegion('fiba', 'right');
+
+    // The line, centred on the halfway line, still draws whole; nothing beyond it does.
+    expect(markings.x).toBeCloseTo(half - LINE_WIDTH / 2, 9);
+    expect(markings.x + markings.width).toBeCloseTo(floor.x + floor.width, 9);
+    expect(floor.x).toBeCloseTo(half - APRON, 9);
+    expect(floor.x).toBeLessThan(markings.x);
   });
 });
+
+/** A point turned about the court's origin, as an svg `rotate(degrees)` turns it. */
+function turned(point: { x: number; y: number }, degrees: number) {
+  const radians = (degrees * Math.PI) / 180;
+
+  return {
+    x: point.x * Math.cos(radians) - point.y * Math.sin(radians),
+    y: point.x * Math.sin(radians) + point.y * Math.cos(radians),
+  };
+}
