@@ -117,7 +117,12 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         select({ kind: 'entity', entityId: row.entityId });
       }}
       style={{
-        background: rowSelected ? 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))' : undefined,
+        // Mostly transparent (40% of the colour), and on the colour rather than on the row, so the
+        // markers, the names and the grid lines behind keep their full strength: enough to mark
+        // the row, not enough to compete with what is on it.
+        background: rowSelected
+          ? 'light-dark(color-mix(in srgb, var(--mantine-color-gray-1) 40%, transparent), color-mix(in srgb, var(--mantine-color-dark-6) 40%, transparent))'
+          : undefined,
         display: 'flex',
         alignItems: 'center',
         height: '2rem',
