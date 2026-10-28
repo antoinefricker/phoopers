@@ -1,9 +1,11 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { EntityId, PlayerId } from '../engine';
-import { stateAt } from '../engine';
+import type { EntityId, Player, PlayerId } from '../engine';
+import { ballCarryAt, stateAt } from '../engine';
+import { DIAMOND_SIDE, HELD_BALL_OFFSET, TOKEN_SIZE } from '../play2d/PlayerSymbol';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { snapToGrid } from '../play2d/transportMath';
+import { debugFlag } from './debugFlags';
 import { entityName } from './entityName';
 import { forkTimeOf } from './mutations';
 import { DRAG_SLOP_PX } from './useTimeDrag';
@@ -13,8 +15,15 @@ import { useEditorContext } from './useEditorContext';
 /** Court metres: a little over a token's own radius, so a drop that visually lands on a player attaches. */
 export const BALL_SNAP_RADIUS = 1.2;
 
-const PLAYER_HIT_RADIUS = 0.7;
-const BALL_HIT_RADIUS = 0.4;
+// A player's reactive area is its drawn symbol (see `HitShape`), so this radius only sizes the
+// drag ghost, which marks where the token will land.
+const PLAYER_GHOST_RADIUS = 0.7;
+// A little over the drawn ball's own radius (0.18), so it is easy to grab; a held ball sits half
+// over its carrier, and anything much wider covers the carrier and makes it hard to select.
+const BALL_HIT_RADIUS = 0.3;
+
+/** The symbol a hit target takes the outline of: a disc, a square turned 45° or the ball's disc. */
+type HitShape = Player['team'] | 'ball';
 
 const translate = (x: number, y: number): string => `translate(${x} ${y})`;
 
@@ -36,6 +45,10 @@ export function CourtEditLayer() {
   // `moved` flips once the pointer leaves the slop circle: until then it is a click, which selects
   // and writes nothing.
   const dragRef = useRef<{ entityId: EntityId; startX: number; startY: number; moved: boolean } | null>(null);
+  // Which hit target the pointer is over. State, unlike the drag: it changes only when the
+  // pointer crosses a target's edge, and the layer's transforms are written to the nodes, not
+  // through props, so a render does not move anything.
+  const [hovered, setHovered] = useState<EntityId | null>(null);
 
   const hitPlayers = timeline.players.filter((player) => (timeline.anchors[player.id]?.length ?? 0) > 0);
   const hasBall = (timeline.anchors['ball']?.length ?? 0) > 0;
@@ -52,7 +65,10 @@ export function CourtEditLayer() {
         const id = node.dataset['entity'] as EntityId;
         const position = id === 'ball' ? state.ball.position : state.players[id]?.position;
         if (position !== undefined) {
-          node.setAttribute('transform', translate(position.x, position.y));
+          // The ball's target follows the ball as drawn, offset into its carrier's hands, not
+          // the carrier's centre, which belongs to the player's own target.
+          const held = id === 'ball' ? HELD_BALL_OFFSET * ballCarryAt(timeline, time) : 0;
+          node.setAttribute('transform', translate(position.x + held, position.y + held));
         }
       }
     };
@@ -86,7 +102,7 @@ export function CourtEditLayer() {
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
     dragRef.current = { entityId, startX: event.clientX, startY: event.clientY, moved: false };
-    ghostCircleRef.current?.setAttribute('r', String(entityId === 'ball' ? BALL_HIT_RADIUS : PLAYER_HIT_RADIUS));
+    ghostCircleRef.current?.setAttribute('r', String(entityId === 'ball' ? BALL_HIT_RADIUS : PLAYER_GHOST_RADIUS));
     const point = pointOf(event);
     ghostRef.current?.setAttribute('transform', translate(point.x, point.y));
   };
@@ -133,36 +149,61 @@ export function CourtEditLayer() {
     hideGhost();
   };
 
-  const hitTarget = (entityId: EntityId, radius: number, label: string) => (
-    <g
-      key={entityId}
-      data-testid={`edit-token-${entityId}`}
-      data-entity={entityId}
-      aria-label={label}
-      style={{ cursor: 'grab', touchAction: 'none' }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
-    >
-      <circle r={radius} fill="transparent" />
-    </g>
-  );
+  const hitTarget = (entityId: EntityId, shape: HitShape, label: string) => {
+    // Transparent, not `none`, so the fill still takes pointer events. The stroke is the hover
+    // outline, in the ghost's own style, so a coach can see where a press lands without the
+    // court carrying a ring per token.
+    const area = {
+      fill: 'transparent',
+      stroke: hovered === entityId && debugFlag('showHitAreas') ? 'var(--mantine-primary-color-filled)' : 'none',
+      strokeWidth: 0.05,
+      strokeDasharray: '0.2 0.15',
+    };
+
+    return (
+      <g
+        key={entityId}
+        data-testid={`edit-token-${entityId}`}
+        data-entity={entityId}
+        aria-label={label}
+        style={{ cursor: 'grab', touchAction: 'none' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
+        onPointerEnter={() => setHovered(entityId)}
+        onPointerLeave={() => setHovered((current) => (current === entityId ? null : current))}
+      >
+        {shape === 'defense' ? (
+          <rect
+            width={DIAMOND_SIDE}
+            height={DIAMOND_SIDE}
+            x={-DIAMOND_SIDE / 2}
+            y={-DIAMOND_SIDE / 2}
+            transform="rotate(45)"
+            {...area}
+          />
+        ) : (
+          <circle r={shape === 'ball' ? BALL_HIT_RADIUS : TOKEN_SIZE / 2} {...area} />
+        )}
+      </g>
+    );
+  };
 
   return (
     <g ref={layerRef} data-testid="edit-layer">
       {hitPlayers.map((player) =>
         hitTarget(
           player.id as PlayerId,
-          PLAYER_HIT_RADIUS,
+          player.team,
           t('play.editor.dragPlayer', 'Move player {{label}}', { label: entityName(player, t) }),
         ),
       )}
-      {hasBall && hitTarget('ball', BALL_HIT_RADIUS, t('play.editor.dragBall', 'Move the ball'))}
+      {hasBall && hitTarget('ball', 'ball', t('play.editor.dragBall', 'Move the ball'))}
       <g ref={ghostRef} data-testid="edit-ghost" visibility="hidden" pointerEvents="none">
         <circle
           ref={ghostCircleRef}
-          r={PLAYER_HIT_RADIUS}
+          r={PLAYER_GHOST_RADIUS}
           fill="none"
           stroke="var(--mantine-primary-color-filled)"
           strokeWidth={0.1}
