@@ -301,6 +301,19 @@ describe('step label durations', () => {
     );
   });
 
+  it('measures the end of the play with its duration floor, as the timeline does', () => {
+    // A system is created 8s long with nothing past t=0 yet. A window that reaches the floor is
+    // within the timeline it is drawn on, and one past it is not.
+    const floored = (steps: Step[]) => ({ ...withSteps(steps), duration: 8 });
+
+    expect(codesFor(floored([{ id: 's1' as StepId, t: 2, name: 'Entry', duration: 6 }]))).not.toContain(
+      'step-label-window-overruns',
+    );
+    expect(codesFor(floored([{ id: 's1' as StepId, t: 2, name: 'Entry', duration: 6.5 }]))).toContain(
+      'step-label-window-overruns',
+    );
+  });
+
   it('judges each branch on its own steps', () => {
     // Both branches, so the fork still resolves. The root's window runs to 2.5 and the child
     // has a step of its own at 3: pooling every branch's steps would cap the root at 3 — or,
