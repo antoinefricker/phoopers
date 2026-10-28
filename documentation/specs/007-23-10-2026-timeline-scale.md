@@ -63,6 +63,13 @@ left to the browser, and while the whole play fits the window nothing is taken, 
 what it would have done. The axis is moved by a transform rather than scrolled natively, which is
 why the wheel has to be asked for.
 
+**Focus carries the view only from the keyboard.** A keyboard user who tabs to a marker, a bar or
+a handle out of sight has the view brought to it. A press never does: pressing the scrubber
+focuses its thumb where the playhead was, which may be out of sight after scrolling away to edit,
+and carrying the view back to it threw the view away from the place the press was about to move
+the playhead to. Whether the last input was a key or a press is read at the window, since the key
+that moves focus is pressed on the element focus leaves.
+
 **The gutter does not scroll.** The 180 px column holding the transport's buttons and every
 row's name, symbol, hide toggle and menu stays where it is; only the time axis to its right
 moves. A coach at t = 14 s can still rename or hide a player without scrolling back to the

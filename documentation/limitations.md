@@ -508,9 +508,11 @@ which is the one surface allowed to be elastic; or a fifth, fit-to-window level.
 
 ### The time axis cannot be scrolled without moving focus or dragging
 
-Tab focus carries the view: `TimeWindow` handles `onFocusCapture` by moving the shared
+Keyboard focus carries the view: `TimeWindow` handles `onFocusCapture` by moving the shared
 offset through `scrollTo`, so a keyboard user who tabs to a marker, bar or handle
-outside the window has the view brought to it. What is left is that nothing scrolls the axis
+outside the window has the view brought to it. Focus from a press does not, nor does focus given
+back by code after one: it measures the last input device, so pressing the scrubber, a bar or a
+marker never moves the view. What is left is that nothing scrolls the axis
 _without_ changing focus. The scrollbar strip is `aria-hidden` and the view moves by a CSS
 transform, so there is no keyboard equivalent of dragging the strip. A coach who wants to look
 further along the play without changing what is selected has to zoom out with the buttons, or tab
