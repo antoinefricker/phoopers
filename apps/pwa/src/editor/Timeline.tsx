@@ -19,7 +19,7 @@ import { SCROLLBAR_GUTTER_PX, leftPx, rowsOf, spanPx, timeFromClientX } from './
 import { useEditorContext } from './useEditorContext';
 import { DRAG_SLOP_PX } from './useTimeDrag';
 import { xOfTime } from './timelineScale';
-import { scrollToFollow } from './timelineScroll';
+import { scrollToFollow, scrollTopToReveal } from './timelineScroll';
 import { useEdgeScroll } from './useEdgeScroll';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 
@@ -28,6 +28,8 @@ export function Timeline() {
   const { play, selection, select, removeKeyframe, movePlayer } = useEditorContext();
   const { timeline, branchId, currentTimeRef, isPlaying, subscribe, seek, pause } = usePlaybackContext();
   const playheadRef = useRef<HTMLDivElement>(null);
+  // The rows' own vertical scroller, which a selection brings its row into view of.
+  const rowsViewportRef = useRef<HTMLDivElement>(null);
   // Two boxes, two questions, and they stopped having one answer the day the axis started
   // scrolling. `axisAreaRef` is the fixed region to the right of the label column: it answers
   // "was this press on the time axis at all". `axisContentRef` is the translated content inside
@@ -49,6 +51,26 @@ export function Timeline() {
     followRef.current = { isPlaying, scrollLeft, viewportWidthPx, contentWidthPx, scrollTo };
   });
   const forkTime = forkTimeOf(play, branchId);
+
+  // A selection made anywhere, most often a token on the court, brings its row into view: the
+  // row is marked, but a coach looking at the court has no reason to know it is below the fold.
+  // The selection object itself is the dependency, which is new on every selection, so pressing
+  // the same token again after scrolling away brings its row back.
+  useEffect(() => {
+    const viewport = rowsViewportRef.current;
+    if (selection === null || viewport === null) return;
+
+    const row = Array.from(viewport.querySelectorAll<HTMLElement>('[data-testid^="timeline-row-"]')).find(
+      (candidate) => candidate.getAttribute('data-testid') === `timeline-row-${selection.entityId}`,
+    );
+    if (row === undefined) return;
+
+    viewport.scrollTop = scrollTopToReveal(
+      row.getBoundingClientRect(),
+      viewport.getBoundingClientRect(),
+      viewport.scrollTop,
+    );
+  }, [selection]);
 
   // The playhead moves by writing its style directly, as the court tokens do, so a playing
   // clock does not re-render every row on every frame.
@@ -211,6 +233,7 @@ export function Timeline() {
     <Box style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <ScrollArea
         type="auto"
+        viewportRef={rowsViewportRef}
         style={{ flex: 1, minHeight: 0 }}
         // Cast because Mantine types this as plain div props, which reject a `data-` key on an
         // object literal although JSX accepts them on the element itself.

@@ -147,3 +147,33 @@ export function wheelDeltaPx(delta: number, deltaMode: number, viewportWidthPx: 
 
   return amount;
 }
+
+/**
+ * The vertical offset that brings a row fully into the window, moving it no further than it has
+ * to. A row already inside is left where it is, so a click on something in sight never moves
+ * the view; one above is brought to the top edge and one below to the bottom edge. A row taller
+ * than the window is aligned by its top, which is the part that names it.
+ *
+ * Every argument is a screen coordinate except `scrollTop`, the window's current offset, which
+ * is what the answer is relative to. A coordinate that is not a number leaves the offset alone.
+ */
+export function scrollTopToReveal(
+  row: { top: number; bottom: number },
+  window: { top: number; bottom: number },
+  scrollTop: number,
+): number {
+  const offset = finite(scrollTop);
+  if (![row.top, row.bottom, window.top, window.bottom].every(Number.isFinite)) return offset;
+
+  if (row.top < window.top) return Math.max(0, offset - (window.top - row.top));
+  if (row.bottom > window.bottom) {
+    // Aligned by the bottom, unless the row is taller than the window: then the top would be
+    // pushed out of sight, and the top is what says which row it is.
+    const down = row.bottom - window.bottom;
+    const room = row.top - window.top;
+
+    return offset + Math.min(down, room);
+  }
+
+  return offset;
+}

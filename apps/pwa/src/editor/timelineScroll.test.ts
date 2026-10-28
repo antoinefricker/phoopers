@@ -5,6 +5,7 @@ import {
   scrollAroundZoom,
   scrollForEdgeDrag,
   scrollToFollow,
+  scrollTopToReveal,
   wheelDeltaPx,
 } from './timelineScroll';
 
@@ -107,5 +108,37 @@ describe('wheelDeltaPx', () => {
   it('moves nothing for a delta that is not a number', () => {
     expect(wheelDeltaPx(Number.NaN, 0, 800)).toBe(0);
     expect(wheelDeltaPx(Number.POSITIVE_INFINITY, 1, 800)).toBe(0);
+  });
+});
+
+describe('scrollTopToReveal', () => {
+  const window = { top: 100, bottom: 300 };
+
+  it('leaves a row that is already in view where it is', () => {
+    expect(scrollTopToReveal({ top: 120, bottom: 160 }, window, 50)).toBe(50);
+    // Flush with either edge is still in view.
+    expect(scrollTopToReveal({ top: 100, bottom: 140 }, window, 50)).toBe(50);
+    expect(scrollTopToReveal({ top: 260, bottom: 300 }, window, 50)).toBe(50);
+  });
+
+  it('brings a row below the window up to its bottom edge, and no further', () => {
+    expect(scrollTopToReveal({ top: 280, bottom: 340 }, window, 50)).toBe(90);
+  });
+
+  it('brings a row above the window down to its top edge, and no further', () => {
+    expect(scrollTopToReveal({ top: 60, bottom: 110 }, window, 200)).toBe(160);
+  });
+
+  it('never scrolls above the first row', () => {
+    expect(scrollTopToReveal({ top: -500, bottom: -460 }, window, 30)).toBe(0);
+  });
+
+  it('aligns a row taller than the window by its top', () => {
+    expect(scrollTopToReveal({ top: 250, bottom: 650 }, window, 0)).toBe(150);
+  });
+
+  it('leaves the offset alone for a coordinate that is not a number', () => {
+    expect(scrollTopToReveal({ top: Number.NaN, bottom: 10 }, window, 40)).toBe(40);
+    expect(scrollTopToReveal({ top: 10, bottom: 20 }, window, Number.NaN)).toBe(0);
   });
 });
