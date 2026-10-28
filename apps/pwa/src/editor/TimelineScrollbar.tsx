@@ -1,6 +1,6 @@
 import { Box } from '@mantine/core';
 import { useEffect, useRef } from 'react';
-import { SCROLLBAR_GUTTER_PX, TRACK_INSET_PX } from './timelineGeometry';
+import { SCROLLBAR_GUTTER_PX, TRACK_INSET_END_PX, TRACK_INSET_START_PX } from './timelineGeometry';
 import { LABEL_WIDTH } from './TimelineRow';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 
@@ -63,8 +63,8 @@ export function TimelineScrollbar() {
         // vertical scrollbar takes its own gutter off the right. Measured, a strip 12px wider
         // than its axis cannot reach the last 12px of the play, its own range being shorter
         // than the one the context clamps to.
-        marginLeft: `calc(${LABEL_WIDTH} + ${TRACK_INSET_PX}px)`,
-        marginRight: SCROLLBAR_GUTTER_PX + TRACK_INSET_PX,
+        marginLeft: `calc(${LABEL_WIDTH} + ${TRACK_INSET_START_PX}px)`,
+        marginRight: SCROLLBAR_GUTTER_PX + TRACK_INSET_END_PX,
         height: SCROLLBAR_GUTTER_PX,
         flexShrink: 0,
         overflowX: 'auto',

@@ -13,7 +13,8 @@ import {
   GUTTER_WIDTH,
   SCROLLBAR_GUTTER_PX,
   TIME_GRID_S,
-  TRACK_INSET_PX,
+  TRACK_INSET_END_PX,
+  TRACK_INSET_START_PX,
   TRANSPORT_ROW_HEIGHT_PX,
   adjacentStep,
   sliderMax,
@@ -206,7 +207,12 @@ export function PlaybackTransport() {
           </Box>
         </TimeWindow>
       ) : (
-        <Box flex="1 1 14rem" miw={0} style={{ marginInline: TRACK_INSET_PX }} onKeyDownCapture={noteKeyboardMove}>
+        <Box
+          flex="1 1 14rem"
+          miw={0}
+          style={{ marginLeft: TRACK_INSET_START_PX, marginRight: TRACK_INSET_END_PX }}
+          onKeyDownCapture={noteKeyboardMove}
+        >
           {slider}
         </Box>
       )}

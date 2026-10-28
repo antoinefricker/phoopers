@@ -1,7 +1,7 @@
 import { Box } from '@mantine/core';
 import { useCallback } from 'react';
 import type { FocusEvent, ReactNode, RefObject } from 'react';
-import { TRACK_INSET_PX } from './timelineGeometry';
+import { TRACK_INSET_END_PX, TRACK_INSET_START_PX } from './timelineGeometry';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 
 interface Props {
@@ -26,7 +26,7 @@ interface Props {
    * centred on t = 0 and t = duration, so half of it sits outside the axis. The window's clip
    * normally stops at the axis's edge and would cut it. With this set the clip moves out by that
    * much at an end — as padding, with the margin giving the same back — so the axis still starts
-   * exactly `TRACK_INSET_PX` from the gutter and stays aligned with every other surface.
+   * exactly `TRACK_INSET_START_PX` from the gutter and stays aligned with every other surface.
    *
    * Only at the end the view has actually reached. Everything else the window holds (the track,
    * the marks) would spill into the margin too, and a clip cannot tell a thumb from a track; but
@@ -36,6 +36,15 @@ interface Props {
    * thumb and would be cut by a vertical one.
    */
   overhangPx?: number;
+  /**
+   * The same, for the END of the axis only, in px: a keyframe on the last time occupies the cell
+   * that begins there, so it hangs a cell past the axis and the clip has to move out by that
+   * much to show it. Only the end has the overhang, so the start keeps its clip at the gutter
+   * where a negative margin would have pulled the window over it. It is given back by the margin
+   * exactly as `overhangPx` is, and never exceeds `TRACK_INSET_END_PX`, which is what makes that
+   * margin non-negative.
+   */
+  overhangEndPx?: number;
 }
 
 /**
@@ -47,14 +56,20 @@ interface Props {
  * four that agree by accident. The 180 px gutter stays OUTSIDE the window in every case, so it
  * does not move; the spec pins it there.
  *
- * The inset each end of the axis keeps for a marker centred on t = 0 or t = duration lives on the
- * window rather than inside it: inside, it would be a distance the content carried and the axis
- * would start half a marker late.
+ * The inset each end of the axis keeps lives on the window rather than inside it: inside, it
+ * would be a distance the content carried and the axis would start late.
  *
  * A transform rather than a real `scrollLeft`: one offset in the context drives every surface,
  * and native scrolling would mean four scrollbars and four scroll events to keep damped.
  */
-export function TimeWindow({ children, testId, contentRef, measure = false, overhangPx = 0 }: Props) {
+export function TimeWindow({
+  children,
+  testId,
+  contentRef,
+  measure = false,
+  overhangPx = 0,
+  overhangEndPx = 0,
+}: Props) {
   const { scrollLeft, scrollTo, contentWidthPx, viewportWidthPx, setViewportWidthPx } = useTimelineViewportContext();
 
   // A ref callback, not an effect: `react-hooks/set-state-in-effect` forbids a setter in an
@@ -102,7 +117,7 @@ export function TimeWindow({ children, testId, contentRef, measure = false, over
 
   const overhangLeft = scrollLeft <= 0 ? overhangPx : 0;
   // A play shorter than the window has both ends in view, which this reads as the end reached.
-  const overhangRight = scrollLeft >= contentWidthPx - viewportWidthPx ? overhangPx : 0;
+  const overhangRight = scrollLeft >= contentWidthPx - viewportWidthPx ? Math.max(overhangPx, overhangEndPx) : 0;
 
   return (
     <Box
@@ -117,9 +132,9 @@ export function TimeWindow({ children, testId, contentRef, measure = false, over
         height: '100%',
         overflow: 'hidden',
         position: 'relative',
-        marginLeft: TRACK_INSET_PX - overhangLeft,
-        marginRight: TRACK_INSET_PX - overhangRight,
-        ...(overhangPx > 0 && {
+        marginLeft: TRACK_INSET_START_PX - overhangLeft,
+        marginRight: TRACK_INSET_END_PX - overhangRight,
+        ...(Math.max(overhangPx, overhangEndPx) > 0 && {
           paddingLeft: overhangLeft,
           paddingRight: overhangRight,
           overflowX: 'clip',

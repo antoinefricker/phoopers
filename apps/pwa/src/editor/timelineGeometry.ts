@@ -12,17 +12,26 @@ export interface TimelineRowModel {
   keyframes: Keyframe[];
 }
 
-// A keyframe marker is an upright rectangle, taller than it is wide, so it reads as an instant
-// rather than as a blob. It is centred on its time with `translate(-50%)`, so it reaches half
-// its WIDTH past that time — which is what the track has to keep room for at either end.
-export const MARKER_WIDTH_PX = 12;
+// A keyframe marker is a block that fills the grid cell its time begins: it starts on the line of
+// its time and ends on the next one, so it occupies the interval a keyframe can take rather than
+// standing on a point. Its width is therefore the cell's, at every zoom, and only its height is
+// fixed here.
 export const MARKER_HEIGHT_PX = 18;
 
-// Both live with the shared axis geometry because the transport needs them too: the inset is
-// the room each end of the axis keeps, and must stay at or above half `MARKER_WIDTH_PX` or a
-// marker at t = 0 or t = duration overflows its track again; the gutter is the scrollbar's
-// width, reserved on the scrubber as well as on the tracks so the axis ends at one x.
-export { SCROLLBAR_GUTTER_PX, SCRUBBER_AXIS_PX, TRACK_INSET_PX } from '../play2d/transportMath';
+/** The width of one grid cell at this zoom, which is the width of a keyframe marker. */
+export const cellPx = (pxPerCell: number): string => `${xOfTime(TIME_GRID_S, pxPerCell)}px`;
+
+// The insets live with the shared axis geometry because the transport needs them too: each is the
+// room an end of the axis keeps, so the scrubber, the tracks and the scrollbar start and stop at
+// one x. The end must stay at or above the widest cell, or a marker on the last time overhangs
+// the panel again; the gutter is the scrollbar's width, reserved on the scrubber as well as on
+// the tracks so the axis ends at one x.
+export {
+  SCROLLBAR_GUTTER_PX,
+  SCRUBBER_AXIS_PX,
+  TRACK_INSET_END_PX,
+  TRACK_INSET_START_PX,
+} from '../play2d/transportMath';
 
 // Past this many lines the grid stops being a reading aid and becomes a smear of DOM nodes, so
 // a play long enough to cross it keeps only its whole seconds. 240 is four minutes of them.

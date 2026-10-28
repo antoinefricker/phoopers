@@ -49,12 +49,16 @@ const STEP_EPSILON = 1e-6;
 // and the playback buttons on the transport, so both axes start at the same x.
 export const GUTTER_WIDTH = '180px';
 
-// Room kept at each end of every axis: half the width of a keyframe marker, which is centred
-// on its time and so reaches that far past it. Without it the last marker overflows and the
-// panel grows a horizontal scrollbar. The scrubber takes the same inset or it drifts from the
-// markers at the far end — which is why the number lives here, with the shared axis geometry,
-// rather than beside the marker it is derived from.
-export const TRACK_INSET_PX = 6;
+// Room kept at each end of every axis, shared by the scrubber, the tracks and the scrollbar so they
+// all start and stop at one x. The start keeps a small margin so the first line and the playhead
+// are not flush with the gutter. The end keeps a whole cell, the widest one: a keyframe occupies
+// the cell that begins at its time, so one at the very end of the play hangs a cell past it, and
+// the room has to be there at every zoom for it to be shown whole. It is the widest cell rather
+// than the current one so the axis does not move when the coach zooms; a test pins it to the
+// zoom levels. The numbers live here, with the shared axis geometry, rather than beside the
+// marker they are derived from.
+export const TRACK_INSET_START_PX = 6;
+export const TRACK_INSET_END_PX = 24;
 
 // The transport's row is exactly as tall as its buttons. Pinned here rather than left to
 // Mantine's default ActionIcon height, because the time grid has to know it and cannot read it:

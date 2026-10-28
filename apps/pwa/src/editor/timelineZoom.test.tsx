@@ -1,11 +1,13 @@
-import { fireEvent, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { fireEvent, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixturePlay, P1 } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { enterEditMode, renderEditor } from './testUtils/renderEditor';
+import { TRACK_INSET_END_PX, TRACK_INSET_START_PX, leftPx } from './timelineGeometry';
 
 beforeEach(() => stubViewportWidth(1440));
+afterEach(() => vi.restoreAllMocks());
 
 const zoomIn = () => screen.getByRole('button', { name: 'Zoom in' });
 const zoomOut = () => screen.getByRole('button', { name: 'Zoom out' });
@@ -51,5 +53,89 @@ describe('the zoom control', () => {
 
     expect(screen.queryByRole('button', { name: 'Zoom out' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Zoom in' })).not.toBeInTheDocument();
+  });
+});
+
+describe('a keyframe marker occupies its grid cell', () => {
+  const markers = () =>
+    within(screen.getByTestId(`timeline-track-${P1}`))
+      .getAllByRole('button')
+      .filter((marker) => marker.getAttribute('aria-label')?.startsWith('Keyframe at'));
+
+  it('begins on the line of its time and is one cell wide, at every zoom', async () => {
+    await renderTimeline();
+
+    for (const px of [24, 18, 12, 6]) {
+      for (const marker of markers()) {
+        const time = Number(/Keyframe at ([\d.]+)s/.exec(marker.getAttribute('aria-label') ?? '')?.[1]);
+
+        expect(marker.style.left).toBe(leftPx(time, px));
+        expect(marker.style.width).toBe(`${px}px`);
+      }
+      if (px > 6) fireEvent.click(zoomOut());
+    }
+  });
+
+  it('is no longer centred on its time', async () => {
+    await renderTimeline();
+
+    for (const marker of markers()) {
+      // Only the vertical centring is left: a horizontal one would shift it half a cell back.
+      expect(marker.style.transform).toBe('translateY(-50%)');
+    }
+  });
+
+  describe('on the last time', () => {
+    // jsdom lays nothing out, so a clipped marker cannot be seen; the computed style is the only
+    // thing to pin. The window is made narrower than the play (960px in this fixture) so there
+    // is something to scroll, then scrolled to the end.
+    const WINDOW_PX = 500;
+    const edges = () => {
+      const style = getComputedStyle(screen.getByTestId(`timeline-window-${P1}`));
+
+      return {
+        padding: [parseFloat(style.paddingLeft), parseFloat(style.paddingRight)],
+        margin: [parseFloat(style.marginLeft), parseFloat(style.marginRight)],
+      };
+    };
+    const scrollTo = (offset: number) => {
+      const strip = screen.getByTestId('timeline-scrollbar');
+      Object.defineProperty(strip, 'scrollLeft', { value: offset, configurable: true, writable: true });
+      fireEvent.scroll(strip);
+    };
+
+    beforeEach(() => {
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        right: WINDOW_PX,
+        bottom: 10,
+        width: WINDOW_PX,
+        height: 10,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      });
+    });
+
+    it('lets the row window show a marker that hangs one cell past the axis', async () => {
+      await renderTimeline();
+      scrollTo(Number.MAX_SAFE_INTEGER);
+      const { padding, margin } = edges();
+
+      // The clip moves out by a cell at the end the view has reached, and the margin gives that
+      // cell back so the axis still ends where every other surface's does. Nothing hangs left.
+      expect(padding[1]).toBe(24);
+      expect(margin[1]! + padding[1]!).toBe(TRACK_INSET_END_PX);
+      expect(padding[0]).toBe(0);
+    });
+
+    it('keeps the clip at the axis edge before the end is reached', async () => {
+      await renderTimeline();
+      const { padding, margin } = edges();
+
+      expect(padding).toEqual([0, 0]);
+      expect(margin).toEqual([TRACK_INSET_START_PX, TRACK_INSET_END_PX]);
+    });
   });
 });

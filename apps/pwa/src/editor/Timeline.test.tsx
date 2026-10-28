@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { TIME_GRID_S } from '../play2d/transportMath';
-import { TRACK_INSET_PX, leftPx, spanPx } from './timelineGeometry';
+import { TRACK_INSET_END_PX, TRACK_INSET_START_PX, leftPx, spanPx } from './timelineGeometry';
 import { ZOOM_LEVELS, xOfTime } from './timelineScale';
 import { Timeline } from './Timeline';
 import { LABEL_WIDTH } from './TimelineRow';
@@ -350,6 +350,31 @@ describe('retiming', () => {
     expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, DROP_T, 4]);
   });
 
+  it('does not jump when a block is grabbed away from its left edge', async () => {
+    // A marker is a block one cell wide that begins on its time, so a pointer that grabs it 20px
+    // in has not grabbed its time. The drag follows the pointer's DELTA from that grab: measured
+    // from the middle instead, the block would land half a cell off on the very first move.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const block = this.tagName === 'BUTTON';
+      const left = block ? xOfTime(2, LEVEL_1) : 0;
+      const width = block ? LEVEL_1 : 0;
+
+      return { left, width, right: left + width, top: 0, bottom: 0, height: 0, x: left, y: 0, toJSON: () => ({}) };
+    });
+    renderEditor(fixturePlay, <Timeline />);
+    const marker = secondMarker(P1);
+    const grabX = xOfTime(2, LEVEL_1) + 20;
+
+    await userEvent.setup().pointer([
+      { keys: '[MouseLeft>]', target: marker, coords: { clientX: grabX, clientY: 0 } },
+      { target: marker, coords: { clientX: grabX + 48, clientY: 0 } },
+      { keys: '[/MouseLeft]', target: marker, coords: { clientX: grabX + 48, clientY: 0 } },
+    ]);
+
+    // 48px is two cells: the block moves by exactly what the pointer did, from 2s to 2.2s.
+    expect(trackOf(readProbe().play, ROOT, P1).map((k) => k.t)).toEqual([0, 2.2, 4]);
+  });
+
   it('never lets a keyframe cross its neighbour', async () => {
     withTrackAt(TRACK_LEFT);
     renderEditor(fixturePlay, <Timeline />);
@@ -675,11 +700,11 @@ describe('track alignment', () => {
       screen.getByTestId('timeline-axis'),
     ];
 
-    // Both sides take the same inset now: with the time readout gone the scrubber runs the
-    // full width, so nothing extra is reserved on the right.
+    // A small margin at the start and a whole cell at the end, where a marker on the last time
+    // hangs past the axis. The ruler and the overlay keep the same ends the rows do.
     for (const surface of windows) {
-      expect(surface.style.marginLeft).toBe(`${TRACK_INSET_PX}px`);
-      expect(surface.style.marginRight).toBe(`${TRACK_INSET_PX}px`);
+      expect(surface.style.marginLeft).toBe(`${TRACK_INSET_START_PX}px`);
+      expect(surface.style.marginRight).toBe(`${TRACK_INSET_END_PX}px`);
     }
   });
 

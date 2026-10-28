@@ -11,7 +11,7 @@ import { entityName } from './entityName';
 import { RenamePlayer } from './RenamePlayer';
 import { TimelineBar } from './TimelineBar';
 import { constrainRetime } from './constraints';
-import { MARKER_WIDTH_PX, MARKER_HEIGHT_PX, barResize, leftPx, rowsOf, spanPx } from './timelineGeometry';
+import { MARKER_HEIGHT_PX, barResize, cellPx, leftPx, rowsOf, spanPx } from './timelineGeometry';
 import { TimeWindow } from './TimeWindow';
 import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
@@ -266,9 +266,9 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
       </Box>
       {/* The track is as wide as the play is long and the window clips it, so a row that runs
           past the fold is scrolled to rather than squeezed. The window carries the inset a
-          marker centred on t=0 or t=duration needs, as the ruler's and the playhead's do: the
+          marker on the last time needs at the end, as the ruler's and the playhead's do: the
           three have to agree, or the playhead drifts from the markers. */}
-      <TimeWindow testId={`timeline-window-${row.entityId}`} contentRef={trackRef}>
+      <TimeWindow testId={`timeline-window-${row.entityId}`} contentRef={trackRef} overhangEndPx={pxPerCell}>
         <Box
           data-testid={`timeline-track-${row.entityId}`}
           style={{ position: 'relative', width: '100%', height: '100%' }}
@@ -431,6 +431,9 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                 {...(owned
                   ? bind({
                       current: k.t,
+                      // The block's left edge is its time, not its middle: measuring the grab from
+                      // the middle would shift it half a cell on the first move.
+                      anchor: 'start',
                       resolve: (rawT, snap) =>
                         constrainRetime(
                           play,
@@ -459,12 +462,14 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   top: '50%',
                   left: leftPx(k.t, pxPerCell),
                   touchAction: owned ? 'none' : undefined,
-                  width: MARKER_WIDTH_PX,
+                  // The cell that begins at its time, so the block fills the interval the keyframe
+                  // occupies on the grid, from its line to the next, at every zoom.
+                  width: cellPx(pxPerCell),
                   height: MARKER_HEIGHT_PX,
                   padding: 0,
                   borderRadius: 2,
                   cursor: owned ? 'grab' : 'pointer',
-                  transform: 'translate(-50%, -50%)',
+                  transform: 'translateY(-50%)',
                   // Selection is the border: the app's own colour and thicker, since a white fill
                   // leaves nothing else to carry it. The PRIMARY, not a named blue: it used to be
                   // `blue-filled`, which is byte for byte the blue an offense token wears, so a

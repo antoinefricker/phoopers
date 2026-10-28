@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { resolveBranch } from '../engine';
 import { fixturePlay, P1, ROOT } from '../engine/__fixtures__/play';
 import {
-  MARKER_WIDTH_PX,
-  TRACK_INSET_PX,
+  TRACK_INSET_END_PX,
+  TRACK_INSET_START_PX,
+  cellPx,
   barResize,
   gridTicks,
   leftPx,
@@ -12,6 +13,7 @@ import {
   timeFromClientX,
 } from './timelineGeometry';
 import { TIME_GRID_S, gridTime } from '../play2d/transportMath';
+import { ZOOM_LEVELS } from './timelineScale';
 
 describe('rowsOf', () => {
   const timeline = resolveBranch(fixturePlay, ROOT);
@@ -115,17 +117,30 @@ describe('timeFromClientX', () => {
 });
 
 describe('track inset', () => {
-  it('reserves half the marker width, which is what a marker overhangs', () => {
-    // The marker is centred on its time, so it reaches half its width past it. It used to be a
-    // square rotated 45 degrees, where the overhang was half the DIAGONAL and the inset had to
-    // be larger than the width suggested; upright, the width is the whole story.
-    expect(TRACK_INSET_PX).toBeGreaterThanOrEqual(MARKER_WIDTH_PX / 2);
+  it('keeps room at the end for a marker on the last time, at every zoom', () => {
+    // A marker fills the cell that begins at its time, so one on the very last time hangs a whole
+    // cell past the axis. The end inset is the widest cell, so the axis does not move as the
+    // coach zooms and the marker is never cut.
+    expect(TRACK_INSET_END_PX).toBe(Math.max(...ZOOM_LEVELS));
   });
 
-  it('is no larger than a marker needs, so the track keeps the room', () => {
-    // Every pixel of inset is a pixel the time axis does not span, on all three surfaces that
-    // share it. An inset well past the overhang is waste, not safety.
-    expect(TRACK_INSET_PX).toBeLessThanOrEqual(MARKER_WIDTH_PX);
+  it('keeps only a small margin at the start, where a marker does not overhang', () => {
+    // The marker begins on its time, so nothing hangs left of t = 0. Every pixel of inset is a
+    // pixel the axis does not span, on all the surfaces that share it.
+    expect(TRACK_INSET_START_PX).toBeGreaterThan(0);
+    expect(TRACK_INSET_START_PX).toBeLessThan(TRACK_INSET_END_PX);
+  });
+});
+
+describe('cellPx', () => {
+  it('is the width of one grid cell at each zoom', () => {
+    for (const level of ZOOM_LEVELS) {
+      expect(cellPx(level)).toBe(`${level}px`);
+    }
+  });
+
+  it('is a usable width for a degenerate scale', () => {
+    expect(cellPx(Number.NaN)).toBe('0px');
   });
 });
 
