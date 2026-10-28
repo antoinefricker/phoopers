@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fixturePlay, P1, P2, ROOT, SWITCH } from './__fixtures__/play';
-import { resolveBranch } from './resolve';
+import { contentEnd, resolveBranch } from './resolve';
 import { stateAt } from './sample';
 import { applyEasing } from './easing';
 import { lutToParam, pointOnCubic } from './curve';
@@ -371,5 +371,67 @@ describe('resolveBranch ancestor opening', () => {
 
     expect(synthesised?.x).toBeCloseTo(expected.x, 9);
     expect(synthesised?.y).toBeCloseTo(expected.y, 9);
+  });
+});
+
+describe('contentEnd', () => {
+  const withSteps = (steps: { id: StepId; t: number; name: string; duration?: number }[], duration?: number): Play => ({
+    ...fixturePlay,
+    duration,
+    branches: fixturePlay.branches.filter((b) => b.id === ROOT).map((b) => ({ ...b, steps })),
+  });
+  const endOf = (play: Play) => contentEnd(resolveBranch(play, ROOT));
+
+  it('is the time of the last keyframe of any entity when no label goes further', () => {
+    // The fixture's last keyframe, on P1's track, is at t = 4.
+    expect(contentEnd(resolveBranch(fixturePlay, ROOT))).toBe(4);
+  });
+
+  it('is not raised by the duration floor, which only lengthens the timeline', () => {
+    const floored = resolveBranch({ ...fixturePlay, duration: 8 }, ROOT);
+
+    expect(floored.duration).toBe(8);
+    expect(contentEnd(floored)).toBe(4);
+  });
+
+  it('is 0 for a play with no keyframes and no labels', () => {
+    const empty: Play = {
+      ...fixturePlay,
+      branches: fixturePlay.branches.map((b) => ({ ...b, tracks: { ball: [] }, steps: [] })),
+    };
+
+    expect(contentEnd(resolveBranch(empty, ROOT))).toBe(0);
+  });
+
+  it('includes the end of a label whose window runs past the last keyframe', () => {
+    const play = withSteps([{ id: 's1' as StepId, t: 3, name: 'Late', duration: 2.5 }], 8);
+
+    expect(endOf(play)).toBe(5.5);
+  });
+
+  it('counts a label with no duration from its own time, since its window runs to the end', () => {
+    const play = withSteps([{ id: 's1' as StepId, t: 6, name: 'Late' }], 8);
+
+    expect(endOf(play)).toBe(6);
+  });
+
+  it('is not moved by a label that ends before the last keyframe', () => {
+    const play = withSteps([{ id: 's1' as StepId, t: 1, name: 'Early', duration: 1 }], 8);
+
+    expect(endOf(play)).toBe(4);
+  });
+
+  it('never passes the end of the timeline, whatever a label asks for', () => {
+    const play = withSteps([{ id: 's1' as StepId, t: 3, name: 'Long', duration: 99 }], 8);
+
+    expect(endOf(play)).toBe(8);
+  });
+
+  it('ignores a duration that is not a positive number', () => {
+    for (const duration of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const play = withSteps([{ id: 's1' as StepId, t: 3, name: 'Odd', duration }], 8);
+
+      expect(endOf(play)).toBe(4);
+    }
   });
 });

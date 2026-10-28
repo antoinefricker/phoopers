@@ -309,3 +309,30 @@ export function resolveBranch(play: Play, branchId: BranchId): ResolvedTimeline 
     duration,
   };
 }
+
+/**
+ * Where the content of a play stops: the later of its last keyframe and the end of its last label,
+ * never past the end of the timeline. Beyond it nothing happens and nothing is named.
+ *
+ * A label's window ends at its time plus its duration. One with no duration of its own runs until
+ * the next step or the end of the play, which is the very thing being found, so it counts from its
+ * own time, which a playhead must be able to reach to show it. A duration that is not a positive
+ * number has no window and counts the same way.
+ *
+ * `ResolvedTimeline.duration` is at least this and can be more, being floored at the system's own
+ * `duration`, so the time past this point is empty rather than the end of anything.
+ */
+export function contentEnd(timeline: ResolvedTimeline): number {
+  const lastKeyframe = Object.values(timeline.anchors).reduce((latest, track) => {
+    const last = track[track.length - 1];
+
+    return last === undefined ? latest : Math.max(latest, last.t);
+  }, 0);
+  const lastLabel = timeline.steps.reduce((latest, step) => {
+    const windowed = step.duration !== undefined && Number.isFinite(step.duration) && step.duration > 0;
+
+    return Math.max(latest, windowed ? step.t + step.duration! : step.t);
+  }, 0);
+
+  return Math.min(Math.max(lastKeyframe, lastLabel), timeline.duration);
+}

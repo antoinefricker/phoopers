@@ -36,12 +36,12 @@ const SNAP_THRESHOLD = 0.25;
 
 export function PlaybackTransport() {
   const { t } = useTranslation();
-  const { timeline, branchId, currentTimeRef, isPlaying, play, pause, seek } = usePlaybackContext();
+  const { timeline, branchId, end, currentTimeRef, isPlaying, play, pause, seek } = usePlaybackContext();
   const togglePlayback = isPlaying ? pause : play;
   // Beside the button it mirrors, so the key and the click cannot come to mean different things.
   usePlayPauseShortcut(togglePlayback);
   const { displayTime } = usePlaybackTimeContext();
-  const max = sliderMax(timeline.duration);
+  const max = sliderMax(end);
 
   // The clock's seek() does not pause; stopping playback on any manual move is the transport's job.
   const scrubTo = (time: number) => {
@@ -66,7 +66,7 @@ export function PlaybackTransport() {
   const [addOpen, setAddOpen] = useState(false);
 
   const jump = (direction: 1 | -1) => {
-    const next = adjacentStep(currentTimeRef.current, timeline.steps, direction, timeline.duration);
+    const next = adjacentStep(currentTimeRef.current, timeline.steps, direction, end);
     if (next !== undefined) {
       scrubTo(next);
     }
@@ -100,7 +100,10 @@ export function PlaybackTransport() {
       // directly below on the same axis and names each step in full. Labelling them here
       // too printed every name twice, centred and ellipsised against the ruler's
       // left-aligned full text.
-      marks={stepMarks(timeline.steps).map(({ value }) => ({ value }))}
+      // Only those the playhead can reach: a mark past the end would sit outside the track.
+      marks={stepMarks(timeline.steps)
+        .filter(({ value }) => value <= max)
+        .map(({ value }) => ({ value }))}
       styles={{ root: { paddingInline: 0 } }}
       label={(value) => value.toFixed(1)}
       aria-label={t('play.transport.scrubber', 'Playback position')}
