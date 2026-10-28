@@ -1,11 +1,12 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useContext, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, Player, PlayerId } from '../engine';
 import { ballCarryAt, stateAt } from '../engine';
 import { DIAMOND_SIDE, HELD_BALL_OFFSET, TOKEN_SIZE } from '../play2d/PlayerSymbol';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { snapToGrid } from '../play2d/transportMath';
-import { debugFlag } from './debugFlags';
+import { SettingsContext } from '../settings/useSettingsContext';
+import { DEFAULT_SETTINGS } from '../types/Settings';
 import { entityName } from './entityName';
 import { forkTimeOf } from './mutations';
 import { DRAG_SLOP_PX } from './useTimeDrag';
@@ -49,6 +50,9 @@ export function CourtEditLayer() {
   // pointer crosses a target's edge, and the layer's transforms are written to the nodes, not
   // through props, so a render does not move anything.
   const [hovered, setHovered] = useState<EntityId | null>(null);
+  // Read with `useContext` rather than `useSettingsContext`: the layer still renders without a
+  // provider (its tests do), and then the setting is its default.
+  const showHitAreas = useContext(SettingsContext)?.settings.showHitAreas ?? DEFAULT_SETTINGS.showHitAreas;
 
   const hitPlayers = timeline.players.filter((player) => (timeline.anchors[player.id]?.length ?? 0) > 0);
   const hasBall = (timeline.anchors['ball']?.length ?? 0) > 0;
@@ -155,7 +159,7 @@ export function CourtEditLayer() {
     // court carrying a ring per token.
     const area = {
       fill: 'transparent',
-      stroke: hovered === entityId && debugFlag('showHitAreas') ? 'var(--mantine-primary-color-filled)' : 'none',
+      stroke: hovered === entityId && showHitAreas ? 'var(--mantine-primary-color-filled)' : 'none',
       strokeWidth: 0.05,
       strokeDasharray: '0.2 0.15',
     };

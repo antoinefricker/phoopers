@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixturePlay, P1, P2 } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
+import { SettingsContext } from '../settings/useSettingsContext';
 import { BALL_RADIUS, DIAMOND_SIDE, TOKEN_SIZE } from '../play2d/PlayerSymbol';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { enterEditMode, readProbe, renderEditor } from './testUtils/renderEditor';
@@ -111,16 +112,20 @@ describe('outlining the reactive area on the court', () => {
     expect(outline(P1)).toBe('none');
   });
 
-  it('draws no outline while the showHitAreas flag is off', async () => {
-    await renderView();
-    window.__phoopers!.showHitAreas = false;
+  it('draws no outline while the showHitAreas setting is off', async () => {
+    const off = { settings: { showHitAreas: false }, setSetting: () => undefined };
+    renderEditor(
+      fixturePlay,
+      <SettingsContext value={off}>
+        <PlayView />
+      </SettingsContext>,
+      { wrapPlayback: false },
+    );
+    await enterEditMode();
 
-    try {
-      await userEvent.hover(screen.getByTestId(`edit-token-${P1}`));
-      expect(outline(P1)).toBe('none');
-    } finally {
-      window.__phoopers!.showHitAreas = true;
-    }
+    await userEvent.hover(screen.getByTestId(`edit-token-${P1}`));
+
+    expect(outline(P1)).toBe('none');
   });
 
   it('outlines the ball the same way', async () => {
