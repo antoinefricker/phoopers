@@ -55,6 +55,14 @@ pointer the moment a play grew past the window. It is reserved **once**, below t
 surface, and not under each of the four: the vertical budget of the time region is tight, and
 four gutters would spend it four times over.
 
+**Shift + the mouse wheel scrolls the axis sideways**, over the scrubber, the ruler, the tracks
+or the grid: one offset, so all of them go together. The wheel's delta is the distance, taken
+from whichever axis the browser sends it on and read in pixels, lines or pages. It stops at both
+ends of the play. A wheel without Shift keeps scrolling the rows, one with Ctrl, Cmd or Alt is
+left to the browser, and while the whole play fits the window nothing is taken, so the page keeps
+what it would have done. The axis is moved by a transform rather than scrolled natively, which is
+why the wheel has to be asked for.
+
 **The gutter does not scroll.** The 180 px column holding the transport's buttons and every
 row's name, symbol, hide toggle and menu stays where it is; only the time axis to its right
 moves. A coach at t = 14 s can still rename or hide a player without scrolling back to the
