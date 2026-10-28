@@ -462,21 +462,23 @@ scrolls with the tracks, so the coach has no overview: a play wider than the win
 seen in part. [Spec 007](specs/007-23-10-2026-timeline-scale.md#scrolling) accepted this as the
 price of keeping the four time surfaces aligned.
 
-Measured in a browser on a new 5 on 5 system in edit mode: the rows' `TimeWindow` is **1204 px**
-wide in a 1440 px window and **154 px** in a 390 px one, both starting at x = 202, so the visible
-axis is **window − 236 px**. That is the page's 16 px padding each side (32), the 180 px label
-column, the 12 px scrollbar gutter, and 6 px of inset each end (12), which adds up to the same
-figure. At level 1 the 8 s play's content is 1920 px wide, 716 px of it off screen at rest. A play takes `duration × px per second`, which is 60
-px per second at level 4.
+Measured in a browser on a new 5 on 5 system in edit mode: the rows' `TimeWindow` is **1186 px**
+wide in a 1440 px window and **136 px** in a 390 px one, both starting at x = 202, so the visible
+axis is **window − 254 px**. That is the page's 16 px padding each side (32), the 180 px label
+column, the 12 px scrollbar gutter, 6 px of inset at the start and 24 px at the end (30), which
+adds up to the same figure. At level 1 the 8 s play's content is 1920 px wide, 734 px of it off
+screen at rest. A play takes `duration × px per second`, which is 60 px per second at level 4.
 
 | Window         | Visible axis | Longest play that fits at level 4 | At level 1 (240 px/s) |
 | -------------- | ------------ | --------------------------------- | --------------------- |
-| 1440 px laptop | 1204 px      | **20.07 s** (1204 / 60)           | 5.02 s                |
-| 390 px phone   | 154 px       | **2.57 s** (154 / 60)             | 0.64 s                |
+| 1440 px laptop | 1186 px      | **19.77 s** (1186 / 60)           | 4.94 s                |
+| 390 px phone   | 136 px       | **2.27 s** (136 / 60)             | 0.57 s                |
 
 A new system is 8 s long, so it fits a laptop at level 4 (480 px) and not at level 1 (1920 px,
-37 % of it off screen at rest). On a phone nothing past 2.57 s fits even at the widest level, so
-an 8 s play shows about a third of its length at level 4.
+38 % of it off screen at rest). On a phone nothing past 2.27 s fits even at the widest level, so
+an 8 s play shows a little over a quarter of its length at level 4. The end inset, which grew from
+6 to 24 px so that a keyframe on the last time shows whole, took 18 px of that axis at every
+width.
 
 It was left because an overview and a shared scale are in tension: spec 007 chose alignment
 over overview, and lists a fit-to-window level and an overview strip as non-goals.

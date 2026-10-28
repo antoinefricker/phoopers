@@ -29,8 +29,12 @@ Time is measured in pixels per 0.1 s cell — the authoring grid of
 Level 1 is where the timeline opens and the finest it goes: the ladder runs outwards only. The
 levels are the whole of the scale — there is no continuous zoom and no fit-to-window level.
 
-**A track is as wide as the play is long**, `duration × px per second`, plus the inset each end
-of the axis already keeps for a marker centred on `t = 0` or `t = duration`. It is no longer a
+**A track is as wide as the play is long**, `duration × px per second`, plus the room the axis
+keeps at each end: 6 px at the start and 24 px at the end. A keyframe fills the cell that begins
+at its time, so one on the last time hangs a whole cell past the axis, and the end keeps the
+widest cell (level 1's) at every level, so the axis does not move as the coach zooms. The tracks
+move their clip out by that cell at the end the view has reached; nothing hangs past the start.
+It is no longer a
 share of anything, so a time's position is `t × px per second` rather than a percentage, and the
 map from a pointer's x back to a time is the same arithmetic inverted.
 
