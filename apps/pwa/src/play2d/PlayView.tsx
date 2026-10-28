@@ -4,6 +4,7 @@ import { IconGitBranch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { AppHeader } from '../app/AppHeader';
 import { SelectionActions } from '../editor/SelectionActions';
+import { TimeSurface } from '../editor/TimeSurface';
 import { IssuePanel } from '../editor/IssuePanel';
 import { PlayMenu } from '../editor/PlayMenu';
 import { TimeGrid } from '../editor/TimeGrid';
@@ -178,7 +179,7 @@ function TimeRegion({ mode }: { mode: 'play' | 'edit' }) {
       {/* A row of its own, outside the box the grid fills: the grid's lines are measured from the
           transport's top, so a row inside it would have them running behind the buttons. */}
       {mode === 'edit' && <TimelineZoomControls />}
-      <Box style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <TimeSurface>
         {mode === 'edit' && <TimeGrid />}
         {/* Above the grid, and carrying the gap the region used to give these two. */}
         <Box
@@ -194,7 +195,7 @@ function TimeRegion({ mode }: { mode: 'play' | 'edit' }) {
           <PlaybackTransport />
           {mode === 'edit' && <Timeline />}
         </Box>
-      </Box>
+      </TimeSurface>
     </TimelineViewportContextProvider>
   );
 }

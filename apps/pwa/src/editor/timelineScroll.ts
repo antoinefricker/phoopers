@@ -127,3 +127,23 @@ export function scrollForEdgeDrag(pointerOffsetX: number, box: ViewportBox): num
 
   return clampScroll(finite(box.scrollLeft) + step, box);
 }
+
+// A wheel notch reported in lines, which is what a notched wheel sends in Firefox and what a
+// browser sends for a keyboard-set scroll. A line is taken as this many pixels: three lines
+// to a notch then travel about what a pixel-reporting browser's notch does.
+const WHEEL_LINE_PX = 40;
+
+/**
+ * A wheel delta in pixels, whatever unit the browser reported it in.
+ *
+ * `deltaMode` 0 is pixels, 1 is lines and 2 is pages; a page is the width of the window, which is
+ * what a page of horizontal scrolling means here. A delta that is not a number moves nothing.
+ */
+export function wheelDeltaPx(delta: number, deltaMode: number, viewportWidthPx: number): number {
+  const amount = finite(delta);
+
+  if (deltaMode === 1) return amount * WHEEL_LINE_PX;
+  if (deltaMode === 2) return amount * finite(viewportWidthPx);
+
+  return amount;
+}

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { type ViewportBox, clampScroll, scrollAroundZoom, scrollForEdgeDrag, scrollToFollow } from './timelineScroll';
+import {
+  type ViewportBox,
+  clampScroll,
+  scrollAroundZoom,
+  scrollForEdgeDrag,
+  scrollToFollow,
+  wheelDeltaPx,
+} from './timelineScroll';
 
 const box = (over: Partial<ViewportBox> = {}): ViewportBox => ({
   scrollLeft: 0,
@@ -79,5 +86,26 @@ describe('the view rules on degenerate input', () => {
     ];
 
     for (const result of results) expect(Number.isFinite(result)).toBe(true);
+  });
+});
+
+describe('wheelDeltaPx', () => {
+  it('passes a pixel delta through', () => {
+    expect(wheelDeltaPx(120, 0, 800)).toBe(120);
+    expect(wheelDeltaPx(-30, 0, 800)).toBe(-30);
+  });
+
+  it('reads a line delta as forty pixels a line', () => {
+    expect(wheelDeltaPx(3, 1, 800)).toBe(120);
+  });
+
+  it('reads a page delta as the width of the window', () => {
+    expect(wheelDeltaPx(1, 2, 800)).toBe(800);
+    expect(wheelDeltaPx(-1, 2, 800)).toBe(-800);
+  });
+
+  it('moves nothing for a delta that is not a number', () => {
+    expect(wheelDeltaPx(Number.NaN, 0, 800)).toBe(0);
+    expect(wheelDeltaPx(Number.POSITIVE_INFINITY, 1, 800)).toBe(0);
   });
 });
