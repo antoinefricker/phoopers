@@ -268,6 +268,8 @@ describe('the view when focus reaches a marker out of sight', () => {
     // it sets scrollLeft with no scrollbar to show it. jsdom does not, so it is done by hand.
     Object.defineProperty(window, 'scrollLeft', { value: 0, configurable: true, writable: true });
 
+    // A Tab, which is what brings keyboard focus to something out of sight.
+    fireEvent.keyDown(document.body, { key: 'Tab' });
     act(() => keyframe(4).focus());
     window.scrollLeft = 500;
     fireEvent.scroll(window);
@@ -277,5 +279,38 @@ describe('the view when focus reaches a marker out of sight', () => {
     // own offset is back to zero.
     expect(offsetOf()).toBe('translateX(-560px)');
     expect(window.scrollLeft).toBe(0);
+  });
+
+  it('leaves the view alone when focus comes from a press, which is already where the pointer is', async () => {
+    await renderTimeline();
+    markersLaidOut = true;
+
+    fireEvent.pointerDown(document.body);
+    act(() => keyframe(4).focus());
+
+    expect(offsetOf()).toBe('translateX(0px)');
+  });
+
+  it('leaves the view alone for focus nobody asked for, such as a dialog giving it back after a click', async () => {
+    await renderTimeline();
+    markersLaidOut = true;
+
+    // A press, then focus arriving by code with no key between: the press is the last input.
+    fireEvent.pointerDown(document.body);
+    fireEvent.pointerUp(document.body);
+    act(() => keyframe(4).focus());
+
+    expect(offsetOf()).toBe('translateX(0px)');
+  });
+
+  it('carries the view again for a key pressed after a press', async () => {
+    await renderTimeline();
+    markersLaidOut = true;
+    fireEvent.pointerDown(document.body);
+
+    fireEvent.keyDown(document.body, { key: 'Tab' });
+    act(() => keyframe(4).focus());
+
+    expect(offsetOf()).toBe('translateX(-560px)');
   });
 });
