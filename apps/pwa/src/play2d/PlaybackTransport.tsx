@@ -23,6 +23,7 @@ import {
 } from './transportMath';
 import { TimeWindow } from '../editor/TimeWindow';
 import { EditorContext } from '../editor/useEditorContext';
+import { usePlayPauseShortcut } from './usePlayPauseShortcut';
 import { usePlaybackContext } from './usePlaybackContext';
 import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 
@@ -35,6 +36,9 @@ const SNAP_THRESHOLD = 0.25;
 export function PlaybackTransport() {
   const { t } = useTranslation();
   const { timeline, branchId, currentTimeRef, isPlaying, play, pause, seek } = usePlaybackContext();
+  const togglePlayback = isPlaying ? pause : play;
+  // Beside the button it mirrors, so the key and the click cannot come to mean different things.
+  usePlayPauseShortcut(togglePlayback);
   const { displayTime } = usePlaybackTimeContext();
   const max = sliderMax(timeline.duration);
 
@@ -174,7 +178,8 @@ export function PlaybackTransport() {
           <IconPlayerSkipBack size={18} stroke={1.5} />
         </ActionIcon>
         <ActionIcon
-          onClick={isPlaying ? pause : play}
+          onClick={togglePlayback}
+          aria-keyshortcuts="Space"
           aria-label={isPlaying ? t('play.transport.pause', 'Pause') : t('play.transport.play', 'Play')}
           variant="filled"
         >
