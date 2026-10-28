@@ -48,8 +48,19 @@ timeline sit under it; the court fills the width below them.
   header's width does not move with the play's data, and nothing names the variant on screen
   while the menu is closed.
 
-Half-court narrows the `viewBox` to the attacking half. It is a viewport change only and
-never touches stored data.
+A half-court system draws only the attacking half — the right-hand one, where the attacked
+basket is — turned a quarter anticlockwise, so that it sits in landscape with the basket at the
+top. The floor and the markings are clipped to that half, the markings at the halfway line and
+the floor a margin past it, and the `viewBox` is the turned half's. It is a view change only and
+never touches stored data or engine coordinates: positions, paths and keyframes stay on the
+full-court plane, and the one group that turns the court is the only place the turn lives.
+
+Inside that group each token is turned back, so a player's number reads upright and a selected
+token's shadow falls down the screen. Anything else drawn as text or as a filter inside the
+court has to undo the turn the same way (see
+[Whatever is drawn inside a turned court must undo the turn](../limitations.md#whatever-is-drawn-inside-a-turned-court-must-undo-the-turn)).
+The edit layer reads pointer positions through its own screen transform, which includes the
+turn, so a drag lands in court metres whichever way the court faces.
 
 ## Rendering
 
@@ -186,7 +197,7 @@ A test asserts `validatePlay(samplePlay)` returns no issues.
   resolution. Plain Vitest.
 - **Components** — Testing Library: a token renders per player; the scrubber reflects the
   current time; prev/next land exactly on step times; selecting a branch swaps the timeline;
-  the half-court toggle changes only the `viewBox`.
+  a half-court system changes only the frame, the clip and the turn.
 - **The clock hook** — tested in isolation with fake timers.
 - **Sample data** — `validatePlay` returns no issues.
 
@@ -203,8 +214,8 @@ testable here. See
 3. Scrubbing moves every token to the sampled position for that time, and pauses playback.
 4. Prev/next-step lands exactly on a step time; dragging near a tick snaps to it.
 5. Selecting a branch replays the shared opening and diverges after the fork.
-6. The half-court toggle changes the `viewBox` only — no stored data and no path geometry
-   changes.
+6. A half-court system changes the frame, the clip and the turn only — no stored data and no
+   path geometry changes.
 7. `validatePlay(samplePlay)` returns no issues.
 8. `pnpm lint`, `pnpm typecheck`, `pnpm i18n:check`, `pnpm test` and `pnpm build` pass.
 

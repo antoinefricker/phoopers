@@ -123,6 +123,24 @@ support it either, which matters for the deferred print and vector-export goal.
 **Fix:** a per-team marker with an explicit `fill`. This also removes a jsdom blind spot, since
 `context-stroke` cannot be asserted there.
 
+### Whatever is drawn inside a turned court must undo the turn
+
+A half court is drawn through one rotated group, so everything inside it is rotated too. The
+court's own geometry and the tokens' shapes do not care, but text and filters do. Today that is
+two things, both handled in one place, `TokenLayer`, which turns each token back on a wrapper:
+the player's number, which would otherwise read sideways, and the selection shadow. Measured on
+the shipped build: aiming the shadow's offset along the turn instead, `0.15 m` landed about
+`0.8 m` from its token, a detached dark blob, because a drop shadow whose own space is rotated is
+not drawn where its offset says.
+
+Nothing enforces it. A new `<text>` or a new filter placed inside the court group, such as a
+label on a screen or a coach's note, turns with the court and nobody is told. It was left
+because there is exactly one place that needs it and a shared wrapper for one caller would be
+a guess at the second.
+
+**Fix:** when a second caller appears, an `Upright` component that reads the turn from
+`useCourtTurnContext` and does what `TokenLayer` does by hand, so the rule has one name.
+
 ## Court data
 
 ### Some NBA court dimensions are unverified against primary text
@@ -616,6 +634,21 @@ It was left because making it testable means simulating the library's measuremen
 reports sizes it invents — which would test the stub as much as the feature.
 
 **Fix:** Playwright, the same answer as the entry below, which this is a particular case of.
+
+### The turned court's pointer mapping has no automated test
+
+`courtPointFromEvent` maps a client point into court metres through the edit layer's own screen
+transform, which on a half court carries the turn. jsdom has no layout, so `getScreenCTM()` is
+null and the suite exercises only the fallback, the centre of what is shown. The mapping itself
+was checked by hand in a browser: dragging a token 100 px right and 100 px down on a half-court
+system moved it from `(23, 3)` to about `(18.0, 8.0)`, five metres along each axis, the right way
+round.
+
+It was left for the same reason as [layout](#layout-is-not-testable-in-jsdom): a stubbed matrix
+would test the stub.
+
+**Fix:** Playwright, deferred, with one drag on a half-court system asserting the keyframe it
+writes.
 
 ### Layout is not testable in jsdom
 
