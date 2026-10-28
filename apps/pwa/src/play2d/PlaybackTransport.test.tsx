@@ -438,8 +438,8 @@ describe('PlaybackTransport', () => {
     expect(slider).toHaveAttribute('aria-valuenow', String(2 + TIME_GRID_S));
   });
 
-  it('snaps a pointer scrub near a step onto the exact step time', () => {
-    // 800 px wide track over 0..8 s: one pixel is 0.01 s.
+  it('scrubs straight to the grid, not onto a step nearby', () => {
+    // 800 px wide track over 0..8 s: one pixel is 0.01 s. The fixture has a step at 2 s.
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
       cb(0);
       return 1;
@@ -459,12 +459,20 @@ describe('PlaybackTransport', () => {
     const track = container.querySelector('.mantine-Slider-track');
     if (track === null) throw new Error('slider root not found');
 
-    fireEvent.mouseDown(track, { clientX: 210, clientY: 5 });
-    fireEvent.mouseUp(document);
-    rect.mockRestore();
+    // Either side of the step, inside the quarter second the scrubber used to be pulled across: it
+    // held the playhead on the step from 1.75 to 2.25 and then let it jump, which read as odd
+    // rounding. Now each lands where the pointer is, on the 0.1 s grid.
+    for (const [clientX, expected] of [
+      [190, '1.9'],
+      [210, '2.1'],
+      [180, '1.8'],
+    ] as const) {
+      fireEvent.mouseDown(track, { clientX, clientY: 5 });
+      fireEvent.mouseUp(document);
 
-    // Raw pointer value is 2.1; the step at 2 is within the 0.25 threshold.
-    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '2');
+      expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', expected);
+    }
+    rect.mockRestore();
   });
 
   it('leaves a pointer scrub away from any step unsnapped', () => {

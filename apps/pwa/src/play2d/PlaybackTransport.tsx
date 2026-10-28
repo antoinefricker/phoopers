@@ -1,6 +1,5 @@
 import { ActionIcon, Box, Group, Menu, Slider } from '@mantine/core';
-import { useContext, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   IconPlayerPause,
@@ -19,7 +18,6 @@ import {
   adjacentStep,
   sliderMax,
   snapToGrid,
-  snapToStep,
   stepMarks,
 } from './transportMath';
 import { TimeWindow } from '../editor/TimeWindow';
@@ -31,8 +29,6 @@ import { usePlaybackTimeContext } from './usePlaybackTimeContext';
 // Big enough to see and to grab. It may overhang the track: the margin on the Box absorbs part
 // of it, and the gutter beside it the rest.
 export const THUMB_SIZE_PX = 16;
-
-const SNAP_THRESHOLD = 0.25;
 
 export function PlaybackTransport() {
   const { t } = useTranslation();
@@ -53,11 +49,6 @@ export function PlaybackTransport() {
 
   // Read the live ref, not displayTime: the thumb's value lags by up to a tenth of a second,
   // and a step inside that window would be skipped or repeated.
-  // Mantine's Slider owns its own key handler, so the flag is set from a wrapper's capture phase.
-  // Arrow keys move relative to the current value, so snapping them would pin the thumb to
-  // any step it reaches (2.0 + 0.01 snaps straight back to 2.0). Only absolute moves snap.
-  const keyboardMoveRef = useRef(false);
-
   // Read the context directly rather than through the hook: the transport renders without an
   // editor around it (the 1b tests do), and then there is nothing to add. `PlayCanvas` reads it
   // the same way, for the same reason.
@@ -70,10 +61,6 @@ export function PlaybackTransport() {
     if (next !== undefined) {
       scrubTo(next);
     }
-  };
-
-  const noteKeyboardMove = (event: KeyboardEvent<HTMLElement>) => {
-    keyboardMoveRef.current = event.key.startsWith('Arrow');
   };
 
   // Mantine pads the slider root by a fixed 8px so the thumb's centre can reach either end
@@ -91,12 +78,12 @@ export function PlaybackTransport() {
       max={max}
       step={TIME_GRID_S}
       value={Math.min(Math.max(displayTime, 0), max)}
-      onChange={(value) => {
-        const snap = !keyboardMoveRef.current;
-        keyboardMoveRef.current = false;
-        scrubTo(snap ? snapToStep(value, timeline.steps, SNAP_THRESHOLD) : value);
-      }}
-      // Dots without names: they show where a drag will snap, while the step ruler sits
+      // Straight to the grid, never to a step. The thumb used to be pulled onto a step within a
+      // quarter of a second either side, which on a step at 1.8 s held it at 1.8 from 1.6 to 2.0
+      // and then let it jump: not a way to put the playhead where you meant. The step buttons
+      // and the dots below are how to land on a step.
+      onChange={scrubTo}
+      // Dots without names: they show where the steps are, while the step ruler sits
       // directly below on the same axis and names each step in full. Labelling them here
       // too printed every name twice, centred and ellipsised against the ruler's
       // left-aligned full text.
@@ -201,21 +188,12 @@ export function PlaybackTransport() {
         // timeline's zoom and scrolls with the shared offset, which keeps the thumb and the step
         // dots on the same x as the rows below.
         <TimeWindow testId="scrubber-window" overhangPx={THUMB_SIZE_PX / 2}>
-          <Box
-            h="100%"
-            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
-            onKeyDownCapture={noteKeyboardMove}
-          >
+          <Box h="100%" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             {slider}
           </Box>
         </TimeWindow>
       ) : (
-        <Box
-          flex="1 1 14rem"
-          miw={0}
-          style={{ marginLeft: TRACK_INSET_START_PX, marginRight: TRACK_INSET_END_PX }}
-          onKeyDownCapture={noteKeyboardMove}
-        >
+        <Box flex="1 1 14rem" miw={0} style={{ marginLeft: TRACK_INSET_START_PX, marginRight: TRACK_INSET_END_PX }}>
           {slider}
         </Box>
       )}
