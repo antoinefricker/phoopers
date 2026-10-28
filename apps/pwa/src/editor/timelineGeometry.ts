@@ -100,6 +100,27 @@ export function barResize(from: number, to: number, pxPerCell: number) {
   };
 }
 
+/**
+ * The preview of dragging a bar's LEFT handle, the counterpart of `barResize`: the value is where
+ * the start now is, the end stays at `end`, so the bar's left edge moves and its width is what is
+ * left. The same rules apply: a handle with no parent writes nothing, and the commit that follows
+ * reads the model, not the DOM.
+ */
+export function barResizeStart(end: number, from: number, pxPerCell: number) {
+  const setStart = (element: HTMLElement, start: number) => {
+    const bar = element.parentElement;
+    if (bar === null) return;
+
+    bar.style.left = leftPx(start, pxPerCell);
+    bar.style.width = spanPx(start, end, pxPerCell);
+  };
+
+  return {
+    place: (element: HTMLElement, value: number) => setStart(element, value),
+    restore: (element: HTMLElement) => setStart(element, from),
+  };
+}
+
 // Reads `anchors`, which carries each entity's keyframes, NOT `spans`: a prepared span
 // substitutes {0,0} for an attached ball endpoint, so building rows from spans would draw the
 // ball's markers at the court corner. A player with no track still gets a row (empty), so the

@@ -1,6 +1,6 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fixturePlay, P1 } from '../engine/__fixtures__/play';
+import { fixturePlay, P1, SCREEN_1, STEP_ENTRY } from '../engine/__fixtures__/play';
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { enterEditMode, renderEditor } from './testUtils/renderEditor';
@@ -137,5 +137,21 @@ describe('a keyframe marker occupies its grid cell', () => {
       expect(padding).toEqual([0, 0]);
       expect(margin).toEqual([TRACK_INSET_START_PX, TRACK_INSET_END_PX]);
     });
+  });
+});
+
+describe('the handles of a bar occupy a grid cell', () => {
+  const handleIds = [`step-start-handle-${STEP_ENTRY}`, `step-handle-${STEP_ENTRY}`, `screen-handle-${SCREEN_1}`];
+
+  it('are one cell wide at every zoom, and never more than half their bar', async () => {
+    await renderTimeline();
+
+    for (const px of [24, 18, 12, 6]) {
+      for (const id of handleIds) {
+        // `min()` is what keeps two handles on a bar as short as it may be from covering each other.
+        expect(screen.getByTestId(id).style.width).toBe(`min(${px}px, 50%)`);
+      }
+      if (px > 6) fireEvent.click(zoomOut());
+    }
   });
 });

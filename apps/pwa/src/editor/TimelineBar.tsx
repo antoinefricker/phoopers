@@ -27,6 +27,14 @@ export interface TimelineBarProps {
   label?: string;
   /** The right edge, dragged to set where the span ends. Absent on an inherited bar. */
   handle?: { testId: string; label: string; bind: BarGesture };
+  /** The left edge, dragged to set where the span starts. Absent on an inherited bar. */
+  startHandle?: { testId: string; label: string; bind: BarGesture };
+  /**
+   * How wide a handle is, as CSS: one grid cell, so a handle occupies the cell it sets the edge
+   * of. Never more than half the bar, so a bar as short as it may be still has room for both.
+   * Left out, a handle is a 6px strip.
+   */
+  handleWidth?: string;
   /** Drawn at the bar's end, inside it. */
   actions?: ReactNode;
   /**
@@ -43,8 +51,8 @@ export interface TimelineBarProps {
 }
 
 /**
- * A span on a timeline row: a tinted bar, a handle on its right edge that sets where it ends,
- * and controls at that end.
+ * A span on a timeline row: a tinted bar, a handle on its right edge that sets where it ends, one
+ * on its left edge that sets where it starts, and controls at the end.
  *
  * Shared by a screen's duration and a step label's display window. The two mean different
  * things — one is a play's content, the other is how it is annotated — but they are the same
@@ -59,6 +67,8 @@ export function TimelineBar({
   bar,
   label,
   handle,
+  startHandle,
+  handleWidth = '6px',
   actions,
   caption,
   captionDimmed,
@@ -114,8 +124,10 @@ export function TimelineBar({
             // Even on both sides: the caption used to sit 4px in and the controls 8px, which
             // read as the text being pushed against the bar's leading edge once both bars drew
             // one. Symmetric is the one choice that needs no reason per bar.
-            paddingLeft: 8,
-            paddingRight: 8,
+            // Past a handle where there is one, which now covers a whole cell and would sit over
+            // the caption or the controls; the 2px it always left is kept.
+            paddingLeft: startHandle === undefined ? 8 : `calc(${edgeWidth(handleWidth)} + 2px)`,
+            paddingRight: handle === undefined ? 8 : `calc(${edgeWidth(handleWidth)} + 2px)`,
             // Transparent as a whole, like the bar under it: a row's markers sit beneath a
             // screen and must stay grabbable. The controls opt back in for themselves.
             pointerEvents: 'none',
@@ -146,29 +158,53 @@ export function TimelineBar({
           )}
         </Box>
       )}
+      {startHandle !== undefined && (
+        <EdgeHandle edge="left" handle={startHandle} width={edgeWidth(handleWidth)} background={handleBackground} />
+      )}
       {handle !== undefined && (
-        // A button, not a div: the handle is reachable by keyboard, and the arrow keys retime
-        // it through the same constraint the drag uses.
-        <button
-          type="button"
-          data-testid={handle.testId}
-          aria-label={handle.label}
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            right: 0,
-            width: 6,
-            padding: 0,
-            border: 0,
-            cursor: 'ew-resize',
-            touchAction: 'none',
-            pointerEvents: 'auto',
-            background: handleBackground,
-          }}
-          {...handle.bind}
-        />
+        <EdgeHandle edge="right" handle={handle} width={edgeWidth(handleWidth)} background={handleBackground} />
       )}
     </Box>
+  );
+}
+
+/** A handle's width: a cell, but at most half the bar, which is what keeps two from overlapping. */
+const edgeWidth = (handleWidth: string): string => `min(${handleWidth}, 50%)`;
+
+/**
+ * A handle on one edge of a bar. A button, not a div: it is reachable by keyboard, and the arrow
+ * keys retime it through the same constraint the drag uses.
+ */
+function EdgeHandle({
+  edge,
+  handle,
+  width,
+  background,
+}: {
+  edge: 'left' | 'right';
+  handle: { testId: string; label: string; bind: BarGesture };
+  width: string;
+  background: string;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid={handle.testId}
+      aria-label={handle.label}
+      style={{
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        [edge]: 0,
+        width,
+        padding: 0,
+        border: 0,
+        cursor: 'ew-resize',
+        touchAction: 'none',
+        pointerEvents: 'auto',
+        background,
+      }}
+      {...handle.bind}
+    />
   );
 }

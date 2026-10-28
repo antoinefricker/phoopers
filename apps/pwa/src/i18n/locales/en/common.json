@@ -195,6 +195,7 @@
       "stepDefault": "Step {{n}}",
       "stepDuration": "Label duration",
       "stepName": "Step name",
+      "stepStart": "Label start",
       "variantName": "Variant name"
     },
     "loadError": "Something went wrong. Please try again.",

@@ -41,6 +41,8 @@ export interface EditorContextValue {
   setScreenDuration: (screenId: ScreenId, duration: number) => void;
   /** How long a step's name is shown for, in seconds from the step's own time. */
   setStepDuration: (stepId: StepId, duration: number) => void;
+  /** Moves the start of a step's window to `t`, its end staying at `end`: the duration is what is left. */
+  resizeStepStart: (stepId: StepId, t: number, end: number) => void;
   removeScreen: (screenId: ScreenId) => void;
   /** Returns the new branch's id, or `null` when the fork was refused (nothing was written). */
   forkBranch: (parentBranchId: BranchId, forkStepId: StepId, name: string) => BranchId | null;

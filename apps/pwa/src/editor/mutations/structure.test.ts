@@ -12,6 +12,7 @@ import {
   removeScreen,
   removeStep,
   renameStep,
+  resizeStepStart,
   setScreenDuration,
   setStepDuration,
 } from './structure';
@@ -209,5 +210,64 @@ describe('setStepDuration', () => {
     const play = setStepDuration(fixturePlay, STEP_ENTRY, 99);
 
     expect(steps(play).find((s) => s.id === STEP_ENTRY)?.duration).toBe(99);
+  });
+});
+
+describe('resizeStepStart', () => {
+  const entry = (play: typeof fixturePlay) => steps(play).find((s) => s.id === STEP_ENTRY);
+
+  it('moves the start and makes the duration what is left before the end', () => {
+    const play = resizeStepStart(fixturePlay, STEP_ENTRY, 1.5, 4);
+
+    expect(entry(play)?.t).toBe(1.5);
+    expect(entry(play)?.duration).toBeCloseTo(2.5, 9);
+  });
+
+  it('keeps the end where it was when the start moves later', () => {
+    // A step no branch forks from, which the model lets move anywhere above its floor.
+    const free = setStepDuration(addStep(fixturePlay, ROOT, 1, 'Dribble up', NEW_STEP), NEW_STEP, 2);
+    const play = resizeStepStart(free, NEW_STEP, 2.5, 3);
+    const moved = steps(play).find((s) => s.id === NEW_STEP);
+
+    expect(moved?.t).toBe(2.5);
+    expect((moved?.t ?? 0) + (moved?.duration ?? 0)).toBeCloseTo(3, 9);
+  });
+
+  it('refuses a start past the ceiling of a step a branch forks from, leaving its duration alone', () => {
+    // The fixture's step is the one the switch branch forks from, which stops it at that branch's
+    // first keyframe: `moveStep` refuses, and the duration must not change with a start that did not.
+    const before = setStepDuration(fixturePlay, STEP_ENTRY, 1);
+    const after = resizeStepStart(before, STEP_ENTRY, 3, 4);
+
+    expect(after).toBe(before);
+    expect(entry(after)?.duration).toBe(1);
+  });
+
+  it('refuses a window with no length, and writes nothing', () => {
+    for (const end of [2, 1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(resizeStepStart(fixturePlay, STEP_ENTRY, 2, end)).toBe(fixturePlay);
+    }
+    expect(resizeStepStart(fixturePlay, STEP_ENTRY, Number.NaN, 4)).toBe(fixturePlay);
+  });
+
+  it('refuses a start the step could not be retimed to, leaving its duration alone', () => {
+    const before = setStepDuration(fixturePlay, STEP_ENTRY, 1);
+    // Before time zero a branch has no step: `moveStep` refuses, and the duration must not change
+    // with a start that did not.
+    const after = resizeStepStart(before, STEP_ENTRY, -1, 4);
+
+    expect(after).toBe(before);
+    expect(entry(after)?.duration).toBe(1);
+  });
+
+  it('leaves a play without that step untouched', () => {
+    expect(resizeStepStart(fixturePlay, 'nope' as StepId, 1, 4)).toBe(fixturePlay);
+  });
+
+  it('does not mutate its input', () => {
+    const snapshot = structuredClone(fixturePlay);
+    resizeStepStart(fixturePlay, STEP_ENTRY, 1.5, 4);
+
+    expect(fixturePlay).toEqual(snapshot);
   });
 });
