@@ -180,6 +180,26 @@ It is left open deliberately: the colour is a design decision in progress, not a
 paths the same treatment the tokens got — a white casing drawn under each stroke, which means
 `PathLayer` rendering every segment twice.
 
+### While authoring, the play button runs on through empty time
+
+The playhead stops where the content stops while a system is watched (its last keyframe, or the
+end of its last label if that is later), but not while it is authored: there it has to reach the
+whole timeline, since a keyframe is written at the playhead and one past the last needs it there.
+The play button follows the same bound, so pressing it while authoring plays on through the time
+after the content, up to the system's `duration`.
+
+Measured on a system with its last keyframe at 5.3 s, no label past it, and the default
+`duration: 8`: the scrubber reaches 8 s in edit mode and 5.3 s in watch mode, so playback in edit
+mode spends **2.7 s** in which nothing moves. On a new system with only its t = 0 keyframes it
+spends all **8 s**.
+
+It was left because the playhead's reach and the play button's stop are one bound, and splitting
+them is a decision about how authoring should behave, not a correction: a coach reviewing a
+movement while authoring may or may not want the clock to stop where it stops.
+
+**Fix:** a second bound for the play button alone, where the content stops in both modes, with the
+scrubber and the seek keeping the whole timeline.
+
 ### A drag cannot lengthen the play
 
 A timeline drag maps the pointer to a time with `timeFromClientX`, which clamps to the row, so

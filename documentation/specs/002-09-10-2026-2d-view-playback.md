@@ -112,11 +112,21 @@ without sixty re-renders a second. Note that calling a `useState` setter with a 
 to the current one still costs a render (React renders, then bails), so the clock must track
 the last shown tenth and skip the call entirely rather than rely on the bail-out.
 
-Scrubbing writes the ref and pauses playback. Playback stops at `duration(timeline)`.
+Scrubbing writes the ref and pauses playback. Playback stops at the playback end, `end`, which
+the playback context carries. While watching, `end` is where the content stops,
+`contentEnd(timeline)`: the later of the last keyframe and the end of the last label, so the
+playhead does not go past where anything moves or is named, though the timeline may be longer,
+being floored at the system's own `duration`. A label with a duration ends at its time plus that
+duration; one without runs to the end of the play, which is what is being found, so it counts
+from its own time. The result never passes the end of the timeline. While authoring, `end` is the
+whole timeline, `duration(timeline)`, because a keyframe is written at the playhead and one past
+the last needs the playhead there. Leaving authoring brings a playhead past where the content
+stops back to it.
 
 ## Transport behaviour
 
-- The scrubber spans `[0, duration]` in continuous time.
+- The scrubber spans `[0, end]` in continuous time: where the content stops while watching, the
+  whole timeline while authoring.
 - Each step from `stepsOf(timeline)` renders as a labelled tick. Dragging within a snap
   threshold of a tick lands exactly on that step's time.
 - Prev/next-step buttons jump to the adjacent step time. At the ends they clamp.
