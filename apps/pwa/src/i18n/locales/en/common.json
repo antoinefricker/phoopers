@@ -14,7 +14,8 @@
       "navigation": "Navigation",
       "needsProject": "This needs an account, which this app is not set up for",
       "noAccounts": "This app is not set up with a project, so there are no accounts.",
-      "profile": "My information"
+      "profile": "My information",
+      "settings": "Settings"
     },
     "name": "phoopers",
     "notConfigured": "This app is not configured with a Supabase project, so this screen is unavailable.",
@@ -263,5 +264,17 @@
       "openLabel": "Open",
       "updated": "Updated {{date}}"
     }
+  },
+  "settings": {
+    "back": "Back to the menu",
+    "close": "Close the settings",
+    "groups": {
+      "editing": "Editing"
+    },
+    "showHitAreas": {
+      "description": "Outlines the token under the pointer on the court, so you can see where a press lands.",
+      "label": "Outline reactive areas"
+    },
+    "title": "Settings"
   }
 }

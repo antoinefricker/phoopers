@@ -14,7 +14,8 @@
       "navigation": "Navigation",
       "needsProject": "Cela demande un compte, or cette application n'est pas configurée pour en avoir",
       "noAccounts": "Cette application n'est reliée à aucun projet : il n'y a donc pas de comptes.",
-      "profile": "Mes informations"
+      "profile": "Mes informations",
+      "settings": "Réglages"
     },
     "name": "phoopers",
     "notConfigured": "Cette application n'est reliée à aucun projet Supabase : cet écran est indisponible.",
@@ -267,5 +268,17 @@
       "openLabel": "Ouvrir",
       "updated": "Modifié le {{date}}"
     }
+  },
+  "settings": {
+    "back": "Retour au menu",
+    "close": "Fermer les réglages",
+    "groups": {
+      "editing": "Édition"
+    },
+    "showHitAreas": {
+      "description": "Entoure le jeton sous le pointeur sur le terrain, pour voir où tombe un appui.",
+      "label": "Entourer les zones réactives"
+    },
+    "title": "Réglages"
   }
 }
