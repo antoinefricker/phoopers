@@ -121,6 +121,9 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
         display: 'flex',
         alignItems: 'center',
         height: '2rem',
+        // One line under every row, across the gutter and the track, so each entity's row reads as
+        // a band of its own. Inside the 2rem (the box is border-box), so the rows keep their pitch.
+        borderBottom: '1px solid var(--mantine-color-default-border)',
         // Written by dnd-kit while a row is in flight, undefined at rest. Only y is used: the
         // drag is restricted to the vertical axis, so `@dnd-kit/utilities` would be a fourth
         // package to turn one number into one string.
@@ -273,16 +276,6 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           data-testid={`timeline-track-${row.entityId}`}
           style={{ position: 'relative', width: '100%', height: '100%' }}
         >
-          <Box
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: '50%',
-              height: 1,
-              background: 'var(--mantine-color-default-border)',
-            }}
-          />
           {screens.map((screen) => (
             <TimelineBar
               key={screen.id}
