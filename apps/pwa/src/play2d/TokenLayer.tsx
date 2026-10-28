@@ -6,9 +6,10 @@ import { usePlaybackContext } from './usePlaybackContext';
 import { HiddenEntitiesContext, NOTHING_HIDDEN } from './useHiddenEntitiesContext';
 import { BallSymbol, HELD_BALL_OFFSET, PlayerSymbol } from './PlayerSymbol';
 
-// CSS pixels, not court metres: a filter length on an SVG element is not scaled by the viewBox
-// (measured: 0.5 drew nothing visible), so the shadow keeps its look at every court size.
-const SELECTED_STYLE = { filter: 'drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6))' };
+// Court metres, not CSS pixels: a filter length on an SVG element is in the element's user
+// space, so the viewBox scales it with the court (measured at 24 px per metre: `2px 3px` became
+// a ~73 px blur, a faint halo nobody saw as a shadow). The shadow now grows with the token.
+const SELECTED_STYLE = { filter: 'drop-shadow(0 0.15px 0.12px rgba(0, 0, 0, 0.7))' };
 
 const translate = (x: number, y: number): string => `translate(${x} ${y})`;
 
