@@ -75,10 +75,9 @@ them. A handle is grabbed by the edge it sets, so a pointer that takes it away f
 does not shift the edge by the distance. A screen's bar, which this one shares its component
 with, gives its right-edge handle the same cell.
 
-The left handle is drawn as a keyframe's marker is: a white block with a grey border, the marker's
-height and centred on the bar, so the start of a label reads as a point in time the way a
-keyframe does. The right handle stays a strip of the bar's colour, being an end and not a time
-anything is written at.
+Both handles are drawn as a keyframe's marker is: a white block with a grey border, the marker's
+height and centred on the bar, so an edge of a label reads as a time the way a keyframe does. A
+screen's bar draws its end handle the same way.
 
 Dragging the bar itself still retimes the step, as dragging its tick did, under the fork
 constraints that already govern a step's `t`; that moves the window whole, where the left
