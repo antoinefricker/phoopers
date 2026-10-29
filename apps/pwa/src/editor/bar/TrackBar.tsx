@@ -7,7 +7,10 @@ export interface TrackBarProps {
   left: string;
   width: string;
   testId: string;
-  /** Any CSS colour: the bar's fill. */
+  /** Where the bar sits in its row, as CSS: a fifth of the way down, left out. */
+  top?: string;
+  /** How tall the bar is, as CSS: three fifths of its row, left out. */
+  height?: string;
   background: string;
   /** Any CSS colour. Left out, the bar has no border. */
   borderColor?: string;
@@ -59,6 +62,8 @@ export function TrackBar({
   left,
   width,
   testId,
+  top = '20%',
+  height = '60%',
   background,
   borderColor,
   messageColor,
@@ -88,8 +93,8 @@ export function TrackBar({
       {...(bar ?? {})}
       style={{
         position: 'absolute',
-        top: '20%',
-        height: '60%',
+        top,
+        height,
         left,
         width,
         background,

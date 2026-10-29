@@ -247,38 +247,39 @@ describe('Timeline', () => {
     expect(ball.getAllByTestId(/^possession-/)).toHaveLength(1);
   });
 
-  it('offsets a flight label inside its own box, so the last one cannot leave the track', () => {
-    // The label is nudged clear of the marker that opens the flight. Done with a transform it
-    // moved the BOX, and the last flight ends at the end of the track: measured in a browser,
-    // its label sat 6px past the panel and grew a horizontal scrollbar. Padding moves the text
-    // within a box that still ends where the track does.
+  it('lifts a flight label by the place of its box, so the last one cannot leave the track', () => {
+    // The label used to be nudged clear of the row's line with a transform, which moved the BOX,
+    // and the last flight ends at the end of the track: measured in a browser, its label sat 6px
+    // past the panel and grew a horizontal scrollbar. The lift is in `top`, and a box that
+    // ends where the track does keeps ending there.
     renderEditor(fixturePlay, <Timeline />);
-    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
-    if (label === undefined) throw new Error('expected a flight label');
+    const flight = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (flight === undefined) throw new Error('expected a flight label');
 
-    expect(label.style.paddingLeft).not.toBe('');
-    expect(label.style.transform).not.toContain('translate(');
+    expect(flight.style.top).toBe('calc(25% - 7px)');
+    expect(flight.style.transform).toBe('');
   });
 
   it('starts a flight label past the marker that opens the flight', () => {
     // The marker fills the first cell of the flight, 24px at the default zoom, and sits above it.
     renderEditor(fixturePlay, <Timeline />);
-    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
-    if (label === undefined) throw new Error('expected a flight label');
+    const flight = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (flight === undefined) throw new Error('expected a flight label');
 
-    expect(label.style.paddingLeft).toBe('28px');
+    expect(within(flight).getByTestId('bar-caption').parentElement?.style.paddingLeft).toBe('28px');
   });
 
   it('keeps a flight label from spilling into its neighbours', () => {
     // A flight can be a fraction of a second wide. The label has to give way rather than run
     // over the possession on either side of it.
     renderEditor(fixturePlay, <Timeline />);
-    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
-    if (label === undefined) throw new Error('expected a flight label');
+    const flight = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (flight === undefined) throw new Error('expected a flight label');
+    const label = within(flight).getByTestId('bar-caption');
 
-    expect(label.style.overflow).toBe('hidden');
-    expect(label.style.whiteSpace).toBe('nowrap');
-    expect(label.style.textOverflow).toBe('ellipsis');
+    // Mantine draws the ellipsis from a class, which jsdom does not apply: the attribute is the
+    // thing to read.
+    expect(label).toHaveAttribute('data-truncate', 'end');
   });
 
   it('breaks possession where the ball is released, and marks that keyframe hollow', () => {

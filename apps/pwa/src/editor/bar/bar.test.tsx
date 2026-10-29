@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { BarActionButton } from './BarActionButton';
 import { BarHandle } from './BarHandle';
 import type { BarGesture } from './BarHandle';
+import { TimeMarker } from './TimeMarker';
 import { TrackBar } from './TrackBar';
 
 // A gesture that does nothing: these tests look at the drawing, not at the drag.
@@ -47,6 +48,23 @@ describe('BarHandle', () => {
     expect(handle.style.background).toBe('rgb(1, 2, 3)');
     expect(handle.style.border).toContain('rgb(4, 5, 6)');
     expect(handle).toContainElement(screen.getByTestId('icon'));
+  });
+});
+
+describe('TimeMarker', () => {
+  it('outlines itself in the primary colour, thicker, when selected', () => {
+    wrap(<TimeMarker data-testid="m" aria-label="Marker" selected />);
+
+    expect(screen.getByTestId('m').style.border).toContain('2px solid');
+    expect(screen.getByTestId('m').style.border).toContain('var(--mantine-primary-color-filled)');
+  });
+
+  it('leaves its width and its place to the caller', () => {
+    wrap(<TimeMarker data-testid="m" aria-label="Marker" style={{ position: 'absolute', width: '24px' }} />);
+
+    expect(screen.getByTestId('m').style.width).toBe('24px');
+    expect(screen.getByTestId('m').style.position).toBe('absolute');
+    expect(screen.getByTestId('m').style.height).toBe('18px');
   });
 });
 

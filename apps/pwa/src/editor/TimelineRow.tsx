@@ -1,6 +1,5 @@
 import { ActionIcon, Box, Menu, Text } from '@mantine/core';
 import { useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
 import { IconDots, IconEye, IconEyeOff, IconGripVertical, IconPencil, IconTrash, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
@@ -11,9 +10,10 @@ import { entityName } from './entityName';
 import { RenamePlayer } from './RenamePlayer';
 import { BarActionButton } from './bar/BarActionButton';
 import { BarHandle } from './bar/BarHandle';
+import { TimeMarker } from './bar/TimeMarker';
 import { TrackBar } from './bar/TrackBar';
 import { constrainRetime } from './constraints';
-import { MARKER_HEIGHT_PX, barResize, cellPx, leftPx, rowsOf, spanPx } from './timelineGeometry';
+import { barResize, cellPx, leftPx, rowsOf, spanPx } from './timelineGeometry';
 import { TimeWindow } from './TimeWindow';
 import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
@@ -361,23 +361,23 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               const next = row.keyframes[index + 1];
               if (next === undefined) return null;
 
-              const geometry: CSSProperties = {
-                position: 'absolute',
-                top: '25%',
-                height: '50%',
-                left: leftPx(k.t, pxPerCell),
-                width: spanPx(k.t, next.t, pxPerCell),
-              };
+              // Where the stretch sits on the row, as a bar's own box: its time and its width.
+              const left = leftPx(k.t, pxPerCell);
+              const width = spanPx(k.t, next.t, pxPerCell);
 
               // Held, and by the same player at both ends: a pass has two attached ends too, but
               // to different players, and the ball is in the air between them with nothing to
               // tint. Tinting it read as possession and contradicted the row's own hollow marker.
               if (k.attachedTo !== undefined && k.attachedTo === next.attachedTo) {
                 return (
-                  <Box
+                  <TrackBar
                     key={`${k.t}-possession`}
-                    data-testid={`possession-${k.t}`}
-                    style={{ ...geometry, background: 'var(--mantine-color-orange-light)' }}
+                    testId={`possession-${k.t}`}
+                    left={left}
+                    width={width}
+                    top="25%"
+                    height="50%"
+                    background="var(--mantine-color-orange-light)"
                   />
                 );
               }
@@ -395,34 +395,25 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               if (name === undefined) return null;
 
               return (
-                <Box
+                <TrackBar
                   key={`${k.t}-flight`}
-                  data-testid={`flight-${k.t}`}
-                  style={{
-                    ...geometry,
-                    // Anchored to the marker that opens the flight rather than centred on it,
-                    // and lifted clear of the tinted stretches so the word reads above the row's
-                    // own line instead of level with it. The horizontal nudge is padding, not
-                    // part of the transform: moving the BOX pushed the last flight's label past
-                    // the end of the track, which grew the panel a horizontal scrollbar.
-                    // Past the marker that opens the flight, which fills the first cell of the
-                    // box and sits above it.
-                    transform: 'translateY(-7px)',
-                    paddingLeft: `${xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}px`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    fontSize: 'var(--mantine-font-size-xs)',
-                    color: 'var(--mantine-color-dimmed)',
-                    // A flight can be a fraction of a second wide, so the label gives way rather
-                    // than running over the possession on either side of it.
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {name}
-                </Box>
+                  testId={`flight-${k.t}`}
+                  left={left}
+                  width={width}
+                  // Lifted clear of the tinted stretches so the word reads above the row's own
+                  // line instead of level with it. The lift is in the box's place, not a
+                  // transform: moving the BOX with a transform pushed the last flight's label past
+                  // the end of the track, which grew the panel a horizontal scrollbar.
+                  top="calc(25% - 7px)"
+                  height="50%"
+                  background="transparent"
+                  messageColor="var(--mantine-color-dimmed)"
+                  // Past the marker that opens the flight, which fills the first cell of the box
+                  // and sits above it. A flight can be a fraction of a second wide, so the word
+                  // gives way rather than running over the possession on either side of it.
+                  messageClearPx={xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}
+                  message={name}
+                />
               );
             })}
           {row.keyframes.map((k, index) => {
@@ -435,12 +426,11 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
             const owned = ownTrack.some((own) => own.t === k.t);
 
             return (
-              <button
+              <TimeMarker
                 // Keyed by position, not by time: a retime changes `k.t`, and a key change would
                 // remount the button and drop the focus the keyboard nudge needs to keep. The
                 // constraints forbid a keyframe crossing its neighbour, so the order never moves.
                 key={index}
-                type="button"
                 data-kind={hollow ? 'position' : 'attached'}
                 aria-pressed={selected}
                 // Shape and colour carry the ball's possession on screen; neither reaches
@@ -484,6 +474,11 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                       },
                     })
                   : {})}
+                selected={selected}
+                // White everywhere except a held ball, which keeps a tint: the filled-versus-
+                // hollow contrast used to be the only thing showing possession on screen, and
+                // dropping it would leave that to the accessible name alone.
+                background={isBall && !hollow ? 'var(--mantine-color-orange-1)' : undefined}
                 style={{
                   position: 'absolute',
                   zIndex: 10,
@@ -493,23 +488,8 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   // The cell that begins at its time, so the block fills the interval the keyframe
                   // occupies on the grid, from its line to the next, at every zoom.
                   width: cellPx(pxPerCell),
-                  height: MARKER_HEIGHT_PX,
-                  padding: 0,
-                  borderRadius: 2,
                   cursor: owned ? 'grab' : 'pointer',
                   transform: 'translateY(-50%)',
-                  // Selection is the border: the app's own colour and thicker, since a white fill
-                  // leaves nothing else to carry it. The PRIMARY, not a named blue: it used to be
-                  // `blue-filled`, which is byte for byte the blue an offense token wears, so a
-                  // selected marker on an attacker's row was outlined in "offense" and selection
-                  // stopped being a signal of its own.
-                  border: selected
-                    ? `2px solid var(--mantine-primary-color-filled)`
-                    : `1px solid var(--mantine-color-gray-5)`,
-                  // White everywhere except a held ball, which keeps a tint: the filled-versus-
-                  // hollow contrast used to be the only thing showing possession on screen, and
-                  // dropping it would leave that to the accessible name alone.
-                  background: isBall && !hollow ? 'var(--mantine-color-orange-1)' : 'var(--mantine-color-white)',
                 }}
               />
             );
