@@ -1,5 +1,6 @@
 import { Box, Text } from '@mantine/core';
 import type { ReactElement, ReactNode } from 'react';
+import { MARKER_HEIGHT_PX } from './timelineGeometry';
 import type { useTimeDrag } from './useTimeDrag';
 
 type BarGesture = ReturnType<ReturnType<typeof useTimeDrag>['bind']>;
@@ -10,9 +11,8 @@ export interface TimelineBarProps {
   width: string;
   /**
    * The bar's colour, as one name: a Mantine colour ("blue") or "primary" to follow the theme.
-   * The bar fills itself with that colour's LIGHT variant and paints its handle with the normal
-   * one, so the two can never be picked apart — they used to be two props, and a caller choosing
-   * one without the other is how a handle ended up invisible against its own bar.
+   * The bar fills itself with that colour's LIGHT variant. Its handles are not coloured: they
+   * wear a keyframe marker's look.
    */
   color: string;
   testId: string;
@@ -29,6 +29,12 @@ export interface TimelineBarProps {
   handle?: { testId: string; label: string; bind: BarGesture };
   /** The left edge, dragged to set where the span starts. Absent on an inherited bar. */
   startHandle?: { testId: string; label: string; bind: BarGesture };
+  /**
+   * How far from the bar's start, in px, the caption must begin to stay clear of something drawn
+   * over the bar's start: a row's keyframe marker, which sits above the bars. At least the bar's
+   * own padding; left out, the caption starts there.
+   */
+  captionClearPx?: number;
   /**
    * How wide a handle is, as CSS: one grid cell, so a handle occupies the cell it sets the edge
    * of. Never more than half the bar, so a bar as short as it may be still has room for both.
@@ -69,6 +75,7 @@ export function TimelineBar({
   handle,
   startHandle,
   handleWidth = '6px',
+  captionClearPx = 0,
   actions,
   caption,
   captionDimmed,
@@ -76,8 +83,6 @@ export function TimelineBar({
 }: TimelineBarProps): ReactElement {
   // "primary" is its own set of variables rather than a colour name Mantine would interpolate.
   const background = color === 'primary' ? 'var(--mantine-primary-color-light)' : `var(--mantine-color-${color}-light)`;
-  const handleBackground =
-    color === 'primary' ? 'var(--mantine-primary-color-filled)' : `var(--mantine-color-${color}-filled)`;
 
   return (
     <Box
@@ -126,7 +131,8 @@ export function TimelineBar({
             // one. Symmetric is the one choice that needs no reason per bar.
             // Past a handle where there is one, which now covers a whole cell and would sit over
             // the caption or the controls; the 2px it always left is kept.
-            paddingLeft: startHandle === undefined ? 8 : `calc(${edgeWidth(handleWidth)} + 2px)`,
+            paddingLeft:
+              startHandle === undefined ? Math.max(8, captionClearPx) : `calc(${edgeWidth(handleWidth)} + 2px)`,
             paddingRight: handle === undefined ? 8 : `calc(${edgeWidth(handleWidth)} + 2px)`,
             // Transparent as a whole, like the bar under it: a row's markers sit beneath a
             // screen and must stay grabbable. The controls opt back in for themselves.
@@ -158,12 +164,8 @@ export function TimelineBar({
           )}
         </Box>
       )}
-      {startHandle !== undefined && (
-        <EdgeHandle edge="left" handle={startHandle} width={edgeWidth(handleWidth)} background={handleBackground} />
-      )}
-      {handle !== undefined && (
-        <EdgeHandle edge="right" handle={handle} width={edgeWidth(handleWidth)} background={handleBackground} />
-      )}
+      {startHandle !== undefined && <EdgeHandle edge="left" handle={startHandle} width={edgeWidth(handleWidth)} />}
+      {handle !== undefined && <EdgeHandle edge="right" handle={handle} width={edgeWidth(handleWidth)} />}
     </Box>
   );
 }
@@ -179,12 +181,10 @@ function EdgeHandle({
   edge,
   handle,
   width,
-  background,
 }: {
   edge: 'left' | 'right';
   handle: { testId: string; label: string; bind: BarGesture };
   width: string;
-  background: string;
 }) {
   return (
     <button
@@ -193,16 +193,20 @@ function EdgeHandle({
       aria-label={handle.label}
       style={{
         position: 'absolute',
-        top: 0,
-        bottom: 0,
+        // The same block a row's keyframe marker is, so an edge of a span reads as a time: white,
+        // a grey border, the marker's height and its cell's width.
+        top: '50%',
+        height: MARKER_HEIGHT_PX,
+        transform: 'translateY(-50%)',
+        border: '1px solid var(--mantine-color-gray-5)',
+        borderRadius: 2,
+        background: 'var(--mantine-color-white)',
         [edge]: 0,
         width,
         padding: 0,
-        border: 0,
         cursor: 'ew-resize',
         touchAction: 'none',
         pointerEvents: 'auto',
-        background,
       }}
       {...handle.bind}
     />

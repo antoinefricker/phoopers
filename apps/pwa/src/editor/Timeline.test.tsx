@@ -260,6 +260,15 @@ describe('Timeline', () => {
     expect(label.style.transform).not.toContain('translate(');
   });
 
+  it('starts a flight label past the marker that opens the flight', () => {
+    // The marker fills the first cell of the flight, 24px at the default zoom, and sits above it.
+    renderEditor(fixturePlay, <Timeline />);
+    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (label === undefined) throw new Error('expected a flight label');
+
+    expect(label.style.paddingLeft).toBe('28px');
+  });
+
   it('keeps a flight label from spilling into its neighbours', () => {
     // A flight can be a fraction of a second wide. The label has to give way rather than run
     // over the possession on either side of it.
