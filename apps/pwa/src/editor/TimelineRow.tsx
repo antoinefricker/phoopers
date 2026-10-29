@@ -1,7 +1,7 @@
-import { ActionIcon, Box, CloseButton, Menu, Text } from '@mantine/core';
+import { ActionIcon, Box, Menu, Text } from '@mantine/core';
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { IconDots, IconEye, IconEyeOff, IconGripVertical, IconPencil, IconTrash } from '@tabler/icons-react';
+import { IconDots, IconEye, IconEyeOff, IconGripVertical, IconPencil, IconTrash, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
 import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
@@ -9,7 +9,9 @@ import { useSortable } from '@dnd-kit/sortable';
 import { ConfirmDelete } from './ConfirmDelete';
 import { entityName } from './entityName';
 import { RenamePlayer } from './RenamePlayer';
-import { TimelineBar } from './TimelineBar';
+import { BarActionButton } from './bar/BarActionButton';
+import { BarHandle } from './bar/BarHandle';
+import { TrackBar } from './bar/TrackBar';
 import { constrainRetime } from './constraints';
 import { MARKER_HEIGHT_PX, barResize, cellPx, leftPx, rowsOf, spanPx } from './timelineGeometry';
 import { TimeWindow } from './TimeWindow';
@@ -300,55 +302,59 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           style={{ position: 'relative', width: '100%', height: '100%' }}
         >
           {screens.map((screen) => (
-            <TimelineBar
+            <TrackBar
               key={screen.id}
               testId={`screen-bar-${screen.id}`}
               inherited={!ownScreenIds.has(screen.id)}
               left={leftPx(screen.t, pxPerCell)}
               width={spanPx(screen.t, screen.t + screen.duration, pxPerCell)}
               // The offense's blue: a block reads as belonging to the attack rather than carrying
-              // a colour of its own. The bar makes its own fill and handle from it.
-              color="blue"
+              // a colour of its own.
+              background="var(--mantine-color-blue-light)"
               handleWidth={cellPx(pxPerCell)}
-              captionClearPx={markerClearance(screen.t)}
-              handle={
-                ownScreenIds.has(screen.id)
-                  ? {
-                      testId: `screen-handle-${screen.id}`,
-                      label: t('play.editor.screenDuration', 'Screen duration'),
-                      bind: bind({
-                        current: screen.t + screen.duration,
-                        // The handle fills the bar's last cell, and the end it sets is its right edge.
-                        anchor: 'end',
-                        // The edge cannot go left of the screen's own start: it floors at a minimum duration.
-                        resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
-                        ...barResize(screen.t, screen.t + screen.duration, pxPerCell),
-                        commit: (end) => setScreenDuration(screen.id, end - screen.t),
-                      }),
-                    }
-                  : undefined
+              messageClearPx={markerClearance(screen.t)}
+              endHandle={
+                ownScreenIds.has(screen.id) ? (
+                  <BarHandle
+                    testId={`screen-handle-${screen.id}`}
+                    label={t('play.editor.screenDuration', 'Screen duration')}
+                    bind={bind({
+                      current: screen.t + screen.duration,
+                      // The handle fills the bar's last cell, and the end it sets is its right edge.
+                      anchor: 'end',
+                      // The edge cannot go left of the screen's own start: it floors at a minimum duration.
+                      resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
+                      ...barResize(screen.t, screen.t + screen.duration, pxPerCell),
+                      commit: (end) => setScreenDuration(screen.id, end - screen.t),
+                    })}
+                  />
+                ) : null
               }
               actions={
-                ownScreenIds.has(screen.id) ? (
-                  <CloseButton
-                    size="xs"
-                    // The bar's own colour, as the step label bar's controls wear theirs.
-                    c="blue"
-                    data-testid={`screen-remove-${screen.id}`}
-                    aria-label={t('play.editor.removeScreen', 'Remove screen')}
-                    onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
-                  />
-                ) : undefined
+                ownScreenIds.has(screen.id)
+                  ? [
+                      <BarActionButton
+                        key="remove"
+                        testId={`screen-remove-${screen.id}`}
+                        label={t('play.editor.removeScreen', 'Remove screen')}
+                        icon={<IconX size={12} stroke={1.5} />}
+                        // The bar's own colour, as the step label bar's controls wear theirs.
+                        iconColor="var(--mantine-color-blue-filled)"
+                        hoverBackground="var(--mantine-color-blue-light-hover)"
+                        onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
+                      />,
+                    ]
+                  : []
               }
               // What the block IS, which nothing said before: a bar carried no meaning on its own,
               // and the beneficiary only appeared in the removal dialog. The row already names the
-              // screener, so the caption names the other half. Elided by the bar when it is too
+              // screener, so the message names the other half. Elided by the bar when it is too
               // narrow — the full text stays in the DOM, and an ellipsis is a painting, so a
               // screen reader reads all of it either way.
-              caption={t('play.editor.screenFor', 'Screen for {{label}}', {
+              message={t('play.editor.screenFor', 'Screen for {{label}}', {
                 label: nameOfPlayer(screen.beneficiaryId),
               })}
-            ></TimelineBar>
+            />
           ))}
           {isBall &&
             row.keyframes.map((k, index) => {

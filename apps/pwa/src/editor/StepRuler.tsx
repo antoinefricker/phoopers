@@ -1,11 +1,13 @@
-import { ActionIcon, Box, Button, Group, Popover, TextInput } from '@mantine/core';
+import { Box, Button, Group, Popover, TextInput } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { IconPencil, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { Step, StepId } from '../engine';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
 import { constrainStepRetime } from './constraints';
-import { TimelineBar } from './TimelineBar';
+import { BarActionButton } from './bar/BarActionButton';
+import { BarHandle } from './bar/BarHandle';
+import { TrackBar } from './bar/TrackBar';
 import { TimeWindow } from './TimeWindow';
 import { LABEL_WIDTH, MIN_SCREEN_DURATION } from './TimelineRow';
 import { barResize, barResizeStart, cellPx, leftPx, spanPx } from './timelineGeometry';
@@ -13,6 +15,10 @@ import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 import { snapRadiusSeconds } from './timelineScale';
+
+// A step label is the product's own annotation, so its bar wears the primary colour.
+const BAR_BACKGROUND = 'var(--mantine-primary-color-light)';
+const ACTION_HOVER_BACKGROUND = 'var(--mantine-primary-color-light-hover)';
 
 interface EditorProps {
   step: Step;
@@ -121,15 +127,15 @@ export function StepRuler() {
             // The same rule keyframes follow in `TimelineRow`.
             if (!ownStepIds.has(step.id)) {
               return (
-                <TimelineBar
+                <TrackBar
                   key={step.id}
                   testId={`step-bar-${step.id}`}
                   inherited
                   left={leftPx(step.t, pxPerCell)}
                   width={barWidth}
-                  color="primary"
-                  caption={step.name}
-                  captionDimmed
+                  background={BAR_BACKGROUND}
+                  message={step.name}
+                  messageDimmed
                 />
               );
             }
@@ -142,11 +148,11 @@ export function StepRuler() {
                 position="bottom"
                 withArrow
               >
-                <TimelineBar
+                <TrackBar
                   testId={`step-bar-${step.id}`}
                   left={leftPx(step.t, pxPerCell)}
                   width={barWidth}
-                  color="primary"
+                  background={BAR_BACKGROUND}
                   label={step.name}
                   // The bar itself retimes the step, as its tick did before it had a width.
                   bar={bind({
@@ -164,80 +170,78 @@ export function StepRuler() {
                     commit: (value) => moveStep(step.id, value),
                   })}
                   handleWidth={cellPx(pxPerCell)}
-                  startHandle={{
-                    testId: `step-start-handle-${step.id}`,
-                    label: t('play.editor.stepStart', 'Label start'),
-                    bind: bind({
-                      current: step.t,
-                      // The handle sits on the bar's left edge, which is the step's time.
-                      anchor: 'start',
-                      // The step's own retime bounds first (the fork floor, its ceiling, the step
-                      // marks it snaps to), then the window's: no earlier than the previous
-                      // window ends, and a minimum duration left before the end that stays put.
-                      resolve: (rawT, snap) =>
-                        Math.max(
-                          startFloor,
-                          Math.min(
-                            constrainStepRetime(
-                              play,
-                              step.id,
-                              step.t,
-                              rawT,
-                              others,
-                              snap ? snapRadiusSeconds(pxPerCell) : 0,
+                  startHandle={
+                    <BarHandle
+                      testId={`step-start-handle-${step.id}`}
+                      label={t('play.editor.stepStart', 'Label start')}
+                      bind={bind({
+                        current: step.t,
+                        // The handle sits on the bar's left edge, which is the step's time.
+                        anchor: 'start',
+                        // The step's own retime bounds first (the fork floor, its ceiling, the step
+                        // marks it snaps to), then the window's: no earlier than the previous
+                        // window ends, and a minimum duration left before the end that stays put.
+                        resolve: (rawT, snap) =>
+                          Math.max(
+                            startFloor,
+                            Math.min(
+                              constrainStepRetime(
+                                play,
+                                step.id,
+                                step.t,
+                                rawT,
+                                others,
+                                snap ? snapRadiusSeconds(pxPerCell) : 0,
+                              ),
+                              end - MIN_SCREEN_DURATION,
                             ),
-                            end - MIN_SCREEN_DURATION,
                           ),
-                        ),
-                      ...barResizeStart(end, step.t, pxPerCell),
-                      commit: (value) => resizeStepStart(step.id, value, end),
-                    }),
-                  }}
-                  handle={{
-                    testId: `step-handle-${step.id}`,
-                    label: t('play.editor.stepDuration', 'Label duration'),
-                    bind: bind({
-                      current: windowEnd(step, index),
-                      // The handle sits inside the bar's last cell, and the end it sets is its
-                      // right edge, not its middle.
-                      anchor: 'end',
-                      // Floored at a screen's minimum and capped at the next step, or at the end
-                      // of the play for a last step: two windows may never overlap.
-                      resolve: (rawT) =>
-                        Math.min(Math.max(rawT, step.t + MIN_SCREEN_DURATION), ordered[index + 1]?.t ?? duration),
-                      ...barResize(step.t, windowEnd(step, index), pxPerCell),
-                      commit: (value) => setStepDuration(step.id, value - step.t),
-                    }),
-                  }}
-                  actions={
-                    <>
-                      <Popover.Target>
-                        <ActionIcon
-                          size="xs"
-                          variant="subtle"
-                          aria-label={t('play.editor.editStep', 'Edit {{name}}', { name: step.name })}
-                          onClick={() => setOpenId(openId === step.id ? null : step.id)}
-                        >
-                          <IconPencil size={12} stroke={1.5} />
-                        </ActionIcon>
-                      </Popover.Target>
-                      {/* Both controls wear the bar's own colour, which for a step label bar is
-                        the primary — so neither names a colour, the ActionIcon default being
-                        the primary already. The remove icon gave up its red for it. */}
-                      <ActionIcon
-                        size="xs"
-                        variant="subtle"
-                        aria-label={t('play.editor.removeStep', 'Remove {{name}}', { name: step.name })}
-                        onClick={() => removeStep(step.id)}
-                      >
-                        <IconX size={12} stroke={1.5} />
-                      </ActionIcon>
-                    </>
+                        ...barResizeStart(end, step.t, pxPerCell),
+                        commit: (value) => resizeStepStart(step.id, value, end),
+                      })}
+                    />
                   }
+                  endHandle={
+                    <BarHandle
+                      testId={`step-handle-${step.id}`}
+                      label={t('play.editor.stepDuration', 'Label duration')}
+                      bind={bind({
+                        current: windowEnd(step, index),
+                        // The handle sits inside the bar's last cell, and the end it sets is its
+                        // right edge, not its middle.
+                        anchor: 'end',
+                        // Floored at a screen's minimum and capped at the next step, or at the end
+                        // of the play for a last step: two windows may never overlap.
+                        resolve: (rawT) =>
+                          Math.min(Math.max(rawT, step.t + MIN_SCREEN_DURATION), ordered[index + 1]?.t ?? duration),
+                        ...barResize(step.t, windowEnd(step, index), pxPerCell),
+                        commit: (value) => setStepDuration(step.id, value - step.t),
+                      })}
+                    />
+                  }
+                  actions={[
+                    <Popover.Target key="edit">
+                      <BarActionButton
+                        label={t('play.editor.editStep', 'Edit {{name}}', { name: step.name })}
+                        icon={<IconPencil size={12} stroke={1.5} />}
+                        hoverBackground={ACTION_HOVER_BACKGROUND}
+                        onClick={() => setOpenId(openId === step.id ? null : step.id)}
+                      />
+                    </Popover.Target>,
+                    // Both controls wear the bar's own colour, which for a step label bar is the
+                    // primary.
+                    <BarActionButton
+                      key="remove"
+                      label={t('play.editor.removeStep', 'Remove {{name}}', { name: step.name })}
+                      icon={<IconX size={12} stroke={1.5} />}
+                      hoverBackground={ACTION_HOVER_BACKGROUND}
+                      onClick={() => removeStep(step.id)}
+                    />,
+                  ]}
                   // Clipped rather than spilling, by the bar: a name on a narrow window near the
                   // end of the ruler would otherwise run past the track and grow a horizontal
                   // scrollbar. The room it leaves the two controls used to be a hardcoded 36px.
-                  caption={step.name}
+                  message={step.name}
                 />
                 <Popover.Dropdown>
                   <StepEditor step={step} onDone={() => setOpenId(null)} />

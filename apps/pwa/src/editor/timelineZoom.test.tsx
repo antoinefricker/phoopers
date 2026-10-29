@@ -149,7 +149,8 @@ describe('the handles of a bar occupy a grid cell', () => {
     for (const px of [24, 18, 12, 6]) {
       for (const id of handleIds) {
         // `min()` is what keeps two handles on a bar as short as it may be from covering each other.
-        expect(screen.getByTestId(id).style.width).toBe(`min(${px}px, 50%)`);
+        // The bar gives its handle a slot that is as wide as the handle.
+        expect(screen.getByTestId(id).parentElement?.style.width).toBe(`min(${px}px, 50%)`);
       }
       if (px > 6) fireEvent.click(zoomOut());
     }

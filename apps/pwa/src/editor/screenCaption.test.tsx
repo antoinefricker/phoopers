@@ -67,6 +67,6 @@ describe('the end handle of a screen bar', () => {
 
     expect(handle.style.height).toBe('18px');
     expect(handle.style.border).toContain('1px solid');
-    expect(handle.style.borderRadius).toBe('2px');
+    expect(handle.style.borderRadius).toBe('2px 2px 2px 2px');
   });
 });
