@@ -60,7 +60,7 @@ export function usePlaybackClock(duration: number): PlaybackClock {
     durationRef.current = duration;
     if (currentTimeRef.current > duration) {
       currentTimeRef.current = clamp(currentTimeRef.current, duration);
-      emit(currentTimeRef.current);
+      emit(currentTimeRef.current, true);
     }
   }, [duration, emit]);
 
@@ -78,7 +78,10 @@ export function usePlaybackClock(duration: number): PlaybackClock {
         const next = currentTimeRef.current + (stamp - last) / 1000;
         if (next >= durationRef.current) {
           currentTimeRef.current = durationRef.current;
-          emit(currentTimeRef.current);
+          // Forced, like a seek: the end can fall in the tenth the thumb is already showing, and
+          // a publish that fires only when the tenth changes then left it a few hundredths short
+          // of the end, where a drag puts it exactly on it.
+          emit(currentTimeRef.current, true);
           setIsPlaying(false);
           return;
         }
@@ -102,7 +105,7 @@ export function usePlaybackClock(duration: number): PlaybackClock {
   const play = useCallback(() => {
     if (currentTimeRef.current >= durationRef.current) {
       currentTimeRef.current = 0;
-      emit(0);
+      emit(0, true);
     }
     setIsPlaying(true);
   }, [emit]);
