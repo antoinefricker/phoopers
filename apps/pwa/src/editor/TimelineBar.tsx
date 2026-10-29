@@ -1,5 +1,6 @@
 import { Box, Text } from '@mantine/core';
 import type { ReactElement, ReactNode } from 'react';
+import { MARKER_HEIGHT_PX } from './timelineGeometry';
 import type { useTimeDrag } from './useTimeDrag';
 
 type BarGesture = ReturnType<ReturnType<typeof useTimeDrag>['bind']>;
@@ -167,7 +168,13 @@ export function TimelineBar({
         </Box>
       )}
       {startHandle !== undefined && (
-        <EdgeHandle edge="left" handle={startHandle} width={edgeWidth(handleWidth)} background={handleBackground} />
+        <EdgeHandle
+          edge="left"
+          handle={startHandle}
+          width={edgeWidth(handleWidth)}
+          background={handleBackground}
+          marker
+        />
       )}
       {handle !== undefined && (
         <EdgeHandle edge="right" handle={handle} width={edgeWidth(handleWidth)} background={handleBackground} />
@@ -188,11 +195,14 @@ function EdgeHandle({
   handle,
   width,
   background,
+  marker,
 }: {
   edge: 'left' | 'right';
   handle: { testId: string; label: string; bind: BarGesture };
   width: string;
   background: string;
+  /** Wears a keyframe marker's look: the start of a span is a point in time, as a keyframe is. */
+  marker?: boolean;
 }) {
   return (
     <button
@@ -201,16 +211,24 @@ function EdgeHandle({
       aria-label={handle.label}
       style={{
         position: 'absolute',
-        top: 0,
-        bottom: 0,
+        ...(marker === true
+          ? {
+              // The same block a row's keyframe marker is, so a label's start reads as one:
+              // white, a grey border, the marker's height and its cell's width.
+              top: '50%',
+              height: MARKER_HEIGHT_PX,
+              transform: 'translateY(-50%)',
+              border: '1px solid var(--mantine-color-gray-5)',
+              borderRadius: 2,
+              background: 'var(--mantine-color-white)',
+            }
+          : { top: 0, bottom: 0, border: 0, background }),
         [edge]: 0,
         width,
         padding: 0,
-        border: 0,
         cursor: 'ew-resize',
         touchAction: 'none',
         pointerEvents: 'auto',
-        background,
       }}
       {...handle.bind}
     />
