@@ -18,7 +18,7 @@ import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
 import type { TimelineRowModel } from './timelineGeometry';
 import { useTimeDrag } from './useTimeDrag';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
-import { snapRadiusSeconds } from './timelineScale';
+import { snapRadiusSeconds, xOfTime } from './timelineScale';
 import { useEditorContext } from './useEditorContext';
 import type { Selection } from './useEditorContext';
 import { usePlaybackContext } from '../play2d/usePlaybackContext';
@@ -42,6 +42,8 @@ interface Props {
 export const MIN_SCREEN_DURATION = TIME_GRID_S;
 // The row is 2rem tall; the badge leaves a little air above and below.
 const ROW_SYMBOL_PX = 24;
+// Between a keyframe marker and the caption of the bar it sits on.
+const MARKER_CAPTION_GAP_PX = 4;
 
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
   const { t } = useTranslation();
@@ -67,6 +69,22 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
     const player = timeline.players.find((p) => p.id === id);
 
     return player === undefined ? id : entityName(player, t);
+  };
+
+  // The keyframe markers sit above the bars and fill the cell that begins at their time, so one at
+  // the start of a screen, which is where a screen is usually set, covered the first letters of
+  // its caption. The caption starts after the right edge of whatever starts within a cell of the
+  // bar's start, with a small gap, and at the bar's own padding when nothing does.
+  const markerClearance = (screenT: number): number => {
+    const cell = xOfTime(TIME_GRID_S, pxPerCell);
+    let rightEdge = 0;
+    for (const keyframe of row.keyframes) {
+      if (Math.abs(keyframe.t - screenT) < TIME_GRID_S - 1e-9) {
+        rightEdge = Math.max(rightEdge, xOfTime(keyframe.t - screenT, pxPerCell) + cell);
+      }
+    }
+
+    return rightEdge === 0 ? 0 : rightEdge + MARKER_CAPTION_GAP_PX;
   };
   const { hidden, toggleHidden, isolate } = useHiddenEntitiesContext();
   const { removePlayer, renamePlayer, selection: editorSelection, select } = useEditorContext();
@@ -292,6 +310,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               // a colour of its own. The bar makes its own fill and handle from it.
               color="blue"
               handleWidth={cellPx(pxPerCell)}
+              captionClearPx={markerClearance(screen.t)}
               handle={
                 ownScreenIds.has(screen.id)
                   ? {

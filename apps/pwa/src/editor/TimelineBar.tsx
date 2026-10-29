@@ -30,6 +30,12 @@ export interface TimelineBarProps {
   /** The left edge, dragged to set where the span starts. Absent on an inherited bar. */
   startHandle?: { testId: string; label: string; bind: BarGesture };
   /**
+   * How far from the bar's start, in px, the caption must begin to stay clear of something drawn
+   * over the bar's start: a row's keyframe marker, which sits above the bars. At least the bar's
+   * own padding; left out, the caption starts there.
+   */
+  captionClearPx?: number;
+  /**
    * How wide a handle is, as CSS: one grid cell, so a handle occupies the cell it sets the edge
    * of. Never more than half the bar, so a bar as short as it may be still has room for both.
    * Left out, a handle is a 6px strip.
@@ -69,6 +75,7 @@ export function TimelineBar({
   handle,
   startHandle,
   handleWidth = '6px',
+  captionClearPx = 0,
   actions,
   caption,
   captionDimmed,
@@ -126,7 +133,8 @@ export function TimelineBar({
             // one. Symmetric is the one choice that needs no reason per bar.
             // Past a handle where there is one, which now covers a whole cell and would sit over
             // the caption or the controls; the 2px it always left is kept.
-            paddingLeft: startHandle === undefined ? 8 : `calc(${edgeWidth(handleWidth)} + 2px)`,
+            paddingLeft:
+              startHandle === undefined ? Math.max(8, captionClearPx) : `calc(${edgeWidth(handleWidth)} + 2px)`,
             paddingRight: handle === undefined ? 8 : `calc(${edgeWidth(handleWidth)} + 2px)`,
             // Transparent as a whole, like the bar under it: a row's markers sit beneath a
             // screen and must stay grabbable. The controls opt back in for themselves.
