@@ -409,6 +409,6 @@ describe('PlayView assembly', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Edit mode' }));
 
     expect(screen.getByTestId('step-ruler')).toBeInTheDocument();
-    expect(screen.getByTestId('issue-count')).toHaveTextContent('0');
+    expect(screen.getByRole('button', { name: 'Problems (0)' })).toBeDisabled();
   });
 });

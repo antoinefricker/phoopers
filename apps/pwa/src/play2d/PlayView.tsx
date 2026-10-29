@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { ActionIcon, Box, Paper, Popover, ScrollArea, Stack, Title } from '@mantine/core';
+import { ActionIcon, Box, Group, Paper, Popover, ScrollArea, Stack, Title } from '@mantine/core';
 import { IconGitBranch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { AppHeader } from '../app/AppHeader';
 import { SelectionActions } from '../editor/SelectionActions';
 import { TimeSurface } from '../editor/TimeSurface';
-import { IssuePanel } from '../editor/IssuePanel';
+import { IssuesButton } from '../editor/IssuesButton';
 import { PlayMenu } from '../editor/PlayMenu';
 import { TimeGrid } from '../editor/TimeGrid';
 import { Timeline } from '../editor/Timeline';
@@ -140,7 +140,6 @@ export function PlayView() {
                 this wrapper would otherwise refuse to pass on. */}
             <TimeRegion mode={mode} />
             {mode === 'edit' && <SelectionActions />}
-            {mode === 'edit' && <IssuePanel />}
           </Box>
           {/* No padding, and the floor's colour behind the drawing: the court keeps its own
             aspect ratio, so a panel wider or taller than it leaves a band the svg does not
@@ -178,7 +177,12 @@ function TimeRegion({ mode }: { mode: 'play' | 'edit' }) {
     <TimelineViewportContextProvider duration={timeline.duration} playheadTimeRef={currentTimeRef}>
       {/* A row of its own, outside the box the grid fills: the grid's lines are measured from the
           transport's top, so a row inside it would have them running behind the buttons. */}
-      {mode === 'edit' && <TimelineZoomControls />}
+      {mode === 'edit' && (
+        <Group gap="xs" justify="flex-end">
+          <IssuesButton />
+          <TimelineZoomControls />
+        </Group>
+      )}
       <TimeSurface>
         {mode === 'edit' && <TimeGrid />}
         {/* Above the grid, and carrying the gap the region used to give these two. */}

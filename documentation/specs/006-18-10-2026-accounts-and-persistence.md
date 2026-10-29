@@ -199,7 +199,7 @@ primary key, so the address in the bar, the draft in the browser and the documen
 column all name the same thing. Duplicating a system, or saving a copy of someone else's,
 mints a new one.
 
-A document that fails `validatePlay` on load still opens: the existing issue panel is what
+A document that fails `validatePlay` on load still opens: the existing problems button, which lists them, is what
 tells the coach, exactly as it does for a system built in the editor.
 
 The `Play` is stored as one JSON document because it is always read and written whole — the

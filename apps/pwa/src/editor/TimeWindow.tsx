@@ -1,6 +1,7 @@
 import { Box } from '@mantine/core';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import type { FocusEvent, ReactNode, RefObject } from 'react';
+import { followInputModality, lastInputWasKeyboard } from './inputModality';
 import { TRACK_INSET_END_PX, TRACK_INSET_START_PX } from './timelineGeometry';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
 
@@ -102,9 +103,16 @@ export function TimeWindow({
 
     return native;
   };
+  // Only a keyboard brings the view to what has focus. A press does not: pressing the scrubber
+  // focuses its thumb where the playhead WAS, which can be out of sight after scrolling away to
+  // edit, and carrying the view to it threw the view back to the old playhead just before the
+  // press moved the playhead somewhere the view no longer showed. The same for pressing a bar or
+  // a marker that is part out of view: it is where the pointer is, so it is already in sight.
+  useEffect(() => followInputModality(), []);
   const revealFocused = (event: FocusEvent<HTMLElement>) => {
     const window = event.currentTarget;
     const native = keepOffsetShared(window);
+    if (!lastInputWasKeyboard()) return;
     const edge = window.getBoundingClientRect();
     const target = (event.target as HTMLElement).getBoundingClientRect();
     // The browser may have scrolled before this ran, which moved the element left by `native`.

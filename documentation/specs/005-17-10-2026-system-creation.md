@@ -101,6 +101,13 @@ are unchanged.
 
 A system created through the form has `duration: 8`.
 
+The floor lengthens the timeline, not the movement. The playhead is bounded by where the
+content stops (the last keyframe, or the end of the last label if that is later) while the system
+is only watched, so a new system does not play on through eight
+seconds in which nothing happens; while it is authored the playhead reaches the whole floor,
+which is what lets a keyframe be written past the last one. See
+[spec 002](002-09-10-2026-2d-view-playback.md#transport-behaviour).
+
 A play written before this spec has neither field. Both are optional in the type and read
 through defaults — `extent: 'full'`, `duration: 0` — so `hornsPlay` and every existing
 fixture keep their current behaviour with no edit.

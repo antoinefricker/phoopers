@@ -111,6 +111,22 @@ describe('usePlaybackClock', () => {
     expect(liveFrames()).toBe(0);
   });
 
+  it('publishes the exact end to the displayed time, even inside the tenth it was already showing', () => {
+    const { result } = renderHook(() => usePlaybackClock(2));
+
+    act(() => result.current.play());
+    advance(0);
+    // 1.97 s rounds to the tenth 20, the same one the end does, so a publish that only fires when
+    // the tenth changes would leave the scrubber's thumb at 1.97 once playback stops.
+    advance(1970);
+    expect(result.current.displayTime).toBeCloseTo(1.97, 2);
+    advance(60);
+
+    expect(result.current.isPlaying).toBe(false);
+    expect(result.current.currentTimeRef.current).toBe(2);
+    expect(result.current.displayTime).toBe(2);
+  });
+
   it('restarts from zero when played at the end', () => {
     const { result } = renderHook(() => usePlaybackClock(1));
 
