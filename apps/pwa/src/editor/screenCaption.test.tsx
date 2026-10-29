@@ -59,3 +59,14 @@ describe('where the caption of a screen bar starts', () => {
     expect(seen).toEqual(['28px', '22px', '16px', '10px']);
   });
 });
+
+describe('the end handle of a screen bar', () => {
+  it('is drawn as a keyframe marker', () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const handle = screen.getByTestId(`screen-handle-${SCREEN_1}`);
+
+    expect(handle.style.height).toBe('18px');
+    expect(handle.style.border).toContain('1px solid');
+    expect(handle.style.borderRadius).toBe('2px');
+  });
+});

@@ -255,15 +255,15 @@ describe('step label bars', () => {
     expect(screen.getByRole('button', { name: 'Remove Entry pass' })).toBeInTheDocument();
   });
 
-  it('draws the start of a label as a keyframe marker, and its end as a plain handle', () => {
+  it('draws both handles of a label as keyframe markers', () => {
     renderEditor(fixturePlay, <StepRuler />);
 
-    const start = screen.getByTestId(`step-start-handle-${STEP_ENTRY}`);
-    expect(start.style.height).toBe('18px');
-    expect(start.style.border).toContain('1px solid');
-    expect(start.style.borderRadius).toBe('2px');
-    // The end keeps the bar's strip, full height with no border.
-    expect(screen.getByTestId(`step-handle-${STEP_ENTRY}`).style.height).toBe('');
+    for (const id of [`step-start-handle-${STEP_ENTRY}`, `step-handle-${STEP_ENTRY}`]) {
+      const handle = screen.getByTestId(id);
+      expect(handle.style.height).toBe('18px');
+      expect(handle.style.border).toContain('1px solid');
+      expect(handle.style.borderRadius).toBe('2px');
+    }
   });
 
   it('spans to the end of the play when a last step has no duration', () => {

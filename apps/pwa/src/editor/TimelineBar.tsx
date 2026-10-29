@@ -11,9 +11,8 @@ export interface TimelineBarProps {
   width: string;
   /**
    * The bar's colour, as one name: a Mantine colour ("blue") or "primary" to follow the theme.
-   * The bar fills itself with that colour's LIGHT variant and paints its handle with the normal
-   * one, so the two can never be picked apart — they used to be two props, and a caller choosing
-   * one without the other is how a handle ended up invisible against its own bar.
+   * The bar fills itself with that colour's LIGHT variant. Its handles are not coloured: they
+   * wear a keyframe marker's look.
    */
   color: string;
   testId: string;
@@ -84,8 +83,6 @@ export function TimelineBar({
 }: TimelineBarProps): ReactElement {
   // "primary" is its own set of variables rather than a colour name Mantine would interpolate.
   const background = color === 'primary' ? 'var(--mantine-primary-color-light)' : `var(--mantine-color-${color}-light)`;
-  const handleBackground =
-    color === 'primary' ? 'var(--mantine-primary-color-filled)' : `var(--mantine-color-${color}-filled)`;
 
   return (
     <Box
@@ -167,18 +164,8 @@ export function TimelineBar({
           )}
         </Box>
       )}
-      {startHandle !== undefined && (
-        <EdgeHandle
-          edge="left"
-          handle={startHandle}
-          width={edgeWidth(handleWidth)}
-          background={handleBackground}
-          marker
-        />
-      )}
-      {handle !== undefined && (
-        <EdgeHandle edge="right" handle={handle} width={edgeWidth(handleWidth)} background={handleBackground} />
-      )}
+      {startHandle !== undefined && <EdgeHandle edge="left" handle={startHandle} width={edgeWidth(handleWidth)} />}
+      {handle !== undefined && <EdgeHandle edge="right" handle={handle} width={edgeWidth(handleWidth)} />}
     </Box>
   );
 }
@@ -194,15 +181,10 @@ function EdgeHandle({
   edge,
   handle,
   width,
-  background,
-  marker,
 }: {
   edge: 'left' | 'right';
   handle: { testId: string; label: string; bind: BarGesture };
   width: string;
-  background: string;
-  /** Wears a keyframe marker's look: the start of a span is a point in time, as a keyframe is. */
-  marker?: boolean;
 }) {
   return (
     <button
@@ -211,18 +193,14 @@ function EdgeHandle({
       aria-label={handle.label}
       style={{
         position: 'absolute',
-        ...(marker === true
-          ? {
-              // The same block a row's keyframe marker is, so a label's start reads as one:
-              // white, a grey border, the marker's height and its cell's width.
-              top: '50%',
-              height: MARKER_HEIGHT_PX,
-              transform: 'translateY(-50%)',
-              border: '1px solid var(--mantine-color-gray-5)',
-              borderRadius: 2,
-              background: 'var(--mantine-color-white)',
-            }
-          : { top: 0, bottom: 0, border: 0, background }),
+        // The same block a row's keyframe marker is, so an edge of a span reads as a time: white,
+        // a grey border, the marker's height and its cell's width.
+        top: '50%',
+        height: MARKER_HEIGHT_PX,
+        transform: 'translateY(-50%)',
+        border: '1px solid var(--mantine-color-gray-5)',
+        borderRadius: 2,
+        background: 'var(--mantine-color-white)',
         [edge]: 0,
         width,
         padding: 0,
