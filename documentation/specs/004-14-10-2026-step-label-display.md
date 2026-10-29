@@ -99,10 +99,11 @@ That component, `TrackBar`, owns the layout of a bar and not the look of its par
 fill, an optional border and a message, a handle for each edge or none, and an ordered list of
 controls. The parts are three components of their own in `editor/bar/`, usable on any bar: a
 `BarHandle` (the corners' radius on each side, its fill and border colours and an optional icon,
-drawn as a keyframe's marker by default) and a `BarActionButton` (its fill, its fill under the
+drawn as a keyframe's marker by default, being a `TimeMarker`, the block a keyframe's marker is too) and a `BarActionButton` (its fill, its fill under the
 pointer, an icon and the icon's colour). The bar places each handle on its edge, a cell wide and
 never more than half the bar, and keeps its message clear of the handles and of anything laid over
-its start.
+its start. The ball's row draws its stretches with the same bar: a tinted one for possession, and a
+transparent one carrying the name of a pass or a shot.
 
 ## Validation
 
