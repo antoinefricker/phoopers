@@ -399,8 +399,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                     // own line instead of level with it. The horizontal nudge is padding, not
                     // part of the transform: moving the BOX pushed the last flight's label past
                     // the end of the track, which grew the panel a horizontal scrollbar.
+                    // Past the marker that opens the flight, which fills the first cell of the
+                    // box and sits above it.
                     transform: 'translateY(-7px)',
-                    paddingLeft: '10px',
+                    paddingLeft: `${xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}px`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'flex-start',
