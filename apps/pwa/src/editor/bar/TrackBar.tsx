@@ -1,5 +1,6 @@
 import { Box, Text } from '@mantine/core';
 import type { ReactElement, ReactNode } from 'react';
+import { TRACK_BAR_ATTRIBUTE } from '../timelineGeometry';
 import type { BarGesture } from './BarHandle';
 
 export interface TrackBarProps {
@@ -84,6 +85,7 @@ export function TrackBar({
   return (
     <Box
       data-testid={testId}
+      {...{ [TRACK_BAR_ATTRIBUTE]: '' }}
       data-inherited={inherited === true ? 'true' : undefined}
       // Focusable when it carries a gesture, so the arrow keys reach it: `useTimeDrag` handles
       // them, and that is how a step is retimed without a pointer. Not a `<button>` — it holds

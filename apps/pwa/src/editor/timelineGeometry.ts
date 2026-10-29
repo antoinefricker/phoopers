@@ -88,9 +88,17 @@ export const spanPx = (from: number, to: number, pxPerCell: number): string =>
  * abandoned. A handle with no parent writes nothing rather than throwing: the drag is a
  * presentational preview, and the commit that follows it reads the model, not the DOM.
  */
+/**
+ * The attribute a bar wears so that a handle's drag can find it: the preview writes the bar's
+ * geometry, and the handle is not its direct child, since the bar gives each handle a slot.
+ */
+export const TRACK_BAR_ATTRIBUTE = 'data-track-bar';
+
+const barOf = (handle: HTMLElement): HTMLElement | null => handle.closest<HTMLElement>(`[${TRACK_BAR_ATTRIBUTE}]`);
+
 export function barResize(from: number, to: number, pxPerCell: number) {
   const setWidth = (element: HTMLElement, end: number) => {
-    const bar = element.parentElement;
+    const bar = barOf(element);
     if (bar !== null) bar.style.width = spanPx(from, end, pxPerCell);
   };
 
@@ -108,7 +116,7 @@ export function barResize(from: number, to: number, pxPerCell: number) {
  */
 export function barResizeStart(end: number, from: number, pxPerCell: number) {
   const setStart = (element: HTMLElement, start: number) => {
-    const bar = element.parentElement;
+    const bar = barOf(element);
     if (bar === null) return;
 
     bar.style.left = leftPx(start, pxPerCell);
