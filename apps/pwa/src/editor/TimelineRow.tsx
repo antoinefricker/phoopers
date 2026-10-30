@@ -476,10 +476,6 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                     })
                   : {})}
                 selected={selected}
-                // White everywhere except a held ball, which keeps a tint: the filled-versus-
-                // hollow contrast used to be the only thing showing possession on screen, and
-                // dropping it would leave that to the accessible name alone.
-                background={isBall && !hollow ? 'var(--mantine-color-orange-1)' : undefined}
                 style={{
                   position: 'absolute',
                   zIndex: 10,
