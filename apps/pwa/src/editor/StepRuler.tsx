@@ -225,6 +225,7 @@ export function StepRuler() {
                         label={t('play.editor.editStep', 'Edit {{name}}', { name: step.name })}
                         icon={<IconPencil size={12} stroke={1.5} />}
                         hoverBackground={ACTION_HOVER_BACKGROUND}
+                        width={cellPx(pxPerCell)}
                         onClick={() => setOpenId(openId === step.id ? null : step.id)}
                       />
                     </Popover.Target>,
@@ -235,6 +236,7 @@ export function StepRuler() {
                       label={t('play.editor.removeStep', 'Remove {{name}}', { name: step.name })}
                       icon={<IconX size={12} stroke={1.5} />}
                       hoverBackground={ACTION_HOVER_BACKGROUND}
+                      width={cellPx(pxPerCell)}
                       onClick={() => removeStep(step.id)}
                     />,
                   ]}

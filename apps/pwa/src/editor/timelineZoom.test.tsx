@@ -156,3 +156,22 @@ describe('the handles of a bar occupy a grid cell', () => {
     }
   });
 });
+
+describe('the controls of a bar occupy a grid cell', () => {
+  it('are one cell wide at every zoom', async () => {
+    await renderTimeline();
+    const controls = () => [
+      screen.getByRole('button', { name: 'Edit Entry pass' }),
+      screen.getByRole('button', { name: 'Remove Entry pass' }),
+      screen.getByTestId(`screen-remove-${SCREEN_1}`),
+    ];
+
+    for (const px of [24, 18, 12, 6]) {
+      for (const control of controls()) {
+        expect(control.style.width).toBe(`${px}px`);
+        expect(control.style.minWidth).toBe(`${px}px`);
+      }
+      if (px > 6) fireEvent.click(zoomOut());
+    }
+  });
+});

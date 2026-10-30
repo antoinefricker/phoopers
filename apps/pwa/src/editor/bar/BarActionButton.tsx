@@ -12,6 +12,8 @@ export interface BarActionButtonProps extends Omit<ComponentPropsWithRef<'button
   hoverBackground?: string;
   /** Any CSS colour. Left out, the app's own colour. */
   iconColor?: string;
+  /** How wide the button is, as CSS: a grid cell on the timeline. Left out, as wide as it is tall. */
+  width?: string;
   testId?: string;
 }
 
@@ -25,6 +27,7 @@ export function BarActionButton({
   background = 'transparent',
   hoverBackground,
   iconColor = 'var(--mantine-primary-color-filled)',
+  width,
   testId,
   ref: forwardedRef,
   style,
@@ -45,6 +48,8 @@ export function BarActionButton({
       style={{
         background: hovered && hoverBackground !== undefined ? hoverBackground : background,
         color: iconColor,
+        // Both: the button's own stylesheet floors its width at its height.
+        ...(width === undefined ? {} : { width, minWidth: width }),
         ...style,
       }}
     >

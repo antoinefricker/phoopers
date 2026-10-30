@@ -341,6 +341,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                         // The bar's own colour, as the step label bar's controls wear theirs.
                         iconColor="var(--mantine-color-blue-filled)"
                         hoverBackground="var(--mantine-color-blue-light-hover)"
+                        width={cellPx(pxPerCell)}
                         onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
                       />,
                     ]
