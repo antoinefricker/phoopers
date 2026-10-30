@@ -191,6 +191,29 @@ describe('Timeline', () => {
     expect(flights.map((f) => f.textContent)).toEqual(['Shot', 'Pass']);
   });
 
+  it('tints a pass and a shot each in its own colour', () => {
+    renderEditor(releasedBall, <Timeline />);
+    const [shot, pass] = within(rowFor('ball')).getAllByTestId(/^flight-/);
+
+    expect(shot?.style.background).toContain('red');
+    expect(pass?.style.background).toContain('grape');
+  });
+
+  it('draws a dribble as a bar on the row of the player who holds the ball while moving', () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const dribbles = within(rowFor(P1)).getAllByTestId(/^dribble-/);
+
+    expect(dribbles[0]).toHaveTextContent('Dribble');
+    expect(dribbles[0]?.style.background).toContain('teal');
+    // P1 holds it 0-1 only; P2 takes it at 2 and carries it to 4.
+    expect(dribbles.map((d) => d.dataset['testid'])).toEqual(['dribble-0']);
+    expect(
+      within(rowFor(P2))
+        .getAllByTestId(/^dribble-/)
+        .map((d) => d.dataset['testid']),
+    ).toEqual(['dribble-2']);
+  });
+
   it('names no shot when the ball was already loose', () => {
     // A shot is the ball leaving someone's hands. A stretch between two points on the court —
     // a bounce, a roll, two authored positions — was sent by nobody, so naming it a shot said
@@ -247,16 +270,14 @@ describe('Timeline', () => {
     expect(ball.getAllByTestId(/^possession-/)).toHaveLength(1);
   });
 
-  it('lifts a flight label by the place of its box, so the last one cannot leave the track', () => {
-    // The label used to be nudged clear of the row's line with a transform, which moved the BOX,
-    // and the last flight ends at the end of the track: measured in a browser, its label sat 6px
-    // past the panel and grew a horizontal scrollbar. The lift is in `top`, and a box that
-    // ends where the track does keeps ending there.
+  it('draws a flight as a tinted bar in the place of a possession, with no transform', () => {
+    // A transform would move the BOX, and the last flight ends at the end of the track: measured
+    // in a browser, its label sat 6px past the panel and grew a horizontal scrollbar.
     renderEditor(fixturePlay, <Timeline />);
     const flight = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
     if (flight === undefined) throw new Error('expected a flight label');
 
-    expect(flight.style.top).toBe('calc(25% - 7px)');
+    expect(flight.style.top).toBe('25%');
     expect(flight.style.transform).toBe('');
   });
 

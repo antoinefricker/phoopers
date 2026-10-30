@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { IconDots, IconEye, IconEyeOff, IconGripVertical, IconPencil, IconTrash, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
+import { spanKindAt } from '../engine';
 import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
 import { useSortable } from '@dnd-kit/sortable';
 import { ConfirmDelete } from './ConfirmDelete';
@@ -46,6 +47,10 @@ export const MIN_SCREEN_DURATION = TIME_GRID_S;
 const ROW_SYMBOL_PX = 24;
 // Between a keyframe marker and the caption of the bar it sits on.
 const MARKER_CAPTION_GAP_PX = 4;
+// One tint per kind of stretch, each distinct from the blue of a screen and the orange of possession.
+const PASS_BACKGROUND = 'var(--mantine-color-grape-light)';
+const SHOT_BACKGROUND = 'var(--mantine-color-red-light)';
+const DRIBBLE_BACKGROUND = 'var(--mantine-color-teal-light)';
 
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
   const { t } = useTranslation();
@@ -387,12 +392,12 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               // hands makes it a pass; leaving one for a point on the court makes it a shot. A
               // stretch that is loose at BOTH ends — a bounce, a roll, two authored positions —
               // was shot by nobody, so it carries no name rather than claiming a shot no one took.
-              const name =
-                next.attachedTo !== undefined
-                  ? t('play.timeline.pass', 'Pass')
-                  : k.attachedTo === undefined
-                    ? undefined
-                    : t('play.timeline.shot', 'Shot');
+              const isPass = next.attachedTo !== undefined;
+              const name = isPass
+                ? t('play.timeline.pass', 'Pass')
+                : k.attachedTo === undefined
+                  ? undefined
+                  : t('play.timeline.shot', 'Shot');
               if (name === undefined) return null;
 
               return (
@@ -401,19 +406,37 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   testId={`flight-${k.t}`}
                   left={left}
                   width={width}
-                  // Lifted clear of the tinted stretches so the word reads above the row's own
-                  // line instead of level with it. The lift is in the box's place, not a
-                  // transform: moving the BOX with a transform pushed the last flight's label past
-                  // the end of the track, which grew the panel a horizontal scrollbar.
-                  top="calc(25% - 7px)"
+                  top="25%"
                   height="50%"
-                  background="transparent"
-                  messageColor="var(--mantine-color-dimmed)"
+                  background={isPass ? PASS_BACKGROUND : SHOT_BACKGROUND}
                   // Past the marker that opens the flight, which fills the first cell of the box
                   // and sits above it. A flight can be a fraction of a second wide, so the word
                   // gives way rather than running over the possession on either side of it.
                   messageClearPx={xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}
                   message={name}
+                />
+              );
+            })}
+          {/* A dribble is the player moving while holding the ball, so it is read off the ball's own
+              stretches: those held by this player at both ends, and where they move. A player's own
+              keyframes would not do, since one can span a pass and be held for only part of it. */}
+          {!isBall &&
+            (timeline.anchors['ball'] ?? []).map((k, index, ballKeyframes) => {
+              const next = ballKeyframes[index + 1];
+              if (next === undefined || k.attachedTo !== row.entityId || next.attachedTo !== row.entityId) return null;
+              if (spanKindAt(timeline, row.entityId as PlayerId, (k.t + next.t) / 2) !== 'dribble') return null;
+
+              return (
+                <TrackBar
+                  key={`${k.t}-dribble`}
+                  testId={`dribble-${k.t}`}
+                  left={leftPx(k.t, pxPerCell)}
+                  width={spanPx(k.t, next.t, pxPerCell)}
+                  top="25%"
+                  height="50%"
+                  background={DRIBBLE_BACKGROUND}
+                  messageClearPx={xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}
+                  message={t('play.timeline.dribble', 'Dribble')}
                 />
               );
             })}
