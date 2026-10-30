@@ -110,6 +110,15 @@ describe('TrackBar', () => {
     expect(screen.getByTestId('bar-caption').style.color).toBe('rgb(8, 8, 8)');
   });
 
+  it('is a marker tall plus 2px each side, centred in its row, so it encloses its handles', () => {
+    bar({ handleWidth: '24px', startHandle: <BarHandle testId="s" label="Start" bind={still} /> });
+    const element = screen.getByTestId('b');
+
+    expect(element.style.height).toBe('22px');
+    expect(element.style.top).toBe('calc(50% - 11px)');
+    expect(screen.getByTestId('s').style.height).toBe('18px');
+  });
+
   it('keeps its message 8px from an edge that has no handle, and past a handle where there is one', () => {
     bar({
       handleWidth: '24px',

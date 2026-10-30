@@ -381,8 +381,6 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                     testId={`possession-${k.t}`}
                     left={left}
                     width={width}
-                    top="25%"
-                    height="50%"
                     background="var(--mantine-color-orange-light)"
                     // The holder, named as their own row is. Past the marker that opens the
                     // stretch, as a flight's name is.
@@ -410,8 +408,6 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   testId={`flight-${k.t}`}
                   left={left}
                   width={width}
-                  top="25%"
-                  height="50%"
                   background={isPass ? PASS_BACKGROUND : SHOT_BACKGROUND}
                   // Past the marker that opens the flight, which fills the first cell of the box
                   // and sits above it. A flight can be a fraction of a second wide, so the word
@@ -436,8 +432,6 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   testId={`dribble-${k.t}`}
                   left={leftPx(k.t, pxPerCell)}
                   width={spanPx(k.t, next.t, pxPerCell)}
-                  top="25%"
-                  height="50%"
                   background={DRIBBLE_BACKGROUND}
                   messageClearPx={xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}
                   message={t('play.timeline.dribble', 'Dribble')}

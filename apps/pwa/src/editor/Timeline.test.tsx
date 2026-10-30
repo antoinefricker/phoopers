@@ -285,7 +285,7 @@ describe('Timeline', () => {
     const flight = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
     if (flight === undefined) throw new Error('expected a flight label');
 
-    expect(flight.style.top).toBe('25%');
+    expect(flight.style.top).toBe('calc(50% - 11px)');
     expect(flight.style.transform).toBe('');
   });
 

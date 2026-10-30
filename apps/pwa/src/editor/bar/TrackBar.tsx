@@ -1,6 +1,6 @@
 import { Box, Text } from '@mantine/core';
 import type { ReactElement, ReactNode } from 'react';
-import { TRACK_BAR_ATTRIBUTE } from '../timelineGeometry';
+import { MARKER_HEIGHT_PX, TRACK_BAR_ATTRIBUTE } from '../timelineGeometry';
 import type { BarGesture } from './BarHandle';
 
 export interface TrackBarProps {
@@ -8,10 +8,6 @@ export interface TrackBarProps {
   left: string;
   width: string;
   testId: string;
-  /** Where the bar sits in its row, as CSS: a fifth of the way down, left out. */
-  top?: string;
-  /** How tall the bar is, as CSS: three fifths of its row, left out. */
-  height?: string;
   background: string;
   /** Any CSS colour. Left out, the bar has no border. */
   borderColor?: string;
@@ -63,8 +59,6 @@ export function TrackBar({
   left,
   width,
   testId,
-  top = '20%',
-  height = '60%',
   background,
   borderColor,
   messageColor,
@@ -95,8 +89,9 @@ export function TrackBar({
       {...(bar ?? {})}
       style={{
         position: 'absolute',
-        top,
-        height,
+        // Centred in its row, tall enough to hold a handle with BAR_PADDING_PX of bar around it.
+        top: `calc(50% - ${BAR_HEIGHT_PX / 2}px)`,
+        height: BAR_HEIGHT_PX,
         left,
         width,
         background,
@@ -165,6 +160,11 @@ export function TrackBar({
     </Box>
   );
 }
+
+/** The bar's own padding around a handle, so the handle reads as sitting inside it. */
+export const BAR_PADDING_PX = 2;
+
+const BAR_HEIGHT_PX = MARKER_HEIGHT_PX + 2 * BAR_PADDING_PX;
 
 /** A handle's width: a cell, but at most half the bar, which is what keeps two from overlapping. */
 const edgeWidth = (handleWidth: string): string => `min(${handleWidth}, 50%)`;
