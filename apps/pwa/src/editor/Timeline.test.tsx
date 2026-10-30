@@ -174,6 +174,14 @@ describe('Timeline', () => {
     expect(within(rowFor('ball')).getAllByTestId(/^possession-/)).toHaveLength(2);
   });
 
+  it("names the holder on a possession bar, as the holder's own row is named", () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const [first, second] = within(rowFor('ball')).getAllByTestId(/^possession-/);
+
+    expect(first).toHaveTextContent('Offense 1');
+    expect(second).toHaveTextContent('Offense 2');
+  });
+
   it('names the flight between two carriers a pass', () => {
     renderEditor(fixturePlay, <Timeline />);
     const flights = within(rowFor('ball')).getAllByTestId(/^flight-/);

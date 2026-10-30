@@ -384,6 +384,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                     top="25%"
                     height="50%"
                     background="var(--mantine-color-orange-light)"
+                    // The holder, named as their own row is. Past the marker that opens the
+                    // stretch, as a flight's name is.
+                    messageClearPx={xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}
+                    message={nameOfPlayer(k.attachedTo)}
                   />
                 );
               }
