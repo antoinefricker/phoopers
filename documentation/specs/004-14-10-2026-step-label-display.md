@@ -104,7 +104,7 @@ pointer, an icon, the icon's colour and its width, which on the timeline is one 
 handle's is, and as tall as a marker). The bar is as tall as a marker plus 2px on each side, centred in its row, so it encloses its handles. It places each handle on its edge, a cell wide and
 never more than half the bar, and keeps its message clear of the handles and of anything laid over
 its start. The ball's row draws its stretches with the same bar: a tinted one for possession, named after the holder as their row is, and one
-carrying the name of a pass (violet) or a shot (red). A player's row draws a teal bar named
+carrying the name of a pass or a shot, both the same orange. A player's row draws a teal bar named
 Dribble over each stretch where that player holds the ball at both ends and moves.
 
 ## Validation
