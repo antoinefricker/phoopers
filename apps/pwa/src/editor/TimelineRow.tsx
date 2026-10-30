@@ -47,9 +47,9 @@ export const MIN_SCREEN_DURATION = TIME_GRID_S;
 const ROW_SYMBOL_PX = 24;
 // Between a keyframe marker and the caption of the bar it sits on.
 const MARKER_CAPTION_GAP_PX = 4;
-// One tint per kind of stretch, each distinct from the blue of a screen and the orange of possession.
-const PASS_BACKGROUND = 'var(--mantine-color-grape-light)';
-const SHOT_BACKGROUND = 'var(--mantine-color-red-light)';
+// Every stretch of the ball's row is orange; a player's dribble has a tint of its own, distinct from
+// the blue of a screen.
+const BALL_BACKGROUND = 'var(--mantine-color-orange-light)';
 const DRIBBLE_BACKGROUND = 'var(--mantine-color-teal-light)';
 
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
@@ -381,7 +381,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                     testId={`possession-${k.t}`}
                     left={left}
                     width={width}
-                    background="var(--mantine-color-orange-light)"
+                    background={BALL_BACKGROUND}
                     // The holder, named as their own row is. Past the marker that opens the
                     // stretch, as a flight's name is.
                     messageClearPx={xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}
@@ -408,7 +408,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   testId={`flight-${k.t}`}
                   left={left}
                   width={width}
-                  background={isPass ? PASS_BACKGROUND : SHOT_BACKGROUND}
+                  background={BALL_BACKGROUND}
                   // Past the marker that opens the flight, which fills the first cell of the box
                   // and sits above it. A flight can be a fraction of a second wide, so the word
                   // gives way rather than running over the possession on either side of it.

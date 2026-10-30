@@ -199,12 +199,12 @@ describe('Timeline', () => {
     expect(flights.map((f) => f.textContent)).toEqual(['Shot', 'Pass']);
   });
 
-  it('tints a pass and a shot each in its own colour', () => {
+  it("tints every stretch of the ball's row orange", () => {
     renderEditor(releasedBall, <Timeline />);
-    const [shot, pass] = within(rowFor('ball')).getAllByTestId(/^flight-/);
+    const ball = within(rowFor('ball'));
+    const bars = [...ball.getAllByTestId(/^flight-/), ...ball.getAllByTestId(/^possession-/)];
 
-    expect(shot?.style.background).toContain('red');
-    expect(pass?.style.background).toContain('grape');
+    for (const bar of bars) expect(bar.style.background).toContain('orange');
   });
 
   it('draws a dribble as a bar on the row of the player who holds the ball while moving', () => {
