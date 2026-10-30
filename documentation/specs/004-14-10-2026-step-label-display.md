@@ -103,7 +103,7 @@ drawn as a keyframe's marker by default, being a `TimeMarker`, the block a keyfr
 pointer, an icon, the icon's colour and its width, which on the timeline is one grid cell, as a
 handle's is, and as tall as a marker). The bar places each handle on its edge, a cell wide and
 never more than half the bar, and keeps its message clear of the handles and of anything laid over
-its start. The ball's row draws its stretches with the same bar: a tinted one for possession, and one
+its start. The ball's row draws its stretches with the same bar: a tinted one for possession, named after the holder as their row is, and one
 carrying the name of a pass (violet) or a shot (red). A player's row draws a teal bar named
 Dribble over each stretch where that player holds the ball at both ends and moves.
 
