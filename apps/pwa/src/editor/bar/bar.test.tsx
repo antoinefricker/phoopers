@@ -126,9 +126,12 @@ describe('TrackBar', () => {
       endHandle: <BarHandle testId="e" label="End" bind={still} />,
     });
 
-    expect(padding()?.paddingLeft).toBe('calc(2px + min(24px, 50%))');
-    expect(padding()?.paddingRight).toBe('calc(2px + min(24px, 50%))');
-    expect(screen.getByTestId('s').parentElement?.style.width).toBe('min(24px, 50%)');
+    expect(padding()?.paddingLeft).toBe('calc(4px + min(20px, 50% - 2px))');
+    expect(padding()?.paddingRight).toBe('calc(4px + min(20px, 50% - 2px))');
+    expect(screen.getByTestId('s').parentElement?.style.width).toBe('min(20px, 50% - 2px)');
+    // Inside the bar's edge by its own padding, so a handle has bar around it on every side.
+    expect(screen.getByTestId('s').parentElement?.style.left).toBe('2px');
+    expect(screen.getByTestId('e').parentElement?.style.right).toBe('2px');
   });
 
   it('starts its message past what covers the bar start, never closer than 8px', () => {

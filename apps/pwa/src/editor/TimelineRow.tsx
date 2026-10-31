@@ -14,7 +14,16 @@ import { BarHandle } from './bar/BarHandle';
 import { TimeMarker } from './bar/TimeMarker';
 import { TrackBar } from './bar/TrackBar';
 import { constrainRetime } from './constraints';
-import { barResize, cellPx, leftPx, rowsOf, spanPx } from './timelineGeometry';
+import {
+  barResize,
+  CELL_PADDING_PX,
+  cellPx,
+  leftPx,
+  markerLeftPx,
+  markerWidthPx,
+  rowsOf,
+  spanPx,
+} from './timelineGeometry';
 import { TimeWindow } from './TimeWindow';
 import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
@@ -327,6 +336,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                       current: screen.t + screen.duration,
                       // The handle fills the bar's last cell, and the end it sets is its right edge.
                       anchor: 'end',
+                      inset: CELL_PADDING_PX,
                       // The edge cannot go left of the screen's own start: it floors at a minimum duration.
                       resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
                       ...barResize(screen.t, screen.t + screen.duration, pxPerCell),
@@ -474,6 +484,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                       // The block's left edge is its time, not its middle: measuring the grab from
                       // the middle would shift it half a cell on the first move.
                       anchor: 'start',
+                      inset: CELL_PADDING_PX,
                       resolve: (rawT, snap) =>
                         constrainRetime(
                           play,
@@ -485,10 +496,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                           snap ? snapRadiusSeconds(pxPerCell) : 0,
                         ),
                       place: (element, value) => {
-                        element.style.left = leftPx(value, pxPerCell);
+                        element.style.left = markerLeftPx(value, pxPerCell);
                       },
                       restore: (element) => {
-                        element.style.left = leftPx(k.t, pxPerCell);
+                        element.style.left = markerLeftPx(k.t, pxPerCell);
                       },
                       commit: (value) => {
                         moveKeyframe(branchId, row.entityId, k.t, value);
@@ -501,11 +512,11 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                   position: 'absolute',
                   zIndex: 10,
                   top: '50%',
-                  left: leftPx(k.t, pxPerCell),
+                  left: markerLeftPx(k.t, pxPerCell),
                   touchAction: owned ? 'none' : undefined,
-                  // The cell that begins at its time, so the block fills the interval the keyframe
-                  // occupies on the grid, from its line to the next, at every zoom.
-                  width: cellPx(pxPerCell),
+                  // The cell that begins at its time, less a padding on each side, so the block sits
+                  // inside the interval the keyframe occupies on the grid, at every zoom.
+                  width: markerWidthPx(pxPerCell),
                   cursor: owned ? 'grab' : 'pointer',
                   transform: 'translateY(-50%)',
                 }}

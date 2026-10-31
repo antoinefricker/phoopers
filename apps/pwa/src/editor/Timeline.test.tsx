@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { TIME_GRID_S } from '../play2d/transportMath';
-import { TRACK_INSET_END_PX, TRACK_INSET_START_PX, leftPx, spanPx } from './timelineGeometry';
+import { TRACK_INSET_END_PX, TRACK_INSET_START_PX, leftPx, markerLeftPx, spanPx } from './timelineGeometry';
 import { ZOOM_LEVELS, xOfTime } from './timelineScale';
 import { Timeline } from './Timeline';
 import { LABEL_WIDTH } from './TimelineRow';
@@ -81,7 +81,7 @@ describe('Timeline', () => {
     const [, second] = markersIn(P1);
 
     // P1's keyframe at t=2, at 24px per 0.1s cell: a distance, not a share of the panel.
-    expect(second?.style.left).toBe(leftPx(2, LEVEL_1));
+    expect(second?.style.left).toBe(markerLeftPx(2, LEVEL_1));
   });
 
   it('selects a keyframe when its marker is clicked', async () => {
@@ -448,7 +448,7 @@ describe('retiming', () => {
     const user = userEvent.setup();
     const second = secondMarker(P1);
     const before = JSON.stringify(readProbe().play);
-    expect(second.style.left).toBe(leftPx(2, LEVEL_1));
+    expect(second.style.left).toBe(markerLeftPx(2, LEVEL_1));
 
     await user.pointer([
       { keys: '[MouseLeft>]', target: second },
@@ -456,7 +456,7 @@ describe('retiming', () => {
     ]);
 
     // The marker followed the pointer (so the gesture is live) yet nothing was committed.
-    expect(second.style.left).not.toBe(leftPx(2, LEVEL_1));
+    expect(second.style.left).not.toBe(markerLeftPx(2, LEVEL_1));
     expect(JSON.stringify(readProbe().play)).toBe(before);
   });
 

@@ -1,6 +1,6 @@
 import { Box, Text } from '@mantine/core';
 import type { ReactElement, ReactNode } from 'react';
-import { MARKER_HEIGHT_PX, TRACK_BAR_ATTRIBUTE } from '../timelineGeometry';
+import { CELL_PADDING_PX, MARKER_HEIGHT_PX, TRACK_BAR_ATTRIBUTE } from '../timelineGeometry';
 import type { BarGesture } from './BarHandle';
 
 export interface TrackBarProps {
@@ -89,7 +89,7 @@ export function TrackBar({
       {...(bar ?? {})}
       style={{
         position: 'absolute',
-        // Centred in its row, tall enough to hold a handle with BAR_PADDING_PX of bar around it.
+        // Centred in its row, tall enough to hold a handle with CELL_PADDING_PX of bar around it.
         top: `calc(50% - ${BAR_HEIGHT_PX / 2}px)`,
         height: BAR_HEIGHT_PX,
         left,
@@ -122,8 +122,11 @@ export function TrackBar({
             // Even on both sides, 8px, or past a handle where there is one: a handle covers a
             // whole cell and would sit over the message or the controls; the 2px it always left
             // is kept.
-            paddingLeft: hasStart ? `calc(${edgeWidth(handleWidth)} + 2px)` : Math.max(8, messageClearPx),
-            paddingRight: hasEnd ? `calc(${edgeWidth(handleWidth)} + 2px)` : 8,
+            paddingLeft: hasStart
+              ? `calc(${CELL_PADDING_PX}px + ${edgeWidth(handleWidth)} + 2px)`
+              : Math.max(8, messageClearPx),
+            paddingRight: hasEnd ? `calc(${CELL_PADDING_PX}px + ${edgeWidth(handleWidth)} + 2px)` : 8,
+            borderRadius: '4px',
             // Transparent as a whole, like the bar under it: a row's markers sit beneath a
             // screen and must stay grabbable. The controls opt back in for themselves.
             pointerEvents: 'none',
@@ -161,15 +164,20 @@ export function TrackBar({
   );
 }
 
-/** The bar's own padding around a handle, so the handle reads as sitting inside it. */
-export const BAR_PADDING_PX = 2;
+const BAR_HEIGHT_PX = MARKER_HEIGHT_PX + 2 * CELL_PADDING_PX;
 
-const BAR_HEIGHT_PX = MARKER_HEIGHT_PX + 2 * BAR_PADDING_PX;
+/**
+ * A handle's width: the cell less the padding on each side of it, so it sits that far from the
+ * separators either side. Never more than half the bar less that padding, which is what keeps two
+ * from overlapping.
+ */
+const edgeWidth = (handleWidth: string): string =>
+  `min(${handleWidth} - ${2 * CELL_PADDING_PX}px, 50% - ${CELL_PADDING_PX}px)`;
 
-/** A handle's width: a cell, but at most half the bar, which is what keeps two from overlapping. */
-const edgeWidth = (handleWidth: string): string => `min(${handleWidth}, 50%)`;
-
-/** Where a handle sits: the bar's edge, full height, the handle centring itself in it. */
+/**
+ * Where a handle sits: inside the bar's edge by CELL_PADDING_PX, full height, the handle
+ * centring itself in it.
+ */
 function HandleSlot({ edge, width, handle }: { edge: 'left' | 'right'; width: string; handle: ReactNode }) {
   return (
     <Box
@@ -177,7 +185,7 @@ function HandleSlot({ edge, width, handle }: { edge: 'left' | 'right'; width: st
         position: 'absolute',
         top: 0,
         bottom: 0,
-        [edge]: 0,
+        [edge]: CELL_PADDING_PX,
         width,
         display: 'flex',
         alignItems: 'center',

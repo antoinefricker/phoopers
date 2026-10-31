@@ -28,6 +28,12 @@ export interface TimeGesture {
    */
   anchor?: 'centre' | 'start' | 'end';
   /**
+   * How far the element is set in from the line its time is on, in px: a handle or a marker sits a
+   * padding inside its cell, so its edge is that far from the time it sets. Taken out of the grab,
+   * or every move would carry the padding along as a bias. Left out, none.
+   */
+  inset?: number;
+  /**
    * Turns a raw time into the value the gesture may actually take (the constraint). `snap` is
    * true for the pointer, which benefits from landing on a step, and false for the keyboard,
    * whose nudge is a deliberate amount the snap must not eat.
@@ -65,8 +71,13 @@ export function useTimeDrag(trackRef: RefObject<HTMLElement | null>, duration: n
       // Where on the element it was grabbed. The element follows the pointer's DELTA, not its
       // absolute position, so grabbing a marker off-centre does not make it jump on the first move.
       const box = event.currentTarget.getBoundingClientRect();
+      const inset = gesture.inset ?? 0;
       const anchorX =
-        gesture.anchor === 'start' ? box.left : gesture.anchor === 'end' ? box.right : box.left + box.width / 2;
+        gesture.anchor === 'start'
+          ? box.left - inset
+          : gesture.anchor === 'end'
+            ? box.right + inset
+            : box.left + box.width / 2;
       const grab = event.clientX - anchorX;
       active.current = {
         gesture,

@@ -10,7 +10,7 @@ import { BarHandle } from './bar/BarHandle';
 import { TrackBar } from './bar/TrackBar';
 import { TimeWindow } from './TimeWindow';
 import { LABEL_WIDTH, MIN_SCREEN_DURATION } from './TimelineRow';
-import { barResize, barResizeStart, cellPx, leftPx, spanPx } from './timelineGeometry';
+import { barResize, barResizeStart, CELL_PADDING_PX, cellPx, leftPx, spanPx } from './timelineGeometry';
 import { useEditorContext } from './useEditorContext';
 import { useTimeDrag } from './useTimeDrag';
 import { useTimelineViewportContext } from './useTimelineViewportContext';
@@ -178,6 +178,7 @@ export function StepRuler() {
                         current: step.t,
                         // The handle sits on the bar's left edge, which is the step's time.
                         anchor: 'start',
+                        inset: CELL_PADDING_PX,
                         // The step's own retime bounds first (the fork floor, its ceiling, the step
                         // marks it snaps to), then the window's: no earlier than the previous
                         // window ends, and a minimum duration left before the end that stays put.
@@ -210,6 +211,7 @@ export function StepRuler() {
                         // The handle sits inside the bar's last cell, and the end it sets is its
                         // right edge, not its middle.
                         anchor: 'end',
+                        inset: CELL_PADDING_PX,
                         // Floored at a screen's minimum and capped at the next step, or at the end
                         // of the play for a last step: two windows may never overlap.
                         resolve: (rawT) =>
