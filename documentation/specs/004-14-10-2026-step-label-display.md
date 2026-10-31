@@ -69,7 +69,7 @@ instant. The bar carries:
 
 Each handle fills one grid cell, the bar's first for the left handle and its last for the right
 one, so it occupies the interval whose edge it sets, as a keyframe's marker does. It is a cell
-wide at every zoom and never more than half the bar, which keeps the two apart on a window as
+wide less a cell padding on each side, at every zoom, and never more than half the bar, which keeps the two apart on a window as
 short as the minimum, one cell. The name and the controls sit between them rather than under
 them. A handle is grabbed by the edge it sets, so a pointer that takes it away from that edge
 does not shift the edge by the distance. A screen's bar, which this one shares its component
@@ -94,6 +94,17 @@ The bar is drawn by the same component as a screen's bar. A screen and a step la
 different things in the model — one is a play's content, the other is how it is annotated — but
 they are the same object on screen: a span with a draggable end and controls at its edge.
 Sharing the component is what lets the two be changed together later.
+
+That component, `TrackBar`, owns the layout of a bar and not the look of its parts. It is given a
+fill, an optional border and a message, a handle for each edge or none, and an ordered list of
+controls. The parts are three components of their own in `editor/bar/`, usable on any bar: a
+`BarHandle` (the corners' radius on each side, its fill and border colours and an optional icon,
+drawn as a keyframe's marker by default, being a `TimeMarker`, the block a keyframe's marker is too) and a `BarActionButton` (its fill, its fill under the
+pointer, an icon, the icon's colour and its width, which on the timeline is one grid cell, as a
+handle's is, and as tall as a marker). The bar is as tall as a marker plus a cell padding on each side, centred in its row, so it encloses its handles. It places each handle a cell padding (2px, one shared value) in from the cell separator at its edge, as wide as a cell less a padding on each side, and never more than half the bar less one padding. It keeps its message clear of the handles and of anything laid over
+its start. The ball's row draws its stretches with the same bar: a tinted one for possession, named after the holder as their row is, and one
+carrying the name of a pass or a shot, both the same orange. A player's row draws a teal bar named
+Dribble over each stretch where that player holds the ball at both ends and moves.
 
 ## Validation
 

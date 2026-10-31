@@ -1,17 +1,29 @@
-import { ActionIcon, Box, CloseButton, Menu, Text } from '@mantine/core';
+import { ActionIcon, Box, Menu, Text } from '@mantine/core';
 import { useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
-import { IconDots, IconEye, IconEyeOff, IconGripVertical, IconPencil, IconTrash } from '@tabler/icons-react';
+import { IconDots, IconEye, IconEyeOff, IconGripVertical, IconPencil, IconTrash, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityId, PlayerId, ScreenEvent, ScreenId } from '../engine';
+import { spanKindAt } from '../engine';
 import { useHiddenEntitiesContext } from '../play2d/useHiddenEntitiesContext';
 import { useSortable } from '@dnd-kit/sortable';
 import { ConfirmDelete } from './ConfirmDelete';
 import { entityName } from './entityName';
 import { RenamePlayer } from './RenamePlayer';
-import { TimelineBar } from './TimelineBar';
+import { BarActionButton } from './bar/BarActionButton';
+import { BarHandle } from './bar/BarHandle';
+import { TimeMarker } from './bar/TimeMarker';
+import { TrackBar } from './bar/TrackBar';
 import { constrainRetime } from './constraints';
-import { MARKER_HEIGHT_PX, barResize, cellPx, leftPx, rowsOf, spanPx } from './timelineGeometry';
+import {
+  barResize,
+  CELL_PADDING_PX,
+  cellPx,
+  leftPx,
+  markerLeftPx,
+  markerWidthPx,
+  rowsOf,
+  spanPx,
+} from './timelineGeometry';
 import { TimeWindow } from './TimeWindow';
 import { GUTTER_WIDTH, TIME_GRID_S } from '../play2d/transportMath';
 import { BallSymbolBadge, PlayerSymbolBadge } from '../play2d/PlayerSymbol';
@@ -44,6 +56,10 @@ export const MIN_SCREEN_DURATION = TIME_GRID_S;
 const ROW_SYMBOL_PX = 24;
 // Between a keyframe marker and the caption of the bar it sits on.
 const MARKER_CAPTION_GAP_PX = 4;
+// Every stretch of the ball's row is orange; a player's dribble has a tint of its own, distinct from
+// the blue of a screen.
+const BALL_BACKGROUND = 'var(--mantine-color-orange-light)';
+const DRIBBLE_BACKGROUND = 'var(--mantine-color-teal-light)';
 
 export function TimelineRow({ row, duration, screens, selection, onSelectKeyframe, onKeyframeRetimed }: Props) {
   const { t } = useTranslation();
@@ -300,78 +316,86 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
           style={{ position: 'relative', width: '100%', height: '100%' }}
         >
           {screens.map((screen) => (
-            <TimelineBar
+            <TrackBar
               key={screen.id}
               testId={`screen-bar-${screen.id}`}
               inherited={!ownScreenIds.has(screen.id)}
               left={leftPx(screen.t, pxPerCell)}
               width={spanPx(screen.t, screen.t + screen.duration, pxPerCell)}
               // The offense's blue: a block reads as belonging to the attack rather than carrying
-              // a colour of its own. The bar makes its own fill and handle from it.
-              color="blue"
+              // a colour of its own.
+              background="var(--mantine-color-blue-light)"
               handleWidth={cellPx(pxPerCell)}
-              captionClearPx={markerClearance(screen.t)}
-              handle={
-                ownScreenIds.has(screen.id)
-                  ? {
-                      testId: `screen-handle-${screen.id}`,
-                      label: t('play.editor.screenDuration', 'Screen duration'),
-                      bind: bind({
-                        current: screen.t + screen.duration,
-                        // The handle fills the bar's last cell, and the end it sets is its right edge.
-                        anchor: 'end',
-                        // The edge cannot go left of the screen's own start: it floors at a minimum duration.
-                        resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
-                        ...barResize(screen.t, screen.t + screen.duration, pxPerCell),
-                        commit: (end) => setScreenDuration(screen.id, end - screen.t),
-                      }),
-                    }
-                  : undefined
+              messageClearPx={markerClearance(screen.t)}
+              endHandle={
+                ownScreenIds.has(screen.id) ? (
+                  <BarHandle
+                    testId={`screen-handle-${screen.id}`}
+                    label={t('play.editor.screenDuration', 'Screen duration')}
+                    bind={bind({
+                      current: screen.t + screen.duration,
+                      // The handle fills the bar's last cell, and the end it sets is its right edge.
+                      anchor: 'end',
+                      inset: CELL_PADDING_PX,
+                      // The edge cannot go left of the screen's own start: it floors at a minimum duration.
+                      resolve: (rawT) => Math.max(rawT, screen.t + MIN_SCREEN_DURATION),
+                      ...barResize(screen.t, screen.t + screen.duration, pxPerCell),
+                      commit: (end) => setScreenDuration(screen.id, end - screen.t),
+                    })}
+                  />
+                ) : null
               }
               actions={
-                ownScreenIds.has(screen.id) ? (
-                  <CloseButton
-                    size="xs"
-                    // The bar's own colour, as the step label bar's controls wear theirs.
-                    c="blue"
-                    data-testid={`screen-remove-${screen.id}`}
-                    aria-label={t('play.editor.removeScreen', 'Remove screen')}
-                    onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
-                  />
-                ) : undefined
+                ownScreenIds.has(screen.id)
+                  ? [
+                      <BarActionButton
+                        key="remove"
+                        testId={`screen-remove-${screen.id}`}
+                        label={t('play.editor.removeScreen', 'Remove screen')}
+                        icon={<IconX size={12} stroke={1.5} />}
+                        // The bar's own colour, as the step label bar's controls wear theirs.
+                        iconColor="var(--mantine-color-blue-filled)"
+                        hoverBackground="var(--mantine-color-blue-light-hover)"
+                        width={cellPx(pxPerCell)}
+                        onClick={() => setRemoving((r) => ({ target: screen.id, opened: true, count: r.count + 1 }))}
+                      />,
+                    ]
+                  : []
               }
               // What the block IS, which nothing said before: a bar carried no meaning on its own,
               // and the beneficiary only appeared in the removal dialog. The row already names the
-              // screener, so the caption names the other half. Elided by the bar when it is too
+              // screener, so the message names the other half. Elided by the bar when it is too
               // narrow — the full text stays in the DOM, and an ellipsis is a painting, so a
               // screen reader reads all of it either way.
-              caption={t('play.editor.screenFor', 'Screen for {{label}}', {
+              message={t('play.editor.screenFor', 'Screen for {{label}}', {
                 label: nameOfPlayer(screen.beneficiaryId),
               })}
-            ></TimelineBar>
+            />
           ))}
           {isBall &&
             row.keyframes.map((k, index) => {
               const next = row.keyframes[index + 1];
               if (next === undefined) return null;
 
-              const geometry: CSSProperties = {
-                position: 'absolute',
-                top: '25%',
-                height: '50%',
-                left: leftPx(k.t, pxPerCell),
-                width: spanPx(k.t, next.t, pxPerCell),
-              };
+              // Where the stretch sits on the row, as a bar's own box: its time and its width.
+              const left = leftPx(k.t, pxPerCell);
+              const width = spanPx(k.t, next.t, pxPerCell);
 
               // Held, and by the same player at both ends: a pass has two attached ends too, but
               // to different players, and the ball is in the air between them with nothing to
               // tint. Tinting it read as possession and contradicted the row's own hollow marker.
               if (k.attachedTo !== undefined && k.attachedTo === next.attachedTo) {
                 return (
-                  <Box
+                  <TrackBar
                     key={`${k.t}-possession`}
-                    data-testid={`possession-${k.t}`}
-                    style={{ ...geometry, background: 'var(--mantine-color-orange-light)' }}
+                    testId={`possession-${k.t}`}
+                    left={left}
+                    width={width}
+                    background={BALL_BACKGROUND}
+                    // The holder, named as their own row is. Past the marker that opens the
+                    // stretch, as a flight's name is.
+                    messageClearPx={xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}
+                    message={nameOfPlayer(k.attachedTo)}
                   />
                 );
               }
@@ -380,43 +404,48 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
               // hands makes it a pass; leaving one for a point on the court makes it a shot. A
               // stretch that is loose at BOTH ends — a bounce, a roll, two authored positions —
               // was shot by nobody, so it carries no name rather than claiming a shot no one took.
-              const name =
-                next.attachedTo !== undefined
-                  ? t('play.timeline.pass', 'Pass')
-                  : k.attachedTo === undefined
-                    ? undefined
-                    : t('play.timeline.shot', 'Shot');
+              const isPass = next.attachedTo !== undefined;
+              const name = isPass
+                ? t('play.timeline.pass', 'Pass')
+                : k.attachedTo === undefined
+                  ? undefined
+                  : t('play.timeline.shot', 'Shot');
               if (name === undefined) return null;
 
               return (
-                <Box
+                <TrackBar
                   key={`${k.t}-flight`}
-                  data-testid={`flight-${k.t}`}
-                  style={{
-                    ...geometry,
-                    // Anchored to the marker that opens the flight rather than centred on it,
-                    // and lifted clear of the tinted stretches so the word reads above the row's
-                    // own line instead of level with it. The horizontal nudge is padding, not
-                    // part of the transform: moving the BOX pushed the last flight's label past
-                    // the end of the track, which grew the panel a horizontal scrollbar.
-                    // Past the marker that opens the flight, which fills the first cell of the
-                    // box and sits above it.
-                    transform: 'translateY(-7px)',
-                    paddingLeft: `${xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}px`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    fontSize: 'var(--mantine-font-size-xs)',
-                    color: 'var(--mantine-color-dimmed)',
-                    // A flight can be a fraction of a second wide, so the label gives way rather
-                    // than running over the possession on either side of it.
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {name}
-                </Box>
+                  testId={`flight-${k.t}`}
+                  left={left}
+                  width={width}
+                  background={BALL_BACKGROUND}
+                  // Past the marker that opens the flight, which fills the first cell of the box
+                  // and sits above it. A flight can be a fraction of a second wide, so the word
+                  // gives way rather than running over the possession on either side of it.
+                  messageClearPx={xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}
+                  message={name}
+                />
+              );
+            })}
+          {/* A dribble is the player moving while holding the ball, so it is read off the ball's own
+              stretches: those held by this player at both ends, and where they move. A player's own
+              keyframes would not do, since one can span a pass and be held for only part of it. */}
+          {!isBall &&
+            (timeline.anchors['ball'] ?? []).map((k, index, ballKeyframes) => {
+              const next = ballKeyframes[index + 1];
+              if (next === undefined || k.attachedTo !== row.entityId || next.attachedTo !== row.entityId) return null;
+              if (spanKindAt(timeline, row.entityId as PlayerId, (k.t + next.t) / 2) !== 'dribble') return null;
+
+              return (
+                <TrackBar
+                  key={`${k.t}-dribble`}
+                  testId={`dribble-${k.t}`}
+                  left={leftPx(k.t, pxPerCell)}
+                  width={spanPx(k.t, next.t, pxPerCell)}
+                  background={DRIBBLE_BACKGROUND}
+                  messageClearPx={xOfTime(TIME_GRID_S, pxPerCell) + MARKER_CAPTION_GAP_PX}
+                  message={t('play.timeline.dribble', 'Dribble')}
+                />
               );
             })}
           {row.keyframes.map((k, index) => {
@@ -429,12 +458,11 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
             const owned = ownTrack.some((own) => own.t === k.t);
 
             return (
-              <button
+              <TimeMarker
                 // Keyed by position, not by time: a retime changes `k.t`, and a key change would
                 // remount the button and drop the focus the keyboard nudge needs to keep. The
                 // constraints forbid a keyframe crossing its neighbour, so the order never moves.
                 key={index}
-                type="button"
                 data-kind={hollow ? 'position' : 'attached'}
                 aria-pressed={selected}
                 // Shape and colour carry the ball's possession on screen; neither reaches
@@ -456,6 +484,7 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                       // The block's left edge is its time, not its middle: measuring the grab from
                       // the middle would shift it half a cell on the first move.
                       anchor: 'start',
+                      inset: CELL_PADDING_PX,
                       resolve: (rawT, snap) =>
                         constrainRetime(
                           play,
@@ -467,10 +496,10 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                           snap ? snapRadiusSeconds(pxPerCell) : 0,
                         ),
                       place: (element, value) => {
-                        element.style.left = leftPx(value, pxPerCell);
+                        element.style.left = markerLeftPx(value, pxPerCell);
                       },
                       restore: (element) => {
-                        element.style.left = leftPx(k.t, pxPerCell);
+                        element.style.left = markerLeftPx(k.t, pxPerCell);
                       },
                       commit: (value) => {
                         moveKeyframe(branchId, row.entityId, k.t, value);
@@ -478,32 +507,18 @@ export function TimelineRow({ row, duration, screens, selection, onSelectKeyfram
                       },
                     })
                   : {})}
+                selected={selected}
                 style={{
                   position: 'absolute',
                   zIndex: 10,
                   top: '50%',
-                  left: leftPx(k.t, pxPerCell),
+                  left: markerLeftPx(k.t, pxPerCell),
                   touchAction: owned ? 'none' : undefined,
-                  // The cell that begins at its time, so the block fills the interval the keyframe
-                  // occupies on the grid, from its line to the next, at every zoom.
-                  width: cellPx(pxPerCell),
-                  height: MARKER_HEIGHT_PX,
-                  padding: 0,
-                  borderRadius: 2,
+                  // The cell that begins at its time, less a padding on each side, so the block sits
+                  // inside the interval the keyframe occupies on the grid, at every zoom.
+                  width: markerWidthPx(pxPerCell),
                   cursor: owned ? 'grab' : 'pointer',
                   transform: 'translateY(-50%)',
-                  // Selection is the border: the app's own colour and thicker, since a white fill
-                  // leaves nothing else to carry it. The PRIMARY, not a named blue: it used to be
-                  // `blue-filled`, which is byte for byte the blue an offense token wears, so a
-                  // selected marker on an attacker's row was outlined in "offense" and selection
-                  // stopped being a signal of its own.
-                  border: selected
-                    ? `2px solid var(--mantine-primary-color-filled)`
-                    : `1px solid var(--mantine-color-gray-5)`,
-                  // White everywhere except a held ball, which keeps a tint: the filled-versus-
-                  // hollow contrast used to be the only thing showing possession on screen, and
-                  // dropping it would leave that to the accessible name alone.
-                  background: isBall && !hollow ? 'var(--mantine-color-orange-1)' : 'var(--mantine-color-white)',
                 }}
               />
             );

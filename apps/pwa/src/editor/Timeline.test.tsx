@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { Play, StepId } from '../engine';
 import { fixturePlay, P1, P2, ROOT, SCREEN_1, SWITCH } from '../engine/__fixtures__/play';
 import { TIME_GRID_S } from '../play2d/transportMath';
-import { TRACK_INSET_END_PX, TRACK_INSET_START_PX, leftPx, spanPx } from './timelineGeometry';
+import { TRACK_INSET_END_PX, TRACK_INSET_START_PX, leftPx, markerLeftPx, spanPx } from './timelineGeometry';
 import { ZOOM_LEVELS, xOfTime } from './timelineScale';
 import { Timeline } from './Timeline';
 import { LABEL_WIDTH } from './TimelineRow';
@@ -81,7 +81,7 @@ describe('Timeline', () => {
     const [, second] = markersIn(P1);
 
     // P1's keyframe at t=2, at 24px per 0.1s cell: a distance, not a share of the panel.
-    expect(second?.style.left).toBe(leftPx(2, LEVEL_1));
+    expect(second?.style.left).toBe(markerLeftPx(2, LEVEL_1));
   });
 
   it('selects a keyframe when its marker is clicked', async () => {
@@ -174,6 +174,14 @@ describe('Timeline', () => {
     expect(within(rowFor('ball')).getAllByTestId(/^possession-/)).toHaveLength(2);
   });
 
+  it("names the holder on a possession bar, as the holder's own row is named", () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const [first, second] = within(rowFor('ball')).getAllByTestId(/^possession-/);
+
+    expect(first).toHaveTextContent('Offense 1');
+    expect(second).toHaveTextContent('Offense 2');
+  });
+
   it('names the flight between two carriers a pass', () => {
     renderEditor(fixturePlay, <Timeline />);
     const flights = within(rowFor('ball')).getAllByTestId(/^flight-/);
@@ -189,6 +197,29 @@ describe('Timeline', () => {
 
     // 1-3 is the shot; 3-4 is the ball travelling from where it landed into P2's hands.
     expect(flights.map((f) => f.textContent)).toEqual(['Shot', 'Pass']);
+  });
+
+  it("tints every stretch of the ball's row orange", () => {
+    renderEditor(releasedBall, <Timeline />);
+    const ball = within(rowFor('ball'));
+    const bars = [...ball.getAllByTestId(/^flight-/), ...ball.getAllByTestId(/^possession-/)];
+
+    for (const bar of bars) expect(bar.style.background).toContain('orange');
+  });
+
+  it('draws a dribble as a bar on the row of the player who holds the ball while moving', () => {
+    renderEditor(fixturePlay, <Timeline />);
+    const dribbles = within(rowFor(P1)).getAllByTestId(/^dribble-/);
+
+    expect(dribbles[0]).toHaveTextContent('Dribble');
+    expect(dribbles[0]?.style.background).toContain('teal');
+    // P1 holds it 0-1 only; P2 takes it at 2 and carries it to 4.
+    expect(dribbles.map((d) => d.dataset['testid'])).toEqual(['dribble-0']);
+    expect(
+      within(rowFor(P2))
+        .getAllByTestId(/^dribble-/)
+        .map((d) => d.dataset['testid']),
+    ).toEqual(['dribble-2']);
   });
 
   it('names no shot when the ball was already loose', () => {
@@ -247,38 +278,37 @@ describe('Timeline', () => {
     expect(ball.getAllByTestId(/^possession-/)).toHaveLength(1);
   });
 
-  it('offsets a flight label inside its own box, so the last one cannot leave the track', () => {
-    // The label is nudged clear of the marker that opens the flight. Done with a transform it
-    // moved the BOX, and the last flight ends at the end of the track: measured in a browser,
-    // its label sat 6px past the panel and grew a horizontal scrollbar. Padding moves the text
-    // within a box that still ends where the track does.
+  it('draws a flight as a tinted bar in the place of a possession, with no transform', () => {
+    // A transform would move the BOX, and the last flight ends at the end of the track: measured
+    // in a browser, its label sat 6px past the panel and grew a horizontal scrollbar.
     renderEditor(fixturePlay, <Timeline />);
-    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
-    if (label === undefined) throw new Error('expected a flight label');
+    const flight = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (flight === undefined) throw new Error('expected a flight label');
 
-    expect(label.style.paddingLeft).not.toBe('');
-    expect(label.style.transform).not.toContain('translate(');
+    expect(flight.style.top).toBe('calc(50% - 11px)');
+    expect(flight.style.transform).toBe('');
   });
 
   it('starts a flight label past the marker that opens the flight', () => {
     // The marker fills the first cell of the flight, 24px at the default zoom, and sits above it.
     renderEditor(fixturePlay, <Timeline />);
-    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
-    if (label === undefined) throw new Error('expected a flight label');
+    const flight = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (flight === undefined) throw new Error('expected a flight label');
 
-    expect(label.style.paddingLeft).toBe('28px');
+    expect(within(flight).getByTestId('bar-caption').parentElement?.style.paddingLeft).toBe('28px');
   });
 
   it('keeps a flight label from spilling into its neighbours', () => {
     // A flight can be a fraction of a second wide. The label has to give way rather than run
     // over the possession on either side of it.
     renderEditor(fixturePlay, <Timeline />);
-    const label = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
-    if (label === undefined) throw new Error('expected a flight label');
+    const flight = within(rowFor('ball')).getAllByTestId(/^flight-/)[0];
+    if (flight === undefined) throw new Error('expected a flight label');
+    const label = within(flight).getByTestId('bar-caption');
 
-    expect(label.style.overflow).toBe('hidden');
-    expect(label.style.whiteSpace).toBe('nowrap');
-    expect(label.style.textOverflow).toBe('ellipsis');
+    // Mantine draws the ellipsis from a class, which jsdom does not apply: the attribute is the
+    // thing to read.
+    expect(label).toHaveAttribute('data-truncate', 'end');
   });
 
   it('breaks possession where the ball is released, and marks that keyframe hollow', () => {
@@ -418,7 +448,7 @@ describe('retiming', () => {
     const user = userEvent.setup();
     const second = secondMarker(P1);
     const before = JSON.stringify(readProbe().play);
-    expect(second.style.left).toBe(leftPx(2, LEVEL_1));
+    expect(second.style.left).toBe(markerLeftPx(2, LEVEL_1));
 
     await user.pointer([
       { keys: '[MouseLeft>]', target: second },
@@ -426,7 +456,7 @@ describe('retiming', () => {
     ]);
 
     // The marker followed the pointer (so the gesture is live) yet nothing was committed.
-    expect(second.style.left).not.toBe(leftPx(2, LEVEL_1));
+    expect(second.style.left).not.toBe(markerLeftPx(2, LEVEL_1));
     expect(JSON.stringify(readProbe().play)).toBe(before);
   });
 

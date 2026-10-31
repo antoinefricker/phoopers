@@ -18,6 +18,13 @@ export interface TimelineRowModel {
 // fixed here.
 export const MARKER_HEIGHT_PX = 18;
 
+/**
+ * The gap between a bar's parts and the lines they sit between: a handle is set in from the cell
+ * separators on either side of it, and the bar is this much taller than a marker on each side. One
+ * value for all of them, so changing it changes them together.
+ */
+export const CELL_PADDING_PX = 2;
+
 /** The width of one grid cell at this zoom, which is the width of a keyframe marker. */
 export const cellPx = (pxPerCell: number): string => `${xOfTime(TIME_GRID_S, pxPerCell)}px`;
 
@@ -72,6 +79,13 @@ export function gridTicks(duration: number): GridTick[] {
 /** A time as a distance from the start of the timeline, ready for a bar's `left`. */
 export const leftPx = (t: number, pxPerCell: number): string => `${xOfTime(t, pxPerCell)}px`;
 
+/** Where a keyframe marker's box starts: its cell's separator, plus the padding. */
+export const markerLeftPx = (t: number, pxPerCell: number): string => `${xOfTime(t, pxPerCell) + CELL_PADDING_PX}px`;
+
+/** A keyframe marker's width: the cell less the padding on each side, as a bar's handle is. */
+export const markerWidthPx = (pxPerCell: number): string =>
+  `${xOfTime(TIME_GRID_S, pxPerCell) - 2 * CELL_PADDING_PX}px`;
+
 /** The span from `from` to `to` as a distance, ready for a bar's `width`. */
 export const spanPx = (from: number, to: number, pxPerCell: number): string =>
   `${xOfTime(to, pxPerCell) - xOfTime(from, pxPerCell)}px`;
@@ -88,9 +102,17 @@ export const spanPx = (from: number, to: number, pxPerCell: number): string =>
  * abandoned. A handle with no parent writes nothing rather than throwing: the drag is a
  * presentational preview, and the commit that follows it reads the model, not the DOM.
  */
+/**
+ * The attribute a bar wears so that a handle's drag can find it: the preview writes the bar's
+ * geometry, and the handle is not its direct child, since the bar gives each handle a slot.
+ */
+export const TRACK_BAR_ATTRIBUTE = 'data-track-bar';
+
+const barOf = (handle: HTMLElement): HTMLElement | null => handle.closest<HTMLElement>(`[${TRACK_BAR_ATTRIBUTE}]`);
+
 export function barResize(from: number, to: number, pxPerCell: number) {
   const setWidth = (element: HTMLElement, end: number) => {
-    const bar = element.parentElement;
+    const bar = barOf(element);
     if (bar !== null) bar.style.width = spanPx(from, end, pxPerCell);
   };
 
@@ -108,7 +130,7 @@ export function barResize(from: number, to: number, pxPerCell: number) {
  */
 export function barResizeStart(end: number, from: number, pxPerCell: number) {
   const setStart = (element: HTMLElement, start: number) => {
-    const bar = element.parentElement;
+    const bar = barOf(element);
     if (bar === null) return;
 
     bar.style.left = leftPx(start, pxPerCell);

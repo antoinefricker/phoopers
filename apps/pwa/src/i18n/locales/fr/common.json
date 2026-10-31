@@ -235,6 +235,7 @@
       "visibility": "Qui peut le voir"
     },
     "timeline": {
+      "dribble": "Dribble",
       "pass": "Passe",
       "shot": "Tir",
       "zoomIn": "Zoomer",

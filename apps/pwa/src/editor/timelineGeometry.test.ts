@@ -5,7 +5,9 @@ import {
   TRACK_INSET_END_PX,
   TRACK_INSET_START_PX,
   cellPx,
+  TRACK_BAR_ATTRIBUTE,
   barResize,
+  barResizeStart,
   gridTicks,
   leftPx,
   rowsOf,
@@ -212,21 +214,26 @@ describe('placing a time', () => {
 });
 
 describe('barResize', () => {
-  // The handle is a child of the bar it resizes, which is the relationship the helper encodes.
+  // The handle sits in a slot of the bar it resizes, which is the relationship the helper encodes:
+  // it finds the bar, and leaves the slot alone.
   const handleInBar = () => {
     const bar = document.createElement('div');
+    bar.setAttribute(TRACK_BAR_ATTRIBUTE, '');
+    const slot = document.createElement('div');
     const handle = document.createElement('button');
-    bar.appendChild(handle);
+    slot.appendChild(handle);
+    bar.appendChild(slot);
 
-    return { bar, handle };
+    return { bar, slot, handle };
   };
 
   it('writes the width of the bar the handle sits on, not the handle', () => {
-    const { bar, handle } = handleInBar();
+    const { bar, slot, handle } = handleInBar();
 
     barResize(2, 4, 24).place(handle, 6);
 
     expect(bar.style.width).toBe('960px');
+    expect(slot.style.width).toBe('');
     expect(handle.style.width).toBe('');
   });
 
@@ -253,5 +260,23 @@ describe('barResize', () => {
 
     expect(() => barResize(2, 4, 24).place(orphan, 6)).not.toThrow();
     expect(() => barResize(2, 4, 24).restore(orphan)).not.toThrow();
+  });
+});
+
+describe('barResizeStart', () => {
+  it('moves the left edge of the bar the handle sits on, through its slot', () => {
+    const bar = document.createElement('div');
+    bar.setAttribute(TRACK_BAR_ATTRIBUTE, '');
+    const slot = document.createElement('div');
+    const handle = document.createElement('button');
+    slot.appendChild(handle);
+    bar.appendChild(slot);
+
+    barResizeStart(6, 2, 24).place(handle, 4);
+
+    expect(bar.style.left).toBe('960px');
+    expect(bar.style.width).toBe('480px');
+    expect(slot.style.left).toBe('');
+    expect(slot.style.width).toBe('');
   });
 });

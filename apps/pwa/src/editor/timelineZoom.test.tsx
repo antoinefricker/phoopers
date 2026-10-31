@@ -4,7 +4,7 @@ import { fixturePlay, P1, SCREEN_1, STEP_ENTRY } from '../engine/__fixtures__/pl
 import { PlayView } from '../play2d/PlayView';
 import { stubViewportWidth } from '../testUtils/viewport';
 import { enterEditMode, renderEditor } from './testUtils/renderEditor';
-import { TRACK_INSET_END_PX, TRACK_INSET_START_PX, leftPx } from './timelineGeometry';
+import { TRACK_INSET_END_PX, TRACK_INSET_START_PX, markerLeftPx } from './timelineGeometry';
 
 beforeEach(() => stubViewportWidth(1440));
 afterEach(() => vi.restoreAllMocks());
@@ -69,8 +69,8 @@ describe('a keyframe marker occupies its grid cell', () => {
       for (const marker of markers()) {
         const time = Number(/Keyframe at ([\d.]+)s/.exec(marker.getAttribute('aria-label') ?? '')?.[1]);
 
-        expect(marker.style.left).toBe(leftPx(time, px));
-        expect(marker.style.width).toBe(`${px}px`);
+        expect(marker.style.left).toBe(markerLeftPx(time, px));
+        expect(marker.style.width).toBe(`${px - 4}px`);
       }
       if (px > 6) fireEvent.click(zoomOut());
     }
@@ -143,13 +143,33 @@ describe('a keyframe marker occupies its grid cell', () => {
 describe('the handles of a bar occupy a grid cell', () => {
   const handleIds = [`step-start-handle-${STEP_ENTRY}`, `step-handle-${STEP_ENTRY}`, `screen-handle-${SCREEN_1}`];
 
-  it('are one cell wide at every zoom, and never more than half their bar', async () => {
+  it('sit a cell less twice the padding wide at every zoom, and are never more than half their bar', async () => {
     await renderTimeline();
 
     for (const px of [24, 18, 12, 6]) {
       for (const id of handleIds) {
         // `min()` is what keeps two handles on a bar as short as it may be from covering each other.
-        expect(screen.getByTestId(id).style.width).toBe(`min(${px}px, 50%)`);
+        // The bar gives its handle a slot that is as wide as the handle.
+        expect(screen.getByTestId(id).parentElement?.style.width).toBe(`min(${px - 4}px, 50% - 2px)`);
+      }
+      if (px > 6) fireEvent.click(zoomOut());
+    }
+  });
+});
+
+describe('the controls of a bar occupy a grid cell', () => {
+  it('are one cell wide at every zoom', async () => {
+    await renderTimeline();
+    const controls = () => [
+      screen.getByRole('button', { name: 'Edit Entry pass' }),
+      screen.getByRole('button', { name: 'Remove Entry pass' }),
+      screen.getByTestId(`screen-remove-${SCREEN_1}`),
+    ];
+
+    for (const px of [24, 18, 12, 6]) {
+      for (const control of controls()) {
+        expect(control.style.width).toBe(`${px}px`);
+        expect(control.style.minWidth).toBe(`${px}px`);
       }
       if (px > 6) fireEvent.click(zoomOut());
     }
